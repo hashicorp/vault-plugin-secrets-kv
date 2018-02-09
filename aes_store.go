@@ -173,6 +173,7 @@ func (s *EncryptedKeyStorage) List(ctx context.Context, prefix string) ([]string
 		// Add the slash back to the plaintext value
 		if appendSlash {
 			plaintext += "/"
+			k += "/"
 		}
 
 		// We want to store the unencoded version of the key in the cache.
