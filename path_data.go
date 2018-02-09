@@ -11,6 +11,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/vault/helper/locksutil"
+	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -28,6 +29,14 @@ func pathData(b *versionedKVBackend) *framework.Path {
 		Fields: map[string]*framework.FieldSchema{
 			"version": {
 				Type:        framework.TypeInt,
+				Description: "",
+			},
+			"options": {
+				Type:        framework.TypeMap,
+				Description: "",
+			},
+			"data": {
+				Type:        framework.TypeMap,
 				Description: "",
 			},
 		},
@@ -133,7 +142,32 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 		}
 
-		marshaledData, err := json.Marshal(data.Raw)
+		var versionTTL int64
+
+		optionsRaw, ok := data.GetOk("options")
+		if ok {
+			options := optionsRaw.(map[string]interface{})
+
+			cas, ok := options["cas"]
+			if ok && uint64(cas.(float64)) != meta.CurrentVersion {
+				return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
+			}
+
+			versionTTLRaw, ok := options["version_ttl"]
+			if ok {
+				dur, err := parseutil.ParseDurationSecond(versionTTLRaw.(string))
+				if err != nil {
+					return nil, err
+				}
+				versionTTL = int64(dur.Seconds())
+			}
+		}
+
+		dataRaw, ok := data.GetOk("data")
+		if !ok {
+			return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
+		}
+		marshaledData, err := json.Marshal(dataRaw.(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}
@@ -159,14 +193,21 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		meta.AddVersion(ptypes.TimestampNow())
+		var archiveTime *timestamp.Timestamp
+		if versionTTL > 0 {
+			archiveTime = &timestamp.Timestamp{}
+			*archiveTime = *(version.CreatedTime)
+			archiveTime.Seconds += versionTTL
+		}
+
+		meta.AddVersion(version.CreatedTime, archiveTime)
 
 		b.writeKeyMetadata(ctx, req.Storage, meta)
 
 		return &logical.Response{
 			Data: map[string]interface{}{
 				"version":      meta.CurrentVersion,
-				"archive_time": ptypes.TimestampString(meta.Versions[meta.CurrentVersion].ArchiveTime),
+				"archive_time": ptypes.TimestampString(archiveTime),
 			},
 		}, nil
 	}
@@ -224,10 +265,11 @@ func (k *KeyMetadata) LatestVersionMeta() *VersionMetadata {
 	return k.Versions[k.CurrentVersion]
 }
 
-func (k *KeyMetadata) AddVersion(createdTime *timestamp.Timestamp) {
+func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp) {
 	k.CurrentVersion++
 	k.Versions[k.CurrentVersion] = &VersionMetadata{
 		CreatedTime: createdTime,
+		ArchiveTime: archiveTime,
 	}
 
 	k.UpdatedTime = createdTime

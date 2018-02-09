@@ -6,6 +6,7 @@ import "google/protobuf/timestamp.proto";
 message Configuration {
     int64 TTL = 1;
     uint32 max_versions = 2;
+    bool cas_required = 3;
 }
 
 message VersionMetadata {
@@ -46,12 +47,12 @@ message KeyMetadata {
 	// VersionTTL specifies how long to keep versions 
     // around. If empty value, defaults to the configured
     // TTL for the mount.
-	uint64 version_TTL = 7;
+	int64 versionTTL = 7;
 
     // MaxVersions specifies how many versions to keep around. 
     // If empty value, defaults to the configured Max 
     // for the mount.
-	int64 max_versions = 8;
+	uint32 max_versions = 8;
 
 	// CasRequired specifies if the cas parameter is 
     // required for this key
