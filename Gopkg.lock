@@ -116,7 +116,7 @@
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
-  branch = "fix-grpc-special-paths"
+  branch = "master"
   name = "github.com/hashicorp/vault"
   packages = [
     "api",
@@ -142,7 +142,7 @@
     "logical/plugin/pb",
     "version"
   ]
-  revision = "2fd488e7e5192876ffd49aa54fbdd16cc491f499"
+  revision = "1bad693a01982321198750e9ad1e8a9ed453a6d9"
 
 [[projects]]
   branch = "master"
@@ -191,6 +191,12 @@
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
   revision = "a4e142e9c047c904fa2f1e144d9a84e6133024bc"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mr-tron/base58"
+  packages = ["base58"]
+  revision = "c1bdf7c52f59d6685ca597b9955a443ff95eeee6"
 
 [[projects]]
   name = "github.com/oklog/run"
@@ -301,6 +307,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4f868d0124e4181d9a9c272b7c203b1691adf8348cecd4c59cef1006f0e48ba7"
+  inputs-digest = "de20ada26b24d9602cf576bd47f72886717f18ff6c384a987df6c13607a010cd"
   solver-name = "gps-cdcl"
   solver-version = 1
