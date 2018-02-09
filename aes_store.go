@@ -136,36 +136,48 @@ func (s *EncryptedKeyStorage) List(ctx context.Context, prefix string) ([]string
 	context := []byte(paths.Join(s.prefix, prefix))
 
 	for i, k := range keys {
-		var plaintext string
 		raw, ok := s.lru.Get(k)
 		if ok {
-			// cahce HIT, we can skip the decode & decrypt operations.
-			plaintext = raw.(string)
-		} else {
-			// Cache MISS, we should decode and decrypt the data.
-			decoded, err := base58.Decode(k)
-			if err != nil {
-				return nil, err
-			}
-
-			// Decrypt the data with the object's key policy.
-			encodedPlaintext, err := s.policy.Decrypt(context, nil, string(decoded[:]))
-			if err != nil {
-				return nil, err
-			}
-
-			// The plaintext is still base64 encoded, decode it.
-			decoded, err = base64.StdEncoding.DecodeString(encodedPlaintext)
-			if err != nil {
-				return nil, err
-			}
-
-			plaintext = string(decoded[:])
-
-			// We want to store the unencoded version of the key in the cache.
-			// This will make it more performent when it's a HIT.
-			s.lru.Add(k, plaintext)
+			// cahce HIT, we can bail early and skip the decode & decrypt operations.
+			decryptedKeys[i] = raw.(string)
+			continue
 		}
+
+		// If a folder is included in the keys it will have a trailing "/".
+		// We need to remove this before decoding/decrypting and add it back
+		// later.
+		appendSlash := strings.HasSuffix(k, "/")
+		if appendSlash {
+			k = strings.TrimSuffix(k, "/")
+		}
+
+		decoded, err := base58.Decode(k)
+		if err != nil {
+			return nil, err
+		}
+
+		// Decrypt the data with the object's key policy.
+		encodedPlaintext, err := s.policy.Decrypt(context, nil, string(decoded[:]))
+		if err != nil {
+			return nil, err
+		}
+
+		// The plaintext is still base64 encoded, decode it.
+		decoded, err = base64.StdEncoding.DecodeString(encodedPlaintext)
+		if err != nil {
+			return nil, err
+		}
+
+		plaintext := string(decoded[:])
+
+		// Add the slash back to the plaintext value
+		if appendSlash {
+			plaintext += "/"
+		}
+
+		// We want to store the unencoded version of the key in the cache.
+		// This will make it more performent when it's a HIT.
+		s.lru.Add(k, plaintext)
 
 		decryptedKeys[i] = plaintext
 	}

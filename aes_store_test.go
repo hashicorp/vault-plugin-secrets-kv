@@ -122,6 +122,14 @@ func TestEncrytedKeysStorage_CRUD(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	err = es.Put(ctx, &logical.StorageEntry{
+		Key:   "test/foo1/test",
+		Value: []byte("test"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	keys, err := es.List(ctx, "test/")
 	if err != nil {
 		t.Fatal(err)
@@ -133,7 +141,7 @@ func TestEncrytedKeysStorage_CRUD(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(keys) != 1 || keys[0] != "foo" {
+	if len(keys) != 2 || keys[0] != "foo1/" || keys[1] != "foo" {
 		t.Fatalf("bad keys: %#v", keys)
 	}
 
