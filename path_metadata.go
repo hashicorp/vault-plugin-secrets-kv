@@ -103,7 +103,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			return logical.ErrorResponse("Can not set max_versions higher than backend config setting"), logical.ErrInvalidRequest
 		}
 
-		if tOk && config.TTL > 0 && config.TTL < int64(ttlRaw.(int)) {
+		if tOk && config.VersionTTL > 0 && config.VersionTTL < int64(ttlRaw.(int)) {
 			return logical.ErrorResponse("Can not set version_ttl higher than backend config setting"), logical.ErrInvalidRequest
 		}
 

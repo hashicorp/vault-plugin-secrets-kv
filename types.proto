@@ -4,7 +4,7 @@ package vkv;
 import "google/protobuf/timestamp.proto";
 
 message Configuration {
-    int64 TTL = 1;
+    int64 versionTTL = 1;
     uint32 max_versions = 2;
     bool cas_required = 3;
 }

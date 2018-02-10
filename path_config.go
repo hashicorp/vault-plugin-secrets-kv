@@ -46,7 +46,7 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 			// Create a map of data to be returned
 			resp := &logical.Response{
 				Data: map[string]interface{}{
-					"ttl":          config.TTL,
+					"ttl":          config.VersionTTL,
 					"max_versions": config.MaxVersions,
 				},
 			}
@@ -64,7 +64,7 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 		ttl := data.Get("ttl").(int64)
 
 		config := &Configuration{
-			TTL:         ttl,
+			VersionTTL:  ttl,
 			MaxVersions: maxVersions,
 		}
 

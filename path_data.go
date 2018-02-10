@@ -68,13 +68,11 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			return nil, nil
 		}
 
-		var verNum uint64 = 0
+		var verNum uint64 = meta.CurrentVersion
 		// If there is no latest version, or the latest version is already a
 		// deletion marker return
-		vm := meta.LatestVersionMeta()
-		if verNum > 0 {
-			vm = meta.Versions[verNum]
-		}
+		// TODO: 404 with data
+		vm := meta.Versions[verNum]
 		if vm == nil {
 			return nil, nil
 		}
@@ -118,7 +116,14 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 		}
 
 		return &logical.Response{
-			Data: vData,
+			Data: map[string]interface{}{
+				"data": vData,
+				"metadata": map[string]interface{}{
+					"version":      verNum,
+					"created_time": ptypes.TimestampString(version.CreatedTime),
+					"archive_time": ptypes.TimestampString(version.ArchiveTime),
+				},
+			},
 		}, nil
 	}
 }
@@ -127,6 +132,25 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "data/")
+
+		config, err := b.config(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		// Parse data, this can happen before the lock so we can fail early if
+		// not set.
+		var marshaledData []byte
+		{
+			dataRaw, ok := data.GetOk("data")
+			if !ok {
+				return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
+			}
+			marshaledData, err = json.Marshal(dataRaw.(map[string]interface{}))
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		locksutil.LockForKey(b.locks, key).Lock()
 		defer locksutil.LockForKey(b.locks, key).Unlock()
@@ -142,34 +166,47 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 		}
 
+		// Parse options
 		var versionTTL int64
-
-		optionsRaw, ok := data.GetOk("options")
-		if ok {
-			options := optionsRaw.(map[string]interface{})
-
-			cas, ok := options["cas"]
-			if ok && uint64(cas.(float64)) != meta.CurrentVersion {
-				return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
-			}
-
-			versionTTLRaw, ok := options["version_ttl"]
+		{
+			optionsRaw, ok := data.GetOk("options")
 			if ok {
-				dur, err := parseutil.ParseDurationSecond(versionTTLRaw.(string))
-				if err != nil {
-					return nil, err
-				}
-				versionTTL = int64(dur.Seconds())
-			}
-		}
+				options := optionsRaw.(map[string]interface{})
 
-		dataRaw, ok := data.GetOk("data")
-		if !ok {
-			return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
-		}
-		marshaledData, err := json.Marshal(dataRaw.(map[string]interface{}))
-		if err != nil {
-			return nil, err
+				// Verify the CAS parameter is valid.
+				cas, ok := options["cas"]
+				switch {
+				case !ok && config.CasRequired:
+					return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
+
+				case !ok && meta.CasRequired:
+					return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
+
+				case ok && uint64(cas.(float64)) != meta.CurrentVersion:
+					return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
+				}
+
+				// Get the TTL for this version
+				versionTTLRaw, ok := options["version_ttl"]
+				switch {
+				case ok:
+					dur, err := parseutil.ParseDurationSecond(versionTTLRaw.(string))
+					if err != nil {
+						return nil, err
+					}
+					if meta.VersionTTL < int64(dur.Seconds()) || config.VersionTTL < int64(dur.Seconds()) {
+						return logical.ErrorResponse("version_ttl can not be higher than backend config or key version_ttl"), logical.ErrInvalidRequest
+					}
+
+					versionTTL = int64(dur.Seconds())
+
+				case meta.VersionTTL > 0:
+					versionTTL = meta.VersionTTL
+
+				case config.VersionTTL > 0:
+					versionTTL = config.VersionTTL
+				}
+			}
 		}
 
 		versionKey, err := b.getVersionKey(key, meta.CurrentVersion+1)
@@ -200,9 +237,25 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			archiveTime.Seconds += versionTTL
 		}
 
-		meta.AddVersion(version.CreatedTime, archiveTime)
+		versionToDelete := meta.AddVersion(version.CreatedTime, archiveTime, config.MaxVersions)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		if err != nil {
+			return nil, err
+		}
 
-		b.writeKeyMetadata(ctx, req.Storage, meta)
+		// Cleanup the version data that is past max version.
+		if versionToDelete > 0 {
+			versionKey, err := b.getVersionKey(key, versionToDelete)
+			if err != nil {
+				return nil, err
+			}
+
+			err = req.Storage.Delete(ctx, versionKey)
+			if err != nil {
+				// TODO: should we return this error? probs
+				return nil, err
+			}
+		}
 
 		return &logical.Response{
 			Data: map[string]interface{}{
@@ -228,9 +281,9 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 			return nil, nil
 		}
 
-		// If there is no latest version, or the latest version is already a
-		// deletion marker return
-		lv := meta.LatestVersionMeta()
+		// If there is no latest version, or the latest version is already
+		// archived or destroyed return
+		lv := meta.Versions[meta.CurrentVersion]
 		if lv == nil || lv.Destroyed {
 			return nil, nil
 		}
@@ -257,15 +310,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 	}
 }
 
-func (k *KeyMetadata) LatestVersionMeta() *VersionMetadata {
-	if len(k.Versions) == 0 {
-		return nil
-	}
-
-	return k.Versions[k.CurrentVersion]
-}
-
-func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp) {
+func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, configMaxVersions uint32) uint64 {
 	k.CurrentVersion++
 	k.Versions[k.CurrentVersion] = &VersionMetadata{
 		CreatedTime: createdTime,
@@ -276,6 +321,26 @@ func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp) 
 	if k.CreatedTime == nil {
 		k.CreatedTime = createdTime
 	}
+
+	var maxVersions uint32
+	switch {
+	case k.MaxVersions != 0:
+		maxVersions = k.MaxVersions
+	case configMaxVersions > 0:
+		maxVersions = configMaxVersions
+	default:
+		maxVersions = defaultMaxVersions
+	}
+
+	if uint32(k.CurrentVersion-k.OldestVersion) >= maxVersions {
+		delete(k.Versions, k.OldestVersion)
+		versionToDelete := k.OldestVersion
+		k.OldestVersion++
+
+		return versionToDelete
+	}
+
+	return 0
 }
 
 const dataHelpSyn = `Configures the JWT Public Key and Kubernetes API information.`

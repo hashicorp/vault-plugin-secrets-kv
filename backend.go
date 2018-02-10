@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	configPath string = "config"
-	rolePrefix string = "role/"
+	configPath         string = "config"
+	rolePrefix         string = "role/"
+	defaultMaxVersions uint32 = 10
 )
 
 // versionedKVBackend implements logical.Backend
@@ -111,11 +112,12 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 	if err != nil {
 		return nil, err
 	}
-	if raw == nil {
-		return nil, nil
-	}
 
 	conf := &Configuration{}
+	if raw == nil {
+		return conf, nil
+	}
+
 	if err := json.Unmarshal(raw.Value, conf); err != nil {
 		return nil, err
 	}
