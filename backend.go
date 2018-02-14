@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
-	log "github.com/mgutz/logxi/v1"
 )
 
 const (
@@ -32,25 +31,46 @@ type versionedKVBackend struct {
 	locks     []*locksutil.LockEntry
 }
 
-// Factory returns a new backend as logical.Backend.
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	b, err := Backend(conf.StorageView, conf.Logger)
+	versioned := conf.Config["versioned"]
+	versioned = "true"
+
+	var b logical.Backend
+	var err error
+	switch versioned {
+	case "false", "":
+		return LeaseSwitchedPassthroughBackend(ctx, conf, conf.Config["leased_passthrough"] == "true")
+	case "true":
+		b, err = VersionedKVFactory(ctx, conf)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	if err := b.Setup(ctx, conf); err != nil {
-		return nil, err
+	if _, ok := conf.Config["upgrade"]; ok {
+		//err := b.Upgrade(ctx, conf.StorageView)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	return b, nil
 }
 
-func Backend(s logical.Storage, logger log.Logger) (*versionedKVBackend, error) {
+// Factory returns a new backend as logical.Backend.
+func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	b := &versionedKVBackend{}
 
 	b.Backend = &framework.Backend{
 		BackendType: logical.TypeLogical,
 		Help:        backendHelp,
+
+		PathsSpecial: &logical.Paths{
+			SealWrapStorage: []string{
+				"/",
+			},
+		},
+
 		Paths: framework.PathAppend(
 			[]*framework.Path{
 				pathConfig(b),
@@ -62,6 +82,9 @@ func Backend(s logical.Storage, logger log.Logger) (*versionedKVBackend, error) 
 
 	b.locks = locksutil.CreateLocks()
 
+	if err := b.Setup(ctx, conf); err != nil {
+		return nil, err
+	}
 	return b, nil
 }
 
