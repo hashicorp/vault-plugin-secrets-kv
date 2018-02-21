@@ -70,7 +70,7 @@
   branch = "master"
   name = "github.com/hashicorp/go-plugin"
   packages = ["."]
-  revision = "4b17561773d85e482ea040884ee3e288425d4174"
+  revision = "baa83ead6ff956b3f99bcd609ae3499c028e019e"
 
 [[projects]]
   branch = "master"
@@ -140,9 +140,11 @@
     "logical/framework",
     "logical/plugin",
     "logical/plugin/pb",
+    "physical",
+    "physical/inmem",
     "version"
   ]
-  revision = "1bad693a01982321198750e9ad1e8a9ed453a6d9"
+  revision = "cfa758c80bc3ae421db6e0f9ca943c7a330d39cc"
 
 [[projects]]
   branch = "master"
@@ -190,13 +192,7 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "a4e142e9c047c904fa2f1e144d9a84e6133024bc"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mr-tron/base58"
-  packages = ["base58"]
-  revision = "c1bdf7c52f59d6685ca597b9955a443ff95eeee6"
+  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
 
 [[projects]]
   name = "github.com/oklog/run"
@@ -214,17 +210,20 @@
   branch = "master"
   name = "github.com/sethgrid/pester"
   packages = ["."]
-  revision = "1808e6f72af9682aaae9189a91c6bb9b416297ca"
+  revision = "b18953f5db2922a73aaf89652abf7b5ee95cb516"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = [
+    "chacha20poly1305",
     "ed25519",
     "ed25519/internal/edwards25519",
-    "hkdf"
+    "hkdf",
+    "internal/chacha20",
+    "poly1305"
   ]
-  revision = "5119cf507ed5294cc409c092980c7497ee5d6fd2"
+  revision = "432090b8f568c018896cd8a0fb0345872bbac6ce"
 
 [[projects]]
   branch = "master"
@@ -238,7 +237,7 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
+  revision = "cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb"
 
 [[projects]]
   branch = "master"
@@ -247,7 +246,6 @@
   revision = "37707fdb30a5b38865cfb95e5aab41707daec7fd"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -265,7 +263,8 @@
     "unicode/norm",
     "unicode/rangetable"
   ]
-  revision = "4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
@@ -284,6 +283,7 @@
     "connectivity",
     "credentials",
     "encoding",
+    "encoding/proto",
     "grpclb/grpc_lb_v1/messages",
     "grpclog",
     "health",
@@ -301,12 +301,12 @@
     "tap",
     "transport"
   ]
-  revision = "6b51017f791ae1cfbec89c52efdf444b13b550ef"
-  version = "v1.9.2"
+  revision = "8e4536a86ab602859c20df5ebfd0bd4228d08655"
+  version = "v1.10.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de20ada26b24d9602cf576bd47f72886717f18ff6c384a987df6c13607a010cd"
+  inputs-digest = "6ac44adcfbe491f0caca944c9f7fc4befcae87009ab72e3ffdc9d123bff0a60c"
   solver-name = "gps-cdcl"
   solver-version = 1

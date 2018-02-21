@@ -77,6 +77,18 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			return nil, nil
 		}
 
+		resp := &logical.Response{
+			Data: map[string]interface{}{
+				"data": nil,
+				"metadata": map[string]interface{}{
+					"version":      verNum,
+					"created_time": ptypes.TimestampString(vm.CreatedTime),
+					"archive_time": ptypes.TimestampString(vm.ArchiveTime),
+					"destroyed":    vm.Destroyed,
+				},
+			},
+		}
+
 		if vm.ArchiveTime != nil {
 			archiveTime, err := ptypes.Timestamp(vm.ArchiveTime)
 			if err != nil {
@@ -84,15 +96,17 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			}
 
 			if archiveTime.Before(time.Now()) {
-				return nil, nil
+				return resp, nil
+
 			}
 		}
 
 		if vm.Destroyed {
-			return nil, nil
+			return resp, nil
+
 		}
 
-		versionKey, err := b.getVersionKey(key, meta.CurrentVersion)
+		versionKey, err := b.getVersionKey(key, verNum)
 		if err != nil {
 			return nil, err
 		}
@@ -115,16 +129,9 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			return nil, err
 		}
 
-		return &logical.Response{
-			Data: map[string]interface{}{
-				"data": vData,
-				"metadata": map[string]interface{}{
-					"version":      verNum,
-					"created_time": ptypes.TimestampString(version.CreatedTime),
-					"archive_time": ptypes.TimestampString(version.ArchiveTime),
-				},
-			},
-		}, nil
+		resp.Data["data"] = vData
+
+		return resp, nil
 	}
 }
 

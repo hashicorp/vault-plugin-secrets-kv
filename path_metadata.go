@@ -178,10 +178,7 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 	}
 }
 
-const metadataHelpSyn = `Configures the JWT Public Key and Kubernetes API information.`
+const metadataHelpSyn = ``
 const metadataHelpDesc = `
-The Kubernetes Auth backend validates service account JWTs and verifies their
-existence with the Kubernetes TokenReview API. This endpoint configures the
-public key used to validate the JWT signature and the necessary information to
-access the Kubernetes API.
+
 `
