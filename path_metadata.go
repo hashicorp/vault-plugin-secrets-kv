@@ -17,8 +17,8 @@ func pathMetadata(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "metadata/.*",
 		Fields: map[string]*framework.FieldSchema{
-			"version": {
-				Type:        framework.TypeInt,
+			"cas_required": {
+				Type:        framework.TypeBool,
 				Description: "",
 			},
 			"version_ttl": {
@@ -35,10 +35,51 @@ func pathMetadata(b *versionedKVBackend) *framework.Path {
 			logical.CreateOperation: b.pathMetadataWrite(),
 			logical.ReadOperation:   b.pathMetadataRead(),
 			logical.DeleteOperation: b.pathMetadataDelete(),
+			logical.ListOperation:   b.pathMetadataList(),
 		},
+
+		ExistenceCheck: b.metadataExistenceCheck(),
 
 		HelpSynopsis:    confHelpSyn,
 		HelpDescription: confHelpDesc,
+	}
+}
+
+func (b *versionedKVBackend) metadataExistenceCheck() framework.ExistenceFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+		key := strings.TrimPrefix(req.Path, "metadata/")
+
+		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
+		if err != nil {
+			return false, err
+		}
+
+		return meta != nil, nil
+	}
+}
+
+func (b *versionedKVBackend) pathMetadataList() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		key := strings.TrimPrefix(req.Path, "metadata/")
+
+		// Get an encrypted key storage object
+		policy, err := b.Policy(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
+			Storage: req.Storage,
+			Policy:  policy,
+			Prefix:  metadataPrefix,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// Use encrypted key storage to list the keys
+		keys, err := es.List(ctx, key)
+		return logical.ListResponse(keys), err
 	}
 }
 
@@ -145,7 +186,7 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 
 		// Delete each version.
 		for id, _ := range meta.Versions {
-			versionKey, err := b.getVersionKey(key, id)
+			versionKey, err := b.getVersionKey(key, id, req.Storage)
 			if err != nil {
 				return nil, err
 			}

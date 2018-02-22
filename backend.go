@@ -2,8 +2,6 @@ package vkv
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -12,6 +10,7 @@ import (
 	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/helper/locksutil"
+	"github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -27,6 +26,7 @@ type versionedKVBackend struct {
 	*framework.Backend
 
 	keyPolicy *keysutil.Policy
+	salt      *salt.Salt
 	l         sync.RWMutex
 	locks     []*locksutil.LockEntry
 }
@@ -76,7 +76,9 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 				pathConfig(b),
 				pathData(b),
 				pathMetadata(b),
+				pathDestroy(b),
 			},
+			pathsArchive(b),
 		),
 	}
 
@@ -86,6 +88,29 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 		return nil, err
 	}
 	return b, nil
+}
+
+func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
+	b.l.RLock()
+	if b.salt != nil {
+		defer b.l.RUnlock()
+		return b.salt, nil
+	}
+	b.l.RUnlock()
+	b.l.Lock()
+	defer b.l.Unlock()
+	if b.salt != nil {
+		return b.salt, nil
+	}
+	salt, err := salt.NewSalt(s, &salt.Config{
+		HashFunc: salt.SHA256Hash,
+		Location: salt.DefaultLocation,
+	})
+	if err != nil {
+		return nil, err
+	}
+	b.salt = salt
+	return salt, nil
 }
 
 func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*keysutil.Policy, error) {
@@ -148,13 +173,15 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 	return conf, nil
 }
 
-func (b *versionedKVBackend) getVersionKey(key string, version uint64) (string, error) {
-	h := sha256.New()
-	h.Write([]byte(fmt.Sprintf("%s%d", key, version)))
+func (b *versionedKVBackend) getVersionKey(key string, version uint64, s logical.Storage) (string, error) {
+	salt, err := b.Salt(s)
+	if err != nil {
+		return "", err
+	}
 
-	str := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	salted := salt.SaltID(fmt.Sprintf("%s|%d", key, version))
 
-	return fmt.Sprintf("versions/%s/%s/%s", str[0], str[1], str[2:]), nil
+	return fmt.Sprintf("versions/%s/%s", salted[0:3], salted[3:]), nil
 }
 
 func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Storage, key string) (*KeyMetadata, error) {

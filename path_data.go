@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"strings"
 	"time"
 
@@ -68,10 +69,12 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			return nil, nil
 		}
 
-		var verNum uint64 = meta.CurrentVersion
-		// If there is no latest version, or the latest version is already a
-		// deletion marker return
-		// TODO: 404 with data
+		verNum := uint64(data.Get("version").(int))
+		if verNum == uint64(0) {
+			verNum = meta.CurrentVersion
+		}
+
+		// If there is no version with that number, return
 		vm := meta.Versions[verNum]
 		if vm == nil {
 			return nil, nil
@@ -89,6 +92,7 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			},
 		}
 
+		// If the version has been archived return metadata with a 404
 		if vm.ArchiveTime != nil {
 			archiveTime, err := ptypes.Timestamp(vm.ArchiveTime)
 			if err != nil {
@@ -96,17 +100,18 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			}
 
 			if archiveTime.Before(time.Now()) {
-				return resp, nil
+				return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
 
 			}
 		}
 
+		// If the version has been destroyed return metadata with a 404
 		if vm.Destroyed {
-			return resp, nil
+			return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
 
 		}
 
-		versionKey, err := b.getVersionKey(key, verNum)
+		versionKey, err := b.getVersionKey(key, verNum, req.Storage)
 		if err != nil {
 			return nil, err
 		}
@@ -216,7 +221,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 		}
 
-		versionKey, err := b.getVersionKey(key, meta.CurrentVersion+1)
+		versionKey, err := b.getVersionKey(key, meta.CurrentVersion+1, req.Storage)
 		if err != nil {
 			return nil, err
 		}
@@ -252,7 +257,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 
 		// Cleanup the version data that is past max version.
 		if versionToDelete > 0 {
-			versionKey, err := b.getVersionKey(key, versionToDelete)
+			versionKey, err := b.getVersionKey(key, versionToDelete, req.Storage)
 			if err != nil {
 				return nil, err
 			}
