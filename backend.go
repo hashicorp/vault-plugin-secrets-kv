@@ -90,6 +90,17 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	return b, nil
 }
 
+func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
+	switch key {
+	case salt.DefaultLocation:
+		b.l.Lock()
+		b.salt = nil
+		b.l.Unlock()
+	case "policy/metadata":
+
+	}
+}
+
 func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
 	b.l.RLock()
 	if b.salt != nil {
@@ -114,6 +125,15 @@ func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
 }
 
 func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*keysutil.Policy, error) {
+	b.l.RLock()
+	if b.keyPolicy != nil {
+		defer b.l.RUnlock()
+		return b.keyPolicy, nil
+	}
+	b.l.RUnlock()
+	b.l.Lock()
+	defer b.l.Unlock()
+
 	if b.keyPolicy != nil {
 		return b.keyPolicy, nil
 	}
