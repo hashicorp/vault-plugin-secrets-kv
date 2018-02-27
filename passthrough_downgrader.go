@@ -27,11 +27,11 @@ func (b *PassthroughDowngrader) handleExistenceCheck() framework.ExistenceFunc {
 			return false, logical.ErrInvalidRequest
 		}
 
-		var down *logical.Request
-		*down = *req
+		reqDown := &logical.Request{}
+		*reqDown = *req
 
-		down.Path = strings.TrimPrefix(req.Path, "data/")
-		return b.next.handleExistenceCheck()(ctx, req, data)
+		reqDown.Path = strings.TrimPrefix(req.Path, "data/")
+		return b.next.handleExistenceCheck()(ctx, reqDown, data)
 	}
 }
 
@@ -50,13 +50,13 @@ func (b *PassthroughDowngrader) handleRead() framework.OperationFunc {
 			return logical.ErrorResponse("retrieving a version is not supported when versioning is disabled"), logical.ErrInvalidRequest
 		}
 
-		var down *logical.Request
-		*down = *req
+		reqDown := &logical.Request{}
+		*reqDown = *req
 
-		down.Path = strings.TrimPrefix(req.Path, "data/")
+		reqDown.Path = strings.TrimPrefix(req.Path, "data/")
 
 		// TODO: should we upgrade the response?
-		resp, err := b.next.handleRead()(ctx, down, data)
+		resp, err := b.next.handleRead()(ctx, reqDown, data)
 		if resp != nil && resp.Data != nil {
 			resp.Data = map[string]interface{}{
 				"data":     resp.Data,
@@ -79,22 +79,20 @@ func (b *PassthroughDowngrader) handleWrite() framework.OperationFunc {
 			return respErr, logical.ErrInvalidRequest
 		}
 
-		var reqDown *logical.Request
+		reqDown := &logical.Request{}
 		*reqDown = *req
 		reqDown.Path = strings.TrimPrefix(req.Path, "data/")
 
 		// Validate the data map is what we expect
-		switch data.Raw["data"].(type) {
+		switch req.Data["data"].(type) {
 		case map[string]interface{}:
 		default:
 			return logical.ErrorResponse("Could not downgrade request, unexpected data format"), logical.ErrInvalidRequest
 		}
 
-		dataDown := &framework.FieldData{
-			Raw: data.Raw["data"].(map[string]interface{}),
-		}
+		reqDown.Data = req.Data["data"].(map[string]interface{})
 
-		return b.next.handleWrite()(ctx, reqDown, dataDown)
+		return b.next.handleWrite()(ctx, reqDown, data)
 	}
 }
 
@@ -109,7 +107,7 @@ func (b *PassthroughDowngrader) handleDelete() framework.OperationFunc {
 			return respErr, logical.ErrInvalidRequest
 		}
 
-		var reqDown *logical.Request
+		reqDown := &logical.Request{}
 		*reqDown = *req
 		reqDown.Path = strings.TrimPrefix(req.Path, "data/")
 
@@ -128,7 +126,7 @@ func (b *PassthroughDowngrader) handleList() framework.OperationFunc {
 			return respErr, logical.ErrInvalidRequest
 		}
 
-		var reqDown *logical.Request
+		reqDown := &logical.Request{}
 		*reqDown = *req
 		reqDown.Path = strings.TrimPrefix(req.Path, "data/")
 
@@ -148,6 +146,8 @@ func (b *PassthroughDowngrader) invalidPath(req *logical.Request) *logical.Respo
 	case strings.HasPrefix(req.Path, "archive/"):
 		fallthrough
 	case strings.HasPrefix(req.Path, "unarchive/"):
+		fallthrough
+	case req.Path == "config":
 		fallthrough
 	case strings.HasPrefix(req.Path, "destroy/"):
 		return logical.ErrorResponse("path is not supported when versioning is disabled")
