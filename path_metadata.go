@@ -21,10 +21,6 @@ func pathMetadata(b *versionedKVBackend) *framework.Path {
 				Type:        framework.TypeBool,
 				Description: "",
 			},
-			"version_ttl": {
-				Type:        framework.TypeDurationSecond,
-				Description: "",
-			},
 			"max_versions": {
 				Type:        framework.TypeInt,
 				Description: "",
@@ -95,7 +91,7 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 			return nil, nil
 		}
 
-		versions := make(map[string]map[string]interface{}, len(meta.Versions))
+		versions := make(map[string]interface{}, len(meta.Versions))
 		for i, v := range meta.Versions {
 			versions[fmt.Sprintf("%d", i)] = map[string]interface{}{
 				"created_time": ptypes.TimestampString(v.CreatedTime),
@@ -120,14 +116,13 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 
 func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		key := strings.TrimPrefix(req.Path, "data/")
+		key := strings.TrimPrefix(req.Path, "metadata/")
 
-		ttlRaw, tOk := data.GetOk("version_ttl")
 		maxRaw, mOk := data.GetOk("max_versions")
 		casRaw, cOk := data.GetOk("cas_required")
 
 		// Fast path validation
-		if !tOk && !mOk && !cOk {
+		if !mOk && !cOk {
 			return nil, nil
 		}
 
@@ -144,10 +139,6 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			return logical.ErrorResponse("Can not set max_versions higher than backend config setting"), logical.ErrInvalidRequest
 		}
 
-		if tOk && config.VersionTTL > 0 && config.VersionTTL < int64(ttlRaw.(int)) {
-			return logical.ErrorResponse("Can not set version_ttl higher than backend config setting"), logical.ErrInvalidRequest
-		}
-
 		locksutil.LockForKey(b.locks, key).Lock()
 		defer locksutil.LockForKey(b.locks, key).Unlock()
 
@@ -156,16 +147,17 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			return nil, err
 		}
 		if meta == nil {
-			return nil, nil
+			meta = &KeyMetadata{
+				Key:      key,
+				Versions: map[uint64]*VersionMetadata{},
+			}
 		}
 
 		meta.MaxVersions = uint32(maxRaw.(int))
-		meta.VersionTTL = int64(ttlRaw.(int))
 		meta.CasRequired = casRaw.(bool)
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		return nil, err
-
 	}
 }
 

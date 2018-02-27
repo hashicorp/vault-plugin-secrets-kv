@@ -12,9 +12,9 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/vault/helper/locksutil"
-	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -179,44 +179,31 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 
 		// Parse options
-		var versionTTL int64
 		{
+			var casRaw interface{}
+			var casOk bool
 			optionsRaw, ok := data.GetOk("options")
 			if ok {
 				options := optionsRaw.(map[string]interface{})
 
 				// Verify the CAS parameter is valid.
-				cas, ok := options["cas"]
-				switch {
-				case !ok && config.CasRequired:
-					return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
+				casRaw, casOk = options["cas"]
+			}
 
-				case !ok && meta.CasRequired:
-					return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
+			switch {
+			case !casOk && config.CasRequired:
+				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
 
-				case ok && uint64(cas.(float64)) != meta.CurrentVersion:
-					return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
+			case !casOk && meta.CasRequired:
+				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
+
+			case casOk:
+				var cas int
+				if err := mapstructure.WeakDecode(casRaw, &cas); err != nil {
+					return logical.ErrorResponse("error parsing check-and-set parameter"), logical.ErrInvalidRequest
 				}
-
-				// Get the TTL for this version
-				versionTTLRaw, ok := options["version_ttl"]
-				switch {
-				case ok:
-					dur, err := parseutil.ParseDurationSecond(versionTTLRaw.(string))
-					if err != nil {
-						return nil, err
-					}
-					if meta.VersionTTL < int64(dur.Seconds()) || config.VersionTTL < int64(dur.Seconds()) {
-						return logical.ErrorResponse("version_ttl can not be higher than backend config or key version_ttl"), logical.ErrInvalidRequest
-					}
-
-					versionTTL = int64(dur.Seconds())
-
-				case meta.VersionTTL > 0:
-					versionTTL = meta.VersionTTL
-
-				case config.VersionTTL > 0:
-					versionTTL = config.VersionTTL
+				if uint64(cas) != meta.CurrentVersion {
+					return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
 				}
 			}
 		}
@@ -242,14 +229,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		var archiveTime *timestamp.Timestamp
-		if versionTTL > 0 {
-			archiveTime = &timestamp.Timestamp{}
-			*archiveTime = *(version.CreatedTime)
-			archiveTime.Seconds += versionTTL
-		}
-
-		versionToDelete := meta.AddVersion(version.CreatedTime, archiveTime, config.MaxVersions)
+		versionToDelete := meta.AddVersion(version.CreatedTime, nil, config.MaxVersions)
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
@@ -257,22 +237,45 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 
 		// Cleanup the version data that is past max version.
 		if versionToDelete > 0 {
+
+			// Create a list of version keys to delete. We will delete from the
+			// back of the array first so we can delete the oldest versions
+			// first. If there is an error deleting one of the keys we can
+			// ensure the rest will be deleted on the next go around.
+			var versionKeysToDelete []string
+
 			versionKey, err := b.getVersionKey(key, versionToDelete, req.Storage)
 			if err != nil {
 				return nil, err
 			}
+			versionKeysToDelete = append(versionKeysToDelete, versionKey)
 
-			err = req.Storage.Delete(ctx, versionKey)
-			if err != nil {
-				// TODO: should we return this error? probs
-				return nil, err
+			for i := versionToDelete; i > 0; i-- {
+				versionKey, err := b.getVersionKey(key, i, req.Storage)
+				if err != nil {
+					return nil, err
+				}
+
+				// We intentionally do not return these errors here. If the get
+				// or delete fail they will be cleaned up on the next write.
+				v, _ := req.Storage.Get(ctx, versionKey)
+				if v == nil {
+					break
+				}
 			}
+
+			for i := len(versionKeysToDelete) - 1; i >= 0; i-- {
+				req.Storage.Delete(ctx, versionKeysToDelete[i])
+				// TODO: should we return this error? probs
+			}
+
 		}
 
 		return &logical.Response{
 			Data: map[string]interface{}{
-				"version":      meta.CurrentVersion,
-				"archive_time": ptypes.TimestampString(archiveTime),
+				"version": meta.CurrentVersion,
+				//TODO: SHould this be omited?
+				"archive_time": ptypes.TimestampString(nil),
 			},
 		}, nil
 	}
@@ -323,6 +326,10 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 }
 
 func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, configMaxVersions uint32) uint64 {
+	if k.Versions == nil {
+		k.Versions = map[uint64]*VersionMetadata{}
+	}
+
 	k.CurrentVersion++
 	k.Versions[k.CurrentVersion] = &VersionMetadata{
 		CreatedTime: createdTime,
@@ -345,9 +352,14 @@ func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, 
 	}
 
 	if uint32(k.CurrentVersion-k.OldestVersion) >= maxVersions {
-		delete(k.Versions, k.OldestVersion)
-		versionToDelete := k.OldestVersion
-		k.OldestVersion++
+		versionToDelete := k.CurrentVersion - uint64(maxVersions)
+		// We need to do a loop here in the event that the max versions has
+		// changed and we need to delete more than one entry.
+		for i := k.OldestVersion; i < versionToDelete+1; i++ {
+			delete(k.Versions, i)
+		}
+
+		k.OldestVersion = versionToDelete + 1
 
 		return versionToDelete
 	}

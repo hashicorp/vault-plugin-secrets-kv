@@ -2,6 +2,7 @@ package vkv
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -193,11 +194,17 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
 
-	if resp.Data["metadata"].(map[string]interface{})["version"].(uint64) != uint64(1) {
+	var httpResp logical.HTTPResponse
+	err = json.Unmarshal(resp.Data["http_raw_body"].([]byte), &httpResp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if uint64(httpResp.Data["metadata"].(map[string]interface{})["version"].(float64)) != uint64(1) {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 
-	parsed, err := time.Parse(time.RFC3339Nano, resp.Data["metadata"].(map[string]interface{})["archive_time"].(string))
+	parsed, err := time.Parse(time.RFC3339Nano, httpResp.Data["metadata"].(map[string]interface{})["archive_time"].(string))
 	if err != nil {
 		t.Fatal(err)
 	}
