@@ -4,9 +4,8 @@ package vkv;
 import "google/protobuf/timestamp.proto";
 
 message Configuration {
-    int64 versionTTL = 1;
-    uint32 max_versions = 2;
-    bool cas_required = 3;
+    uint32 max_versions = 1;
+    bool cas_required = 2;
 }
 
 message VersionMetadata {
@@ -44,19 +43,14 @@ message KeyMetadata {
     // was updated.
 	google.protobuf.Timestamp updated_time = 6;
 
-	// VersionTTL specifies how long to keep versions 
-    // around. If empty value, defaults to the configured
-    // TTL for the mount.
-	int64 versionTTL = 7;
-
     // MaxVersions specifies how many versions to keep around. 
     // If empty value, defaults to the configured Max 
     // for the mount.
-	uint32 max_versions = 8;
+	uint32 max_versions = 7;
 
 	// CasRequired specifies if the cas parameter is 
     // required for this key
-    bool cas_required = 9;
+    bool cas_required = 8;
 }
 
 

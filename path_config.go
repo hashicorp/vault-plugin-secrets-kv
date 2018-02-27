@@ -19,10 +19,6 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 				Type:        framework.TypeInt,
 				Description: "",
 			},
-			"ttl": {
-				Type:        framework.TypeString,
-				Description: "",
-			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: b.pathConfigWrite(),
@@ -46,7 +42,6 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 			// Create a map of data to be returned
 			resp := &logical.Response{
 				Data: map[string]interface{}{
-					"ttl":          config.VersionTTL,
 					"max_versions": config.MaxVersions,
 				},
 			}
@@ -61,10 +56,7 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		maxVersions := data.Get("max_versions").(uint32)
 
-		ttl := data.Get("ttl").(int64)
-
 		config := &Configuration{
-			VersionTTL:  ttl,
 			MaxVersions: maxVersions,
 		}
 
@@ -81,10 +73,6 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 	}
 }
 
-const confHelpSyn = `Configures the JWT Public Key and Kubernetes API information.`
+const confHelpSyn = ``
 const confHelpDesc = `
-The Kubernetes Auth backend validates service account JWTs and verifies their
-existence with the Kubernetes TokenReview API. This endpoint configures the
-public key used to validate the JWT signature and the necessary information to
-access the Kubernetes API.
 `
