@@ -85,8 +85,8 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 				"data": nil,
 				"metadata": map[string]interface{}{
 					"version":      verNum,
-					"created_time": ptypes.TimestampString(vm.CreatedTime),
-					"archive_time": ptypes.TimestampString(vm.ArchiveTime),
+					"created_time": ptypesTimestampToString(vm.CreatedTime),
+					"archive_time": ptypesTimestampToString(vm.ArchiveTime),
 					"destroyed":    vm.Destroyed,
 				},
 			},
@@ -275,7 +275,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			Data: map[string]interface{}{
 				"version": meta.CurrentVersion,
 				//TODO: SHould this be omited?
-				"archive_time": ptypes.TimestampString(nil),
+				"archive_time": ptypesTimestampToString(nil),
 			},
 		}, nil
 	}

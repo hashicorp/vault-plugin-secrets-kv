@@ -6,10 +6,19 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
+
+func ptypesTimestampToString(t *timestamp.Timestamp) string {
+	if t == nil {
+		return ""
+	}
+
+	return ptypes.TimestampString(t)
+}
 
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
@@ -94,8 +103,8 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 		versions := make(map[string]interface{}, len(meta.Versions))
 		for i, v := range meta.Versions {
 			versions[fmt.Sprintf("%d", i)] = map[string]interface{}{
-				"created_time": ptypes.TimestampString(v.CreatedTime),
-				"archive_time": ptypes.TimestampString(v.ArchiveTime),
+				"created_time": ptypesTimestampToString(v.CreatedTime),
+				"archive_time": ptypesTimestampToString(v.ArchiveTime),
 				"destroyed":    v.Destroyed,
 			}
 		}
@@ -105,8 +114,8 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"versions":        versions,
 				"current_version": meta.CurrentVersion,
 				"oldest_version":  meta.OldestVersion,
-				"created_time":    ptypes.TimestampString(meta.CreatedTime),
-				"updated_time":    ptypes.TimestampString(meta.UpdatedTime),
+				"created_time":    ptypesTimestampToString(meta.CreatedTime),
+				"updated_time":    ptypesTimestampToString(meta.UpdatedTime),
 				"max_versions":    meta.MaxVersions,
 			},
 		}, nil
