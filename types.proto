@@ -68,3 +68,9 @@ message Version {
 	google.protobuf.Timestamp archive_time = 3;
 }
 
+message UpgradeInfo {
+	// Started time is when the upgrade was started.
+	google.protobuf.Timestamp started_time = 1;
+}
+
+
