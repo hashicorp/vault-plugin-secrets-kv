@@ -24,8 +24,8 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: b.pathDataWrite(),
-				logical.CreateOperation: b.pathArchiveWrite(),
+				logical.UpdateOperation: b.upgradeCheck(b.pathDataWrite()),
+				logical.CreateOperation: b.upgradeCheck(b.pathArchiveWrite()),
 			},
 
 			HelpSynopsis:    archiveHelpSyn,
@@ -40,8 +40,8 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: b.pathUnarchiveWrite(),
-				logical.CreateOperation: b.pathUnarchiveWrite(),
+				logical.UpdateOperation: b.upgradeCheck(b.pathUnarchiveWrite()),
+				logical.CreateOperation: b.upgradeCheck(b.pathUnarchiveWrite()),
 			},
 
 			HelpSynopsis:    unarchiveHelpSyn,

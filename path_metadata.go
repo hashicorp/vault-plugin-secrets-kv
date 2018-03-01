@@ -36,11 +36,11 @@ func pathMetadata(b *versionedKVBackend) *framework.Path {
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.pathMetadataWrite(),
-			logical.CreateOperation: b.pathMetadataWrite(),
-			logical.ReadOperation:   b.pathMetadataRead(),
-			logical.DeleteOperation: b.pathMetadataDelete(),
-			logical.ListOperation:   b.pathMetadataList(),
+			logical.UpdateOperation: b.upgradeCheck(b.pathMetadataWrite()),
+			logical.CreateOperation: b.upgradeCheck(b.pathMetadataWrite()),
+			logical.ReadOperation:   b.upgradeCheck(b.pathMetadataRead()),
+			logical.DeleteOperation: b.upgradeCheck(b.pathMetadataDelete()),
+			logical.ListOperation:   b.upgradeCheck(b.pathMetadataList()),
 		},
 
 		ExistenceCheck: b.metadataExistenceCheck(),

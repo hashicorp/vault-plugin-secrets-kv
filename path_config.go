@@ -21,9 +21,9 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.pathConfigWrite(),
-			logical.CreateOperation: b.pathConfigWrite(),
-			logical.ReadOperation:   b.pathConfigRead(),
+			logical.UpdateOperation: b.upgradeCheck(b.pathConfigWrite()),
+			logical.CreateOperation: b.upgradeCheck(b.pathConfigWrite()),
+			logical.ReadOperation:   b.upgradeCheck(b.pathConfigRead()),
 		},
 
 		HelpSynopsis:    confHelpSyn,

@@ -21,8 +21,8 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.pathDestroyWrite(),
-			logical.CreateOperation: b.pathDestroyWrite(),
+			logical.UpdateOperation: b.upgradeCheck(b.pathDestroyWrite()),
+			logical.CreateOperation: b.upgradeCheck(b.pathDestroyWrite()),
 		},
 
 		HelpSynopsis:    destroyHelpSyn,

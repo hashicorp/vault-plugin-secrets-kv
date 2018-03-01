@@ -42,10 +42,10 @@ func pathData(b *versionedKVBackend) *framework.Path {
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.pathDataWrite(),
-			logical.CreateOperation: b.pathDataWrite(),
-			logical.ReadOperation:   b.pathDataRead(),
-			logical.DeleteOperation: b.pathDataDelete(),
+			logical.UpdateOperation: b.upgradeCheck(b.pathDataWrite()),
+			logical.CreateOperation: b.upgradeCheck(b.pathDataWrite()),
+			logical.ReadOperation:   b.upgradeCheck(b.pathDataRead()),
+			logical.DeleteOperation: b.upgradeCheck(b.pathDataDelete()),
 		},
 
 		HelpSynopsis:    confHelpSyn,
