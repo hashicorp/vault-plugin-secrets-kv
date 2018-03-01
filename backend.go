@@ -61,7 +61,9 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 
 // Factory returns a new backend as logical.Backend.
 func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	b := &versionedKVBackend{}
+	b := &versionedKVBackend{
+		upgrading: new(uint32),
+	}
 
 	b.Backend = &framework.Backend{
 		BackendType: logical.TypeLogical,

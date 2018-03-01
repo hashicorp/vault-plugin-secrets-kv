@@ -46,6 +46,13 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	}
 
 	upgradeKey := func(key string) error {
+		if key == path.Join(b.storagePrefix, "upgrading") {
+			return nil
+		}
+		/*	if strings.HasPrefix(key, b.storagePrefix) {
+			return nil
+		}*/
+
 		// Read the old data
 		data, err := s.Get(ctx, key)
 		if err != nil {
