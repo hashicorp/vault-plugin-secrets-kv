@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -18,6 +19,8 @@ import (
 const (
 	configPath         string = "config"
 	rolePrefix         string = "role/"
+	metadataPrefix     string = "metadata/"
+	versionPrefix      string = "versions/"
 	defaultMaxVersions uint32 = 10
 )
 
@@ -33,6 +36,8 @@ type versionedKVBackend struct {
 	upgrading     *uint32
 }
 
+// Factory will return a logical backend of type versionedKVBackend or
+// PassthroughBackend based on the config passed in.
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	versioned := conf.Config["versioned"]
 	versioned = "true"
@@ -94,6 +99,8 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	return b, nil
 }
 
+// Invalidate invalidates the salt and the policy so replication secondaries can
+// cache these values.
 func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 	switch key {
 	case salt.DefaultLocation:
@@ -105,6 +112,8 @@ func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 	}
 }
 
+// Salt will load a the salt, or if one has not been created yet it will
+// generate and store a new salt.
 func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
 	b.l.RLock()
 	if b.salt != nil {
@@ -128,6 +137,8 @@ func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
 	return salt, nil
 }
 
+// Policy loads the key policy for this backend, if one has not been created yet
+// it will generate and store a new policy.
 func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*keysutil.Policy, error) {
 	b.l.RLock()
 	if b.keyPolicy != nil {
@@ -178,7 +189,7 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 	return b.keyPolicy, nil
 }
 
-// config takes a storage object and returns a kubeConfig object
+// config takes a storage object and returns a configuration object
 func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Configuration, error) {
 	raw, err := s.Get(ctx, configPath)
 	if err != nil {
@@ -197,6 +208,8 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 	return conf, nil
 }
 
+// getVersionKey uses the salt to generate the version key for a specific
+// version of a key.
 func (b *versionedKVBackend) getVersionKey(key string, version uint64, s logical.Storage) (string, error) {
 	salt, err := b.Salt(s)
 	if err != nil {
@@ -205,9 +218,11 @@ func (b *versionedKVBackend) getVersionKey(key string, version uint64, s logical
 
 	salted := salt.SaltID(fmt.Sprintf("%s|%d", key, version))
 
-	return fmt.Sprintf("versions/%s/%s", salted[0:3], salted[3:]), nil
+	return path.Join(b.storagePrefix, versionPrefix, salted[0:3], salted[3:]), nil
 }
 
+// getKeyMetadata returns the metadata object for the provided key, if no object
+// exits it will return nil.
 func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Storage, key string) (*KeyMetadata, error) {
 	policy, err := b.Policy(ctx, s)
 	if err != nil {
@@ -217,7 +232,7 @@ func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Stora
 	es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
 		Storage: s,
 		Policy:  policy,
-		Prefix:  metadataPrefix,
+		Prefix:  path.Join(b.storagePrefix, metadataPrefix),
 	})
 	if err != nil {
 		return nil, err
@@ -240,6 +255,7 @@ func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Stora
 	return meta, nil
 }
 
+// writeKeyMetadata writes a metadata object to storage.
 func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) error {
 	policy, err := b.Policy(ctx, s)
 	if err != nil {
@@ -249,7 +265,7 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 	es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
 		Storage: s,
 		Policy:  policy,
-		Prefix:  metadataPrefix,
+		Prefix:  path.Join(b.storagePrefix, metadataPrefix),
 	})
 	if err != nil {
 		return err

@@ -17,11 +17,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-const (
-	metadataPrefix string = "metadata/"
-	versionPrefix  string = "versions/"
-)
-
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
 func pathData(b *versionedKVBackend) *framework.Path {
@@ -367,10 +362,6 @@ func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, 
 	return 0
 }
 
-const dataHelpSyn = `Configures the JWT Public Key and Kubernetes API information.`
+const dataHelpSyn = ``
 const dataHelpDesc = `
-The Kubernetes Auth backend validates service account JWTs and verifies their
-existence with the Kubernetes TokenReview API. This endpoint configures the
-public key used to validate the JWT signature and the necessary information to
-access the Kubernetes API.
 `
