@@ -17,10 +17,17 @@ import (
 )
 
 const (
-	configPath         string = "config"
-	rolePrefix         string = "role/"
-	metadataPrefix     string = "metadata/"
-	versionPrefix      string = "versions/"
+	// configPath is the location where the config is stored
+	configPath string = "config"
+
+	// metadataPrefix is the prefix where the key metadata is stored.
+	metadataPrefix string = "metadata/"
+
+	// versionPrefix is the prefix where the version data is stored.
+	versionPrefix string = "versions/"
+
+	// defaultMaxVersions is the number of versions to keep around unless set by
+	// the config or key configuration.
 	defaultMaxVersions uint32 = 10
 )
 
