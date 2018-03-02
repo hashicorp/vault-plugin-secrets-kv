@@ -18,8 +18,8 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 		&framework.Path{
 			Pattern: "archive/.*",
 			Fields: map[string]*framework.FieldSchema{
-				"version": {
-					Type:        framework.TypeInt,
+				"versions": {
+					Type:        framework.TypeCommaIntSlice,
 					Description: "",
 				},
 			},
@@ -34,8 +34,8 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 		&framework.Path{
 			Pattern: "unarchive/.*",
 			Fields: map[string]*framework.FieldSchema{
-				"version": {
-					Type:        framework.TypeInt,
+				"versions": {
+					Type:        framework.TypeCommaIntSlice,
 					Description: "",
 				},
 			},
@@ -54,8 +54,8 @@ func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "unarchive/")
 
-		verNum := uint64(data.Get("version").(int))
-		if verNum == uint64(0) {
+		versions := data.Get("versions").([]int)
+		if len(versions) == 0 {
 			return logical.ErrorResponse("no version number provided"), logical.ErrInvalidRequest
 		}
 
@@ -70,14 +70,16 @@ func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
 			return nil, nil
 		}
 
-		// If there is no version, or the version is already archived or
-		// destroyed return
-		lv := meta.Versions[verNum]
-		if lv == nil || lv.Destroyed {
-			return nil, nil
-		}
+		for _, verNum := range versions {
+			// If there is no version, or the version is already archived or
+			// destroyed return
+			lv := meta.Versions[uint64(verNum)]
+			if lv == nil || lv.Destroyed {
+				continue
+			}
 
-		lv.ArchiveTime = nil
+			lv.ArchiveTime = nil
+		}
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
@@ -91,8 +93,8 @@ func (b *versionedKVBackend) pathArchiveWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "archive/")
 
-		verNum := uint64(data.Get("version").(int))
-		if verNum == uint64(0) {
+		versions := data.Get("versions").([]int)
+		if len(versions) == 0 {
 			return logical.ErrorResponse("no version number provided"), logical.ErrInvalidRequest
 		}
 
@@ -107,25 +109,27 @@ func (b *versionedKVBackend) pathArchiveWrite() framework.OperationFunc {
 			return nil, nil
 		}
 
-		// If there is no latest version, or the latest version is already
-		// archived or destroyed return
-		lv := meta.Versions[verNum]
-		if lv == nil || lv.Destroyed {
-			return nil, nil
-		}
-
-		if lv.ArchiveTime != nil {
-			archiveTime, err := ptypes.Timestamp(lv.ArchiveTime)
-			if err != nil {
-				return nil, err
+		for _, verNum := range versions {
+			// If there is no latest version, or the latest version is already
+			// archived or destroyed return
+			lv := meta.Versions[uint64(verNum)]
+			if lv == nil || lv.Destroyed {
+				continue
 			}
 
-			if archiveTime.Before(time.Now()) {
-				return nil, nil
-			}
-		}
+			if lv.ArchiveTime != nil {
+				archiveTime, err := ptypes.Timestamp(lv.ArchiveTime)
+				if err != nil {
+					return nil, err
+				}
 
-		lv.ArchiveTime = ptypes.TimestampNow()
+				if archiveTime.Before(time.Now()) {
+					continue
+				}
+			}
+
+			lv.ArchiveTime = ptypes.TimestampNow()
+		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {

@@ -15,8 +15,8 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "destroy/.*",
 		Fields: map[string]*framework.FieldSchema{
-			"version": {
-				Type:        framework.TypeInt,
+			"versions": {
+				Type:        framework.TypeCommaIntSlice,
 				Description: "",
 			},
 		},
@@ -34,9 +34,8 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "destroy/")
 
-		// TODO: These should be an array
-		verNum := uint64(data.Get("version").(int))
-		if verNum == uint64(0) {
+		versions := data.Get("versions").([]int)
+		if len(versions) == 0 {
 			return logical.ErrorResponse("no version number provided"), logical.ErrInvalidRequest
 		}
 
@@ -51,27 +50,34 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 			return nil, nil
 		}
 
-		// If there is no version, or the version is already destroyed return
-		lv := meta.Versions[verNum]
-		if lv == nil || lv.Destroyed {
-			return nil, nil
+		for _, verNum := range versions {
+			// If there is no version, or the version is already destroyed,
+			// continue
+			lv := meta.Versions[uint64(verNum)]
+			if lv == nil || lv.Destroyed {
+				continue
+			}
+
+			lv.Destroyed = true
 		}
 
-		lv.Destroyed = true
+		// write the metadata key before deleting the versions
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}
 
-		// Delete versioned data
-		versionKey, err := b.getVersionKey(key, verNum, req.Storage)
-		if err != nil {
-			return nil, err
-		}
+		for _, verNum := range versions {
+			// Delete versioned data
+			versionKey, err := b.getVersionKey(key, uint64(verNum), req.Storage)
+			if err != nil {
+				return nil, err
+			}
 
-		err = req.Storage.Delete(ctx, versionKey)
-		if err != nil {
-			return nil, err
+			err = req.Storage.Delete(ctx, versionKey)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return nil, nil

@@ -58,7 +58,7 @@ func TestVersionedKV_Destroy_Put(t *testing.T) {
 	}
 
 	data = map[string]interface{}{
-		"version": 1,
+		"versions": "1,2",
 	}
 
 	req = &logical.Request{
@@ -88,5 +88,7 @@ func TestVersionedKV_Destroy_Put(t *testing.T) {
 	if resp.Data["versions"].(map[string]interface{})["1"].(map[string]interface{})["destroyed"].(bool) != true {
 		t.Fatalf("Bad response: %#v", resp)
 	}
-
+	if resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["destroyed"].(bool) != true {
+		t.Fatalf("Bad response: %#v", resp)
+	}
 }

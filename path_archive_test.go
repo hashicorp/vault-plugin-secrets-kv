@@ -59,7 +59,7 @@ func TestVersionedKV_Archive_Put(t *testing.T) {
 	}
 
 	data = map[string]interface{}{
-		"version": 1,
+		"versions": "1,2",
 	}
 
 	req = &logical.Request{
@@ -94,6 +94,16 @@ func TestVersionedKV_Archive_Put(t *testing.T) {
 	if !parsed.After(time.Now().Add(-1*time.Minute)) || !parsed.Before(time.Now()) {
 		t.Fatalf("Bad response: %#v", resp)
 	}
+
+	parsed, err = time.Parse(time.RFC3339Nano, resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["archive_time"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !parsed.After(time.Now().Add(-1*time.Minute)) || !parsed.Before(time.Now()) {
+		t.Fatalf("Bad response: %#v", resp)
+	}
+
 }
 
 func TestVersionedKV_Unarchive_Put(t *testing.T) {
@@ -147,7 +157,7 @@ func TestVersionedKV_Unarchive_Put(t *testing.T) {
 	}
 
 	data = map[string]interface{}{
-		"version": 1,
+		"versions": "1,2",
 	}
 
 	req = &logical.Request{
@@ -163,7 +173,7 @@ func TestVersionedKV_Unarchive_Put(t *testing.T) {
 	}
 
 	data = map[string]interface{}{
-		"version": 1,
+		"versions": "1,2",
 	}
 
 	req = &logical.Request{
@@ -191,6 +201,9 @@ func TestVersionedKV_Unarchive_Put(t *testing.T) {
 	}
 
 	if resp.Data["versions"].(map[string]interface{})["1"].(map[string]interface{})["archive_time"].(string) != "" {
+		t.Fatalf("Bad response: %#v", resp)
+	}
+	if resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["archive_time"].(string) != "" {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 }
