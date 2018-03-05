@@ -9,8 +9,6 @@ import (
 	"github.com/hashicorp/vault/logical/framework"
 )
 
-const warningACLReadAccess string = "Read access to this endpoint should be controlled via ACLs as it will return the configuration information as-is, including any passwords."
-
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
 func pathConfig(b *versionedKVBackend) *framework.Path {
