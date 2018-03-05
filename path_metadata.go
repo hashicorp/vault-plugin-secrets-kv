@@ -161,8 +161,12 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			}
 		}
 
-		meta.MaxVersions = uint32(maxRaw.(int))
-		meta.CasRequired = casRaw.(bool)
+		if mOk {
+			meta.MaxVersions = uint32(maxRaw.(int))
+		}
+		if cOk {
+			meta.CasRequired = casRaw.(bool)
+		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		return nil, err

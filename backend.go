@@ -2,7 +2,6 @@ package vkv
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path"
 	"sync"
@@ -208,7 +207,7 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 		return conf, nil
 	}
 
-	if err := json.Unmarshal(raw.Value, conf); err != nil {
+	if err := proto.Unmarshal(raw.Value, conf); err != nil {
 		return nil, err
 	}
 

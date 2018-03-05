@@ -24,7 +24,7 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: b.upgradeCheck(b.pathDataWrite()),
+				logical.UpdateOperation: b.upgradeCheck(b.pathArchiveWrite()),
 				logical.CreateOperation: b.upgradeCheck(b.pathArchiveWrite()),
 			},
 

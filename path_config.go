@@ -2,7 +2,9 @@ package vkv
 
 import (
 	"context"
+	"path"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -17,6 +19,10 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 		Fields: map[string]*framework.FieldSchema{
 			"max_versions": {
 				Type:        framework.TypeInt,
+				Description: "",
+			},
+			"cas_required": {
+				Type:        framework.TypeBool,
 				Description: "",
 			},
 		},
@@ -43,6 +49,7 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 			resp := &logical.Response{
 				Data: map[string]interface{}{
 					"max_versions": config.MaxVersions,
+					"cas_required": config.CasRequired,
 				},
 			}
 
@@ -54,21 +61,27 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 // pathConfigWrite handles create and update commands to the config
 func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		maxVersions := data.Get("max_versions").(uint32)
+		maxVersions := uint32(data.Get("max_versions").(int))
+		casRequired := data.Get("cas_required").(bool)
 
 		config := &Configuration{
 			MaxVersions: maxVersions,
+			CasRequired: casRequired,
 		}
 
-		// TODO: store proto message instead of json
-		entry, err := logical.StorageEntryJSON(configPath, config)
+		bytes, err := proto.Marshal(config)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := req.Storage.Put(ctx, entry); err != nil {
+		err = req.Storage.Put(ctx, &logical.StorageEntry{
+			Key:   path.Join(b.storagePrefix, configPath),
+			Value: bytes,
+		})
+		if err != nil {
 			return nil, err
 		}
+
 		return nil, nil
 	}
 }

@@ -64,8 +64,11 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			return nil, nil
 		}
 
-		verNum := uint64(data.Get("version").(int))
-		if verNum == uint64(0) {
+		var verNum uint64
+		verRaw, ok := data.GetOk("version")
+		if ok {
+			verNum = uint64(verRaw.(int))
+		} else {
 			verNum = meta.CurrentVersion
 		}
 
