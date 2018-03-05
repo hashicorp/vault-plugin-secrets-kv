@@ -40,21 +40,20 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 // pathConfigWrite handles create and update commands to the config
 func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		if config, err := b.config(ctx, req.Storage); err != nil {
+		config, err := b.config(ctx, req.Storage)
+		if err != nil {
 			return nil, err
-		} else if config == nil {
-			return nil, nil
-		} else {
-			// Create a map of data to be returned
-			resp := &logical.Response{
-				Data: map[string]interface{}{
-					"max_versions": config.MaxVersions,
-					"cas_required": config.CasRequired,
-				},
-			}
-
-			return resp, nil
 		}
+		if config == nil {
+			return nil, nil
+		}
+
+		return &logical.Response{
+			Data: map[string]interface{}{
+				"max_versions": config.MaxVersions,
+				"cas_required": config.CasRequired,
+			},
+		}, nil
 	}
 }
 
