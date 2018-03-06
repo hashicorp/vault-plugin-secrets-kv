@@ -214,3 +214,90 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 	}
 
 }
+
+func TestVersionedKV_Data_CleanupOldVersions(t *testing.T) {
+	b, storage := getBackend(t)
+
+	// Write 10 versions
+	for i := 0; i < 10; i++ {
+		data := map[string]interface{}{
+			"data": map[string]interface{}{
+				"bar": "baz",
+			},
+		}
+
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      "data/foo",
+			Storage:   storage,
+			Data:      data,
+		}
+
+		resp, err := b.HandleRequest(context.Background(), req)
+		if err != nil || (resp != nil && resp.IsError()) {
+			t.Fatalf("err:%s resp:%#v\n", err, resp)
+		}
+
+		if resp.Data["version"] != uint64(i+1) {
+			t.Fatalf("Bad response: %#v", resp)
+		}
+	}
+
+	// lower max versions
+	data := map[string]interface{}{
+		"max_versions": 2,
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "metadata/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// write another version
+	data = map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	if resp.Data["version"] != uint64(11) {
+		t.Fatalf("Bad response: %#v", resp)
+	}
+
+	// Make sure versions 1-9 were cleaned up.
+	for i := 1; i <= 9; i++ {
+		versionKey, err := b.(*versionedKVBackend).getVersionKey("foo", uint64(i), storage)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		v, err := req.Storage.Get(context.Background(), versionKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if v != nil {
+			t.Fatalf("version not cleaned up %d", i)
+		}
+	}
+
+}
