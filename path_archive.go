@@ -71,8 +71,7 @@ func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
 		}
 
 		for _, verNum := range versions {
-			// If there is no version, or the version is already archived or
-			// destroyed return
+			// If there is no version or the version is destroyed continue
 			lv := meta.Versions[uint64(verNum)]
 			if lv == nil || lv.Destroyed {
 				continue

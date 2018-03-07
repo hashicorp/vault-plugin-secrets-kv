@@ -108,8 +108,8 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 
 	b.Logger().Info("versioned k/v: done collecting keys", "num_keys", len(keys))
 	for i, key := range keys {
-		if i%500 == 0 {
-			b.Logger().Info("versioned k/v: upgrading keys", "progress", fmt.Sprintf("%d/%d", i, len(keys)))
+		if b.Logger().IsTrace() && i%5000 == 0 {
+			b.Logger().Trace("versioned k/v: upgrading keys", "progress", fmt.Sprintf("%d/%d", i, len(keys)))
 		}
 		err := upgradeKey(key)
 		if err != nil {

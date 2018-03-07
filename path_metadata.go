@@ -3,6 +3,7 @@ package vkv
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
@@ -211,7 +212,7 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 		es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
 			Storage: req.Storage,
 			Policy:  policy,
-			Prefix:  metadataPrefix,
+			Prefix:  path.Join(b.storagePrefix, metadataPrefix),
 		})
 		if err != nil {
 			return nil, err

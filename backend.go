@@ -34,12 +34,30 @@ const (
 type versionedKVBackend struct {
 	*framework.Backend
 
-	keyPolicy     *keysutil.Policy
-	salt          *salt.Salt
-	l             sync.RWMutex
-	locks         []*locksutil.LockEntry
+	// keyPolicy is a cached version of the policy used to encrypt the storage
+	// keys for the key metadata objects.
+	keyPolicy *keysutil.Policy
+
+	// salt is the cached version of the salt used to create paths for version
+	// data storage paths.
+	salt *salt.Salt
+
+	// l locks the keyPolicy and salt caches.
+	l sync.RWMutex
+
+	// locks is a slice of 256 locks that are used to protect key and version
+	// updates.
+	locks []*locksutil.LockEntry
+
+	// storagePrefix is the prefix given to all the data for a versioned KV
+	// store. We prefix this data so that upgrading from a passthrough backend
+	// to a versioned backend is easier. This value is passed from Vault core
+	// through the backend config.
 	storagePrefix string
-	upgrading     *uint32
+
+	// upgrading is an atomic value denoting if the backend is in the process of
+	// upgrading its data.
+	upgrading *uint32
 }
 
 // Factory will return a logical backend of type versionedKVBackend or
@@ -109,12 +127,14 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 // cache these values.
 func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 	switch key {
-	case salt.DefaultLocation:
+	case path.Join(b.storagePrefix, salt.DefaultLocation):
 		b.l.Lock()
 		b.salt = nil
 		b.l.Unlock()
-	case "policy/metadata":
-
+	case path.Join(b.storagePrefix, "policy/metadata"):
+		b.l.Lock()
+		b.keyPolicy = nil
+		b.l.Unlock()
 	}
 }
 
@@ -134,7 +154,7 @@ func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
 	}
 	salt, err := salt.NewSalt(s, &salt.Config{
 		HashFunc: salt.SHA256Hash,
-		Location: salt.DefaultLocation,
+		Location: path.Join(b.storagePrefix, salt.DefaultLocation),
 	})
 	if err != nil {
 		return nil, err
@@ -160,7 +180,7 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 	}
 
 	// Check if the policy already exists
-	raw, err := s.Get(ctx, "policy/metadata")
+	raw, err := s.Get(ctx, path.Join(b.storagePrefix, "policy/metadata"))
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +197,7 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 	}
 
 	// Policy didn't exist, create it.
+	// TODO: This needs to be stored at the proper path...
 	policy := &keysutil.Policy{
 		Name:                 "metadata",
 		Type:                 keysutil.KeyType_AES256_GCM96,
@@ -184,6 +205,8 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 		KDF:                  keysutil.Kdf_hkdf_sha256,
 		ConvergentEncryption: true,
 		ConvergentVersion:    2,
+		// TODO: add the version template here once it's merged into vault
+		// master
 	}
 
 	err = policy.Rotate(ctx, s)
@@ -197,7 +220,7 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 
 // config takes a storage object and returns a configuration object
 func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Configuration, error) {
-	raw, err := s.Get(ctx, configPath)
+	raw, err := s.Get(ctx, path.Join(b.storagePrefix, configPath))
 	if err != nil {
 		return nil, err
 	}
