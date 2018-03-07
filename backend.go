@@ -116,6 +116,8 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	}
 
 	b.locks = locksutil.CreateLocks()
+	// TODO: set via the config
+	b.storagePrefix = "test"
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err

@@ -3,6 +3,7 @@ package vkv
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -290,7 +291,7 @@ func TestVersionedKV_Data_CleanupOldVersions(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		v, err := req.Storage.Get(context.Background(), versionKey)
+		v, err := storage.Get(context.Background(), versionKey)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -298,6 +299,64 @@ func TestVersionedKV_Data_CleanupOldVersions(t *testing.T) {
 		if v != nil {
 			t.Fatalf("version not cleaned up %d", i)
 		}
+	}
+
+}
+
+func TestVersionedKV_Reload_Policy(t *testing.T) {
+	b, storage := getBackend(t)
+
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+
+	// Write 10 versions
+	for i := 0; i < 10; i++ {
+
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      fmt.Sprintf("data/%d", i),
+			Storage:   storage,
+			Data:      data,
+		}
+
+		resp, err := b.HandleRequest(context.Background(), req)
+		if err != nil || (resp != nil && resp.IsError()) {
+			t.Fatalf("err:%s resp:%#v\n", err, resp)
+		}
+	}
+
+	config := &logical.BackendConfig{
+		Logger:      logformat.NewVaultLogger(log.LevelTrace),
+		System:      &logical.StaticSystemView{},
+		StorageView: storage,
+	}
+
+	b, err := VersionedKVFactory(context.Background(), config)
+	if err != nil {
+		t.Fatalf("unable to create backend: %v", err)
+	}
+
+	// Read values back out
+	for i := 0; i < 10; i++ {
+
+		req := &logical.Request{
+			Operation: logical.ReadOperation,
+			Path:      fmt.Sprintf("data/%d", i),
+			Storage:   storage,
+		}
+
+		resp, err := b.HandleRequest(context.Background(), req)
+		if err != nil || (resp != nil && resp.IsError()) {
+			t.Fatalf("err:%s resp:%#v\n", err, resp)
+		}
+
+		if !reflect.DeepEqual(resp.Data["data"], data["data"]) {
+			t.Fatalf("Bad response: %#v", resp)
+		}
+
 	}
 
 }
