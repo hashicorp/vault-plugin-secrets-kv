@@ -17,11 +17,11 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 		Fields: map[string]*framework.FieldSchema{
 			"max_versions": {
 				Type:        framework.TypeInt,
-				Description: "",
+				Description: "The number of versions to keep for each key. Defaults to 10",
 			},
 			"cas_required": {
 				Type:        framework.TypeBool,
-				Description: "",
+				Description: "If true, the backend will require the cas parameter to be set for each write",
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{

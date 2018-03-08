@@ -26,15 +26,21 @@ func pathData(b *versionedKVBackend) *framework.Path {
 		Fields: map[string]*framework.FieldSchema{
 			"version": {
 				Type:        framework.TypeInt,
-				Description: "",
+				Description: "If provided, the value at the version number will be returned",
 			},
 			"options": {
-				Type:        framework.TypeMap,
-				Description: "",
+				Type: framework.TypeMap,
+				Description: `
+Options for writing a KV entry. 
+
+Set the "cas" value to use a Check-And-Set operation. If not set the write will
+be allowed. If set to 0 a write will only be allowed if the key doesn’t exist.
+If the index is non-zero the write will only be allowed if the key’s current
+version matches the version specified in the cas parameter.`,
 			},
 			"data": {
 				Type:        framework.TypeMap,
-				Description: "",
+				Description: "The contents of the data map will be stored and returned on read.",
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{

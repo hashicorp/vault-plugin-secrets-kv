@@ -20,7 +20,7 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 			Fields: map[string]*framework.FieldSchema{
 				"versions": {
 					Type:        framework.TypeCommaIntSlice,
-					Description: "",
+					Description: "The versions to be archived. The versioned data will not be deleted, but it will no longer be returned in normal get requests.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -36,7 +36,7 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 			Fields: map[string]*framework.FieldSchema{
 				"versions": {
 					Type:        framework.TypeCommaIntSlice,
-					Description: "",
+					Description: "The versions to unarchive. The versions will be restored and their data will be returned on normal get requests.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{

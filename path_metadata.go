@@ -28,12 +28,16 @@ func pathMetadata(b *versionedKVBackend) *framework.Path {
 		Pattern: "metadata/.*",
 		Fields: map[string]*framework.FieldSchema{
 			"cas_required": {
-				Type:        framework.TypeBool,
-				Description: "",
+				Type: framework.TypeBool,
+				Description: `
+If true the key will require the cas parameter to be set on all write requests.
+If false, the backend’s configuration will be used.`,
 			},
 			"max_versions": {
-				Type:        framework.TypeInt,
-				Description: "",
+				Type: framework.TypeInt,
+				Description: `
+The number of versions to keep. If not set, the backend’s configured max
+version is used.`,
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{

@@ -17,7 +17,7 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 		Fields: map[string]*framework.FieldSchema{
 			"versions": {
 				Type:        framework.TypeCommaIntSlice,
-				Description: "",
+				Description: "The versions to destroy. Their data will be permanently deleted.",
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
