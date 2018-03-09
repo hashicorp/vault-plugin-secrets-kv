@@ -2,7 +2,7 @@
 
 DEPRECATIONS/CHANGES:
 
- * The AWS authentication backend now allows binds for inputs, as either a
+ * The AWS authentication backend now allows binds for inputs as either a
    comma-delimited string or a string array. However, to keep consistency with
    input and output, when reading a role the binds will now be returned as
    string arrays rather than strings.
@@ -21,8 +21,13 @@ BUG FIXES:
 
  * auth/aws: Fix honoring `max_ttl` when a corresponding role `ttl` is not also
    set [GH-4107]
+ * auth/token: If a periodic token being issued has a period greater than the
+   max_lease_ttl configured on the token store mount, truncate it. This matches
+   renewal behavior; before it was inconsistent between issuance and renewal.
+   [GH-4112]
  * cli: Improve error messages around `vault auth help` when there is no CLI
    helper for a particular method [GH-4056]
+ * cli: Fix autocomplete installation when using Fish as the shell [GH-4094]
  * secret/ssh: Return `key_bits` value when reading a role [GH-4098]
 
 ## 0.9.5 (February 26th, 2018)
