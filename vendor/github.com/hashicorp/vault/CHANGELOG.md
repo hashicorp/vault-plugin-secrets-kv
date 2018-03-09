@@ -12,13 +12,18 @@ IMPROVEMENTS:
  * auth/aws: Allow using lists in role bind parameters [GH-3907]
  * server: Make sure `tls_disable_client_cert` is actually a true value rather
    than just set [GH-4049]
+ * storage/gcs: Allow specifying chunk size for transfers, which can reduce
+   memory utilization [GH-4060]
  * sys/capabilities: Add the ability to use multiple paths for capability
    checking [GH-3663]
 
 BUG FIXES:
 
+ * auth/aws: Fix honoring `max_ttl` when a corresponding role `ttl` is not also
+   set [GH-4107]
  * cli: Improve error messages around `vault auth help` when there is no CLI
    helper for a particular method [GH-4056]
+ * secret/ssh: Return `key_bits` value when reading a role [GH-4098]
 
 ## 0.9.5 (February 26th, 2018)
 

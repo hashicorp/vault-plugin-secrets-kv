@@ -286,7 +286,7 @@ func TestVersionedKV_Data_CleanupOldVersions(t *testing.T) {
 
 	// Make sure versions 1-9 were cleaned up.
 	for i := 1; i <= 9; i++ {
-		versionKey, err := b.(*versionedKVBackend).getVersionKey("foo", uint64(i), storage)
+		versionKey, err := b.(*versionedKVBackend).getVersionKey(context.Background(), "foo", uint64(i), storage)
 		if err != nil {
 			t.Fatal(err)
 		}

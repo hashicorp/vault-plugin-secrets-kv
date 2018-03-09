@@ -6,23 +6,14 @@ import (
 	"path"
 	"strings"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
 
-func ptypesTimestampToString(t *timestamp.Timestamp) string {
-	if t == nil {
-		return ""
-	}
-
-	return ptypes.TimestampString(t)
-}
-
-// pathConfig returns the path configuration for CRUD operations on the backend
-// configuration.
+// pathMetadata returns the path configuration for CRUD operations on the
+// metadata endpoint
 func pathMetadata(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "metadata/.*",
@@ -78,7 +69,7 @@ func (b *versionedKVBackend) pathMetadataList() framework.OperationFunc {
 			return nil, err
 		}
 
-		es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
+		es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
 			Storage: req.Storage,
 			Policy:  policy,
 			Prefix:  metadataPrefix,
@@ -195,12 +186,11 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 
 		// Delete each version.
 		for id, _ := range meta.Versions {
-			versionKey, err := b.getVersionKey(key, id, req.Storage)
+			versionKey, err := b.getVersionKey(ctx, key, id, req.Storage)
 			if err != nil {
 				return nil, err
 			}
 
-			// TODO: multierror?
 			err = req.Storage.Delete(ctx, versionKey)
 			if err != nil {
 				return nil, err
@@ -213,7 +203,7 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 			return nil, err
 		}
 
-		es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
+		es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
 			Storage: req.Storage,
 			Policy:  policy,
 			Prefix:  path.Join(b.storagePrefix, metadataPrefix),

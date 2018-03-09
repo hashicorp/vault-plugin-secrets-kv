@@ -30,8 +30,7 @@ func pathData(b *versionedKVBackend) *framework.Path {
 			},
 			"options": {
 				Type: framework.TypeMap,
-				Description: `
-Options for writing a KV entry. 
+				Description: `Options for writing a KV entry. 
 
 Set the "cas" value to use a Check-And-Set operation. If not set the write will
 be allowed. If set to 0 a write will only be allowed if the key doesn’t exist.
@@ -55,7 +54,7 @@ version matches the version specified in the cas parameter.`,
 	}
 }
 
-// pathConfigWrite handles create and update commands to the config
+// pathDataRead handles read commands to a kv entry
 func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "data/")
@@ -71,12 +70,10 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			return nil, nil
 		}
 
-		var verNum uint64
+		verNum := meta.CurrentVersion
 		verRaw, ok := data.GetOk("version")
 		if ok {
 			verNum = uint64(verRaw.(int))
-		} else {
-			verNum = meta.CurrentVersion
 		}
 
 		// If there is no version with that number, return
@@ -116,7 +113,7 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 
 		}
 
-		versionKey, err := b.getVersionKey(key, verNum, req.Storage)
+		versionKey, err := b.getVersionKey(ctx, key, verNum, req.Storage)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +123,7 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			return nil, err
 		}
 		if raw == nil {
-			return nil, errors.New("could not find version")
+			return nil, errors.New("could not find version data")
 		}
 
 		version := &Version{}
@@ -145,7 +142,7 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 	}
 }
 
-// pathConfigWrite handles create and update commands to the config
+// pathDataWrite handles create and update commands to a kv entry
 func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "data/")
@@ -213,7 +210,8 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 		}
 
-		versionKey, err := b.getVersionKey(key, meta.CurrentVersion+1, req.Storage)
+		// Create a version key for the new version
+		versionKey, err := b.getVersionKey(ctx, key, meta.CurrentVersion+1, req.Storage)
 		if err != nil {
 			return nil, err
 		}
@@ -227,6 +225,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Write the new version
 		if err := req.Storage.Put(ctx, &logical.StorageEntry{
 			Key:   versionKey,
 			Value: buf,
@@ -234,7 +233,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		versionToDelete := meta.AddVersion(version.CreatedTime, nil, config.MaxVersions)
+		vm, versionToDelete := meta.AddVersion(version.CreatedTime, nil, config.MaxVersions)
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
@@ -243,9 +242,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		// We create the response here so we can add warnings to it bellow.
 		resp := &logical.Response{
 			Data: map[string]interface{}{
-				"version": meta.CurrentVersion,
-				//TODO: SHould this be omited?
-				"archive_time": ptypesTimestampToString(nil),
+				"version":      meta.CurrentVersion,
+				"created_time": ptypesTimestampToString(vm.CreatedTime),
+				"archive_time": ptypesTimestampToString(vm.ArchiveTime),
+				"destroyed":    vm.Destroyed,
 			},
 		}
 
@@ -259,7 +259,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			var versionKeysToDelete []string
 
 			for i := versionToDelete; i > 0; i-- {
-				versionKey, err := b.getVersionKey(key, i, req.Storage)
+				versionKey, err := b.getVersionKey(ctx, key, i, req.Storage)
 				if err != nil {
 					resp.AddWarning(fmt.Sprintf("Error occured when cleaning up old versions, these will be cleaned up on next write: %s", err))
 					return resp, nil
@@ -342,17 +342,21 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 	}
 }
 
-func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, configMaxVersions uint32) uint64 {
+// AddVersion adds a version to the key metadata and moves the sliding window of
+// max versions. It returns the newly added version and the version to delete
+// from storage.
+func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, configMaxVersions uint32) (*VersionMetadata, uint64) {
 	if k.Versions == nil {
 		k.Versions = map[uint64]*VersionMetadata{}
 	}
 
-	k.CurrentVersion++
-	k.Versions[k.CurrentVersion] = &VersionMetadata{
+	vm := &VersionMetadata{
 		CreatedTime: createdTime,
 		ArchiveTime: archiveTime,
 	}
 
+	k.CurrentVersion++
+	k.Versions[k.CurrentVersion] = vm
 	k.UpdatedTime = createdTime
 	if k.CreatedTime == nil {
 		k.CreatedTime = createdTime
@@ -370,7 +374,7 @@ func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, 
 
 	if uint32(k.CurrentVersion-k.OldestVersion) >= maxVersions {
 		versionToDelete := k.CurrentVersion - uint64(maxVersions)
-		// We need to do a loop here in the event that the max versions has
+		// We need to do a loop here in the event that max versions has
 		// changed and we need to delete more than one entry.
 		for i := k.OldestVersion; i < versionToDelete+1; i++ {
 			delete(k.Versions, i)
@@ -378,10 +382,10 @@ func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, 
 
 		k.OldestVersion = versionToDelete + 1
 
-		return versionToDelete
+		return vm, versionToDelete
 	}
 
-	return 0
+	return vm, 0
 }
 
 const dataHelpSyn = ``

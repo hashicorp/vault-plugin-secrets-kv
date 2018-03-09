@@ -11,8 +11,7 @@ import (
 	"github.com/hashicorp/vault/logical/framework"
 )
 
-// pathConfig returns the path configuration for CRUD operations on the backend
-// configuration.
+// pathsArchive returns the path configuration for the archive and unarchive paths
 func pathsArchive(b *versionedKVBackend) []*framework.Path {
 	return []*framework.Path{
 		&framework.Path{
@@ -50,13 +49,14 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 	}
 }
 
+// pathUnarchiveWrite is used to unarchive a set of versions
 func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "unarchive/")
 
 		versions := data.Get("versions").([]int)
 		if len(versions) == 0 {
-			return logical.ErrorResponse("no version number provided"), logical.ErrInvalidRequest
+			return logical.ErrorResponse("No version number provided"), logical.ErrInvalidRequest
 		}
 
 		locksutil.LockForKey(b.locks, key).Lock()
@@ -88,13 +88,14 @@ func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
 	}
 }
 
+// pathArchiveWrite is used to archive a set of versions.
 func (b *versionedKVBackend) pathArchiveWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "archive/")
 
 		versions := data.Get("versions").([]int)
 		if len(versions) == 0 {
-			return logical.ErrorResponse("no version number provided"), logical.ErrInvalidRequest
+			return logical.ErrorResponse("No version number provided"), logical.ErrInvalidRequest
 		}
 
 		locksutil.LockForKey(b.locks, key).Lock()
@@ -110,7 +111,7 @@ func (b *versionedKVBackend) pathArchiveWrite() framework.OperationFunc {
 
 		for _, verNum := range versions {
 			// If there is no latest version, or the latest version is already
-			// archived or destroyed return
+			// archived or destroyed continue
 			lv := meta.Versions[uint64(verNum)]
 			if lv == nil || lv.Destroyed {
 				continue

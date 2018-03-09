@@ -25,6 +25,12 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/golang/go"
+  packages = ["src/math/big"]
+  revision = "bf86aec25972f3a100c3aa58a6abcbcc35bdea49"
+  version = "go1.10"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = [
@@ -144,7 +150,7 @@
     "physical/inmem",
     "version"
   ]
-  revision = "83a7d20b81206a3a4b090d4e0b3ee5e43d514828"
+  revision = "32b48f73be2b4e68c3ccf179e6b793b5f0d3e0f6"
 
 [[projects]]
   branch = "master"
@@ -223,7 +229,7 @@
     "internal/chacha20",
     "poly1305"
   ]
-  revision = "91a49db82a88618983a78a06c1cbd4e00ab749ab"
+  revision = "c7dcf104e3a7a1417abc0230cb0d5240d764159d"
 
 [[projects]]
   branch = "master"
@@ -237,13 +243,13 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "22ae77b79946ea320088417e4d50825671d82d57"
+  revision = "d0aafc73d5cdc42264b0af071c261abac580695e"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "dd2ff4accc098aceecb86b36eaa7829b2a17b1c9"
+  revision = "7dca6fe1f43775aa6d1334576870ff63f978f539"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -270,7 +276,7 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "2c5e7ac708aaa719366570dd82bda44541ca2a63"
+  revision = "df60624c1e9b9d2973e889c7a1cff73155da81c4"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -307,6 +313,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6d9e47b64a0abcbac606ee2631acd34fc2e72a6463a0ffe7e6bb71f4447afce9"
+  inputs-digest = "c1e3b9962466b3c85540842fbea354e84103859405349f01a115069fc7cacebb"
   solver-name = "gps-cdcl"
   solver-version = 1

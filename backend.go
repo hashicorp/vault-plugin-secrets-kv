@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/helper/locksutil"
@@ -142,7 +144,7 @@ func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 
 // Salt will load a the salt, or if one has not been created yet it will
 // generate and store a new salt.
-func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
+func (b *versionedKVBackend) Salt(ctx context.Context, s logical.Storage) (*salt.Salt, error) {
 	b.l.RLock()
 	if b.salt != nil {
 		defer b.l.RUnlock()
@@ -154,7 +156,7 @@ func (b *versionedKVBackend) Salt(s logical.Storage) (*salt.Salt, error) {
 	if b.salt != nil {
 		return b.salt, nil
 	}
-	salt, err := salt.NewSalt(s, &salt.Config{
+	salt, err := salt.NewSalt(ctx, s, &salt.Config{
 		HashFunc: salt.SHA256Hash,
 		Location: path.Join(b.storagePrefix, salt.DefaultLocation),
 	})
@@ -199,17 +201,15 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 	}
 
 	// Policy didn't exist, create it.
-	// TODO: This needs to be stored at the proper path...
-	policy := &keysutil.Policy{
+	policy := keysutil.NewPolicy(keysutil.PolicyConfig{
 		Name:                 "metadata",
 		Type:                 keysutil.KeyType_AES256_GCM96,
 		Derived:              true,
 		KDF:                  keysutil.Kdf_hkdf_sha256,
 		ConvergentEncryption: true,
-		ConvergentVersion:    2,
-		// TODO: add the version template here once it's merged into vault
-		// master
-	}
+		StoragePrefix:        b.storagePrefix,
+		VersionTemplate:      "{{version}}:",
+	})
 
 	err = policy.Rotate(ctx, s)
 	if err != nil {
@@ -241,8 +241,8 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 
 // getVersionKey uses the salt to generate the version key for a specific
 // version of a key.
-func (b *versionedKVBackend) getVersionKey(key string, version uint64, s logical.Storage) (string, error) {
-	salt, err := b.Salt(s)
+func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, version uint64, s logical.Storage) (string, error) {
+	salt, err := b.Salt(ctx, s)
 	if err != nil {
 		return "", err
 	}
@@ -260,7 +260,7 @@ func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Stora
 		return nil, err
 	}
 
-	es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
+	es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
 		Storage: s,
 		Policy:  policy,
 		Prefix:  path.Join(b.storagePrefix, metadataPrefix),
@@ -293,7 +293,7 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 		return err
 	}
 
-	es, err := NewEncryptedKeyStorage(EncryptedKeyStorageConfig{
+	es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
 		Storage: s,
 		Policy:  policy,
 		Prefix:  path.Join(b.storagePrefix, metadataPrefix),
@@ -316,6 +316,14 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 	}
 
 	return nil
+}
+
+func ptypesTimestampToString(t *timestamp.Timestamp) string {
+	if t == nil {
+		return ""
+	}
+
+	return ptypes.TimestampString(t)
 }
 
 var backendHelp string = `

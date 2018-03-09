@@ -291,7 +291,7 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 
 	// Verify all the version data was deleted.
 	for i := 0; i <= 5; i++ {
-		versionKey, err := b.(*versionedKVBackend).getVersionKey("foo", uint64(i+1), req.Storage)
+		versionKey, err := b.(*versionedKVBackend).getVersionKey(context.Background(), "foo", uint64(i+1), req.Storage)
 		if err != nil {
 			t.Fatal(err)
 		}

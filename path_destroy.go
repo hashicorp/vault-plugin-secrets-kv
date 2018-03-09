@@ -9,8 +9,7 @@ import (
 	"github.com/hashicorp/vault/logical/framework"
 )
 
-// pathConfig returns the path configuration for CRUD operations on the backend
-// configuration.
+// pathDestroy returns the path configuration for the destroy endpoint
 func pathDestroy(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "destroy/.*",
@@ -61,7 +60,7 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 			lv.Destroyed = true
 		}
 
-		// write the metadata key before deleting the versions
+		// Write the metadata key before deleting the versions
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
@@ -69,7 +68,7 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 
 		for _, verNum := range versions {
 			// Delete versioned data
-			versionKey, err := b.getVersionKey(key, uint64(verNum), req.Storage)
+			versionKey, err := b.getVersionKey(ctx, key, uint64(verNum), req.Storage)
 			if err != nil {
 				return nil, err
 			}

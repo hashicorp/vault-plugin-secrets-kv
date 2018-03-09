@@ -31,3 +31,7 @@
 [[constraint]]
   name = "github.com/mgutz/logxi"
   version = "1.0.0"
+
+[[override]]
+  name = "github.com/golang/go"
+  version = "go1.10"

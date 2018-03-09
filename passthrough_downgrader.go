@@ -12,6 +12,13 @@ const (
 	kvClientHeader string = "X-Vault-KV-Client"
 )
 
+// PassthroughDowngrader wraps a normal passthrough backend and downgrades the
+// request object from the newer Versioned API to the older Passthrough API.
+// This allows us to use the new "vault kv" subcommand with a non-versioned
+// instance of the kv store without doing a preflight API version check. The
+// CLI will always use the new API definition and this object will make it
+// compatible with the passthrough backend. The "X-Vault-KV-Client" header is
+// used to know the request originated from the CLI and uses the newer API.
 type PassthroughDowngrader struct {
 	next Passthrough
 }
@@ -55,7 +62,6 @@ func (b *PassthroughDowngrader) handleRead() framework.OperationFunc {
 
 		reqDown.Path = strings.TrimPrefix(req.Path, "data/")
 
-		// TODO: should we upgrade the response?
 		resp, err := b.next.handleRead()(ctx, reqDown, data)
 		if resp != nil && resp.Data != nil {
 			resp.Data = map[string]interface{}{
@@ -90,6 +96,7 @@ func (b *PassthroughDowngrader) handleWrite() framework.OperationFunc {
 			return logical.ErrorResponse("Could not downgrade request, unexpected data format"), logical.ErrInvalidRequest
 		}
 
+		// Move the data object up a level and ignore the options object.
 		reqDown.Data = req.Data["data"].(map[string]interface{})
 
 		return b.next.handleWrite()(ctx, reqDown, data)
@@ -139,15 +146,17 @@ func (b *PassthroughDowngrader) shouldDowngrade(req *logical.Request) bool {
 	return ok
 }
 
+// invalidPaths returns an error if we are trying to access an versioned only
+// path on a non-versioned kv store.
 func (b *PassthroughDowngrader) invalidPath(req *logical.Request) *logical.Response {
 	switch {
+	case req.Path == "config":
+		fallthrough
 	case strings.HasPrefix(req.Path, "metadata/"):
 		fallthrough
 	case strings.HasPrefix(req.Path, "archive/"):
 		fallthrough
 	case strings.HasPrefix(req.Path, "unarchive/"):
-		fallthrough
-	case req.Path == "config":
 		fallthrough
 	case strings.HasPrefix(req.Path, "destroy/"):
 		return logical.ErrorResponse("path is not supported when versioning is disabled")
