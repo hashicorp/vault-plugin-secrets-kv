@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/helper/salt"
@@ -183,25 +182,19 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 		return b.keyPolicy, nil
 	}
 
-	// Check if the policy already exists
-	raw, err := s.Get(ctx, path.Join(b.storagePrefix, "policy/metadata"))
+	// Try loading policy
+	policy, err := keysutil.LoadPolicy(ctx, s, path.Join(b.storagePrefix, "policy/metadata"))
 	if err != nil {
 		return nil, err
 	}
-	if raw != nil {
-		// Decode the policy
-		var policy keysutil.Policy
-		err = jsonutil.DecodeJSON(raw.Value, &policy)
-		if err != nil {
-			return nil, err
-		}
-
-		b.keyPolicy = &policy
+	if policy != nil {
+		// Store and return the policy
+		b.keyPolicy = policy
 		return b.keyPolicy, nil
 	}
 
 	// Policy didn't exist, create it.
-	policy := keysutil.NewPolicy(keysutil.PolicyConfig{
+	policy = keysutil.NewPolicy(keysutil.PolicyConfig{
 		Name:                 "metadata",
 		Type:                 keysutil.KeyType_AES256_GCM96,
 		Derived:              true,
