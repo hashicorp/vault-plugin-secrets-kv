@@ -2,6 +2,7 @@ package vkv
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"sync"
@@ -65,7 +66,6 @@ type versionedKVBackend struct {
 // PassthroughBackend based on the config passed in.
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	versioned := conf.Config["versioned"]
-	versioned = "true"
 
 	var b logical.Backend
 	var err error
@@ -77,13 +77,6 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	if _, ok := conf.Config["upgrade"]; ok {
-		err := b.(*versionedKVBackend).Upgrade(ctx, conf.StorageView)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return b, nil
@@ -117,12 +110,23 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	}
 
 	b.locks = locksutil.CreateLocks()
-	// TODO: set via the config
-	b.storagePrefix = "test"
+
+	if conf.Config["UID"] == "" {
+		return nil, errors.New("could not initalize versioned K/V Store, no UID was provided")
+	}
+	b.storagePrefix = conf.Config["UID"]
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
 	}
+
+	if _, ok := conf.Config["upgrade"]; ok {
+		err := b.Upgrade(ctx, conf.StorageView)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return b, nil
 }
 
