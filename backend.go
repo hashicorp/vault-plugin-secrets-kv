@@ -112,7 +112,7 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	b.locks = locksutil.CreateLocks()
 
 	if conf.Config["UID"] == "" {
-		return nil, errors.New("could not initalize versioned K/V Store, no UID was provided")
+		return nil, errors.New("could not initialize versioned K/V Store, no UID was provided")
 	}
 	b.storagePrefix = conf.Config["UID"]
 
