@@ -237,7 +237,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		// We create the response here so we can add warnings to it bellow.
+		// We create the response here so we can add warnings to it below.
 		resp := &logical.Response{
 			Data: map[string]interface{}{
 				"version":      meta.CurrentVersion,
