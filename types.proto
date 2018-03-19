@@ -4,8 +4,8 @@ package vkv;
 import "google/protobuf/timestamp.proto";
 
 message Configuration {
-    uint32 max_versions = 1;
-    bool cas_required = 2;
+	uint32 max_versions = 1;
+	bool cas_required = 2;
 }
 
 message VersionMetadata {
@@ -18,7 +18,7 @@ message VersionMetadata {
 	google.protobuf.Timestamp archive_time = 2;
 
 	// Destroyed is used to specify this version is
-    // a has been removed and the underlying data deleted.
+	// a has been removed and the underlying data deleted.
 	bool destroyed = 3;
 }
 
@@ -27,7 +27,7 @@ message KeyMetadata {
 	string key = 1;
 
 	// Versions is the map of versionID -> VersionMetadata.
-    // Useful when listing all versions.
+	// Useful when listing all versions.
 	map<uint64, VersionMetadata> versions = 2;
 
 	// CurrentVersion is the latest version of the value
@@ -40,23 +40,23 @@ message KeyMetadata {
 	google.protobuf.Timestamp created_time = 5;
 
 	// Updated time was the last time the metadata version 
-    // was updated.
+	// was updated.
 	google.protobuf.Timestamp updated_time = 6;
 
-    // MaxVersions specifies how many versions to keep around. 
-    // If empty value, defaults to the configured Max 
-    // for the mount.
+	// MaxVersions specifies how many versions to keep around. 
+	// If empty value, defaults to the configured Max 
+	// for the mount.
 	uint32 max_versions = 7;
 
 	// CasRequired specifies if the cas parameter is 
-    // required for this key
-    bool cas_required = 8;
+	// required for this key
+	bool cas_required = 8;
 }
 
 
 message Version {
 	// Data is a JSON object with string keys that 
-    // represents the user supplied data.
+	// represents the user supplied data.
 	bytes data = 1;
 
 	// CreatedTime is when the version was created.
