@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/vault/helper/logformat"
 	"github.com/hashicorp/vault/logical"
@@ -39,6 +41,7 @@ func TestVersionedKV_Upgrade(t *testing.T) {
 		Config: map[string]string{
 			"versioned": "true",
 			"upgrade":   "true",
+			"uid":       "test",
 		},
 	}
 
@@ -46,6 +49,27 @@ func TestVersionedKV_Upgrade(t *testing.T) {
 	b, err = Factory(context.Background(), config)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// verify requests are rejected during upgrade
+	req := &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      fmt.Sprintf("data/%d/foo", 1),
+		Storage:   storage,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if resp == nil || resp.Error().Error() != "Can not handle request while upgrade is in process" {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// wait for upgrade to finish
+	for {
+		if atomic.LoadUint32(b.(*versionedKVBackend).upgrading) == 0 {
+			break
+		}
+
+		time.Sleep(time.Second)
 	}
 
 	for i := 0; i < 1024*1024; i++ {

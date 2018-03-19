@@ -18,6 +18,9 @@ func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 		Logger:      logformat.NewVaultLogger(log.LevelTrace),
 		System:      &logical.StaticSystemView{},
 		StorageView: &logical.InmemStorage{},
+		Config: map[string]string{
+			"uid": "test",
+		},
 	}
 
 	b, err := VersionedKVFactory(context.Background(), config)
@@ -332,6 +335,9 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 		Logger:      logformat.NewVaultLogger(log.LevelTrace),
 		System:      &logical.StaticSystemView{},
 		StorageView: storage,
+		Config: map[string]string{
+			"uid": "test",
+		},
 	}
 
 	b, err := VersionedKVFactory(context.Background(), config)
