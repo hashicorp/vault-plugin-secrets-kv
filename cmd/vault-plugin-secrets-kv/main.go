@@ -18,8 +18,6 @@ func main() {
 	tlsConfig := apiClientMeta.GetTLSConfig()
 	tlsProviderFunc := pluginutil.VaultPluginTLSProvider(tlsConfig)
 
-	os.Setenv("VAULT_VERSION", "0.9.4")
-
 	err := plugin.Serve(&plugin.ServeOpts{
 		BackendFactoryFunc: vkv.Factory,
 		TLSProviderFunc:    tlsProviderFunc,

@@ -26,7 +26,7 @@ func pathData(b *versionedKVBackend) *framework.Path {
 		Fields: map[string]*framework.FieldSchema{
 			"version": {
 				Type:        framework.TypeInt,
-				Description: "If provided, the value at the version number will be returned",
+				Description: "If provided during a read, the value at the version number will be returned",
 			},
 			"options": {
 				Type: framework.TypeMap,
@@ -71,9 +71,9 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 		}
 
 		verNum := meta.CurrentVersion
-		verRaw, ok := data.GetOk("version")
-		if ok {
-			verNum = uint64(verRaw.(int))
+		verParam := data.Get("version").(int)
+		if verParam > 0 {
+			verNum = uint64(verParam)
 		}
 
 		// If there is no version with that number, return
@@ -193,12 +193,6 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 
 			switch {
-			case !casOk && config.CasRequired:
-				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
-
-			case !casOk && meta.CasRequired:
-				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
-
 			case casOk:
 				var cas int
 				if err := mapstructure.WeakDecode(casRaw, &cas); err != nil {
@@ -207,6 +201,8 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 				if uint64(cas) != meta.CurrentVersion {
 					return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
 				}
+			case config.CasRequired, meta.CasRequired:
+				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
 			}
 		}
 
