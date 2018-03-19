@@ -86,6 +86,10 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	b := &versionedKVBackend{
 		upgrading: new(uint32),
 	}
+	if conf.Config["uid"] == "" {
+		return nil, errors.New("could not initialize versioned K/V Store, no UID was provided")
+	}
+	b.storagePrefix = conf.Config["uid"]
 
 	b.Backend = &framework.Backend{
 		BackendType: logical.TypeLogical,
@@ -93,7 +97,14 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 
 		PathsSpecial: &logical.Paths{
 			SealWrapStorage: []string{
-				"/",
+				// Seal wrap the versioned data
+				path.Join(b.storagePrefix, versionPrefix) + "/",
+
+				// Seal wrap the key policy
+				path.Join(b.storagePrefix, "policy") + "/",
+
+				// Seal wrap the archived key policy
+				path.Join(b.storagePrefix, "archive") + "/",
 			},
 		},
 
@@ -109,11 +120,6 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	}
 
 	b.locks = locksutil.CreateLocks()
-
-	if conf.Config["uid"] == "" {
-		return nil, errors.New("could not initialize versioned K/V Store, no UID was provided")
-	}
-	b.storagePrefix = conf.Config["uid"]
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
