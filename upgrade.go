@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
@@ -26,6 +27,11 @@ func (b *versionedKVBackend) upgradeCheck(next framework.OperationFunc) framewor
 }
 
 func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) error {
+	if !b.System().LocalMount() && b.System().ReplicationState().HasState(consts.ReplicationPerformanceSecondary) {
+		b.Logger().Info("versioned k/v: upgrade not running on performace replication secondary")
+		return nil
+	}
+
 	if !atomic.CompareAndSwapUint32(b.upgrading, 0, 1) {
 		return errors.New("upgrade already in process")
 	}
@@ -104,32 +110,39 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return nil
 	}
 
-	b.Logger().Info("versioned k/v: collecting keys")
-	keys, err := logical.CollectKeys(ctx, s)
-	if err != nil {
-		return err
-	}
+	// Run the actual upgrade in a go routine so we don't block the client on a
+	// potentially long process.
+	go func() {
 
-	b.Logger().Info("versioned k/v: done collecting keys", "num_keys", len(keys))
-	for i, key := range keys {
-		if b.Logger().IsTrace() && i%5000 == 0 {
-			b.Logger().Trace("versioned k/v: upgrading keys", "progress", fmt.Sprintf("%d/%d", i, len(keys)))
-		}
-		err := upgradeKey(key)
+		b.Logger().Info("versioned k/v: collecting keys")
+		keys, err := logical.CollectKeys(ctx, s)
 		if err != nil {
-			b.Logger().Error("versioned k/v: upgrading resulted in error", "error", err, "progress", fmt.Sprintf("%d/%d", i+1, len(keys)))
-			return err
+			b.Logger().Error("versioned k/v: upgrading resulted in error", "error", err)
+			return
 		}
-	}
 
-	b.Logger().Info("versioned k/v: upgrading keys finished")
+		b.Logger().Info("versioned k/v: done collecting keys", "num_keys", len(keys))
+		for i, key := range keys {
+			if b.Logger().IsTrace() && i%500 == 0 {
+				b.Logger().Trace("versioned k/v: upgrading keys", "progress", fmt.Sprintf("%d/%d", i, len(keys)))
+			}
+			err := upgradeKey(key)
+			if err != nil {
+				b.Logger().Error("versioned k/v: upgrading resulted in error", "error", err, "progress", fmt.Sprintf("%d/%d", i+1, len(keys)))
+				return
+			}
+		}
 
-	// Remove the upgrading canary
-	err = s.Delete(ctx, path.Join(b.storagePrefix, "upgrading"))
-	if err != nil {
-		return err
-	}
+		b.Logger().Info("versioned k/v: upgrading keys finished")
 
-	atomic.StoreUint32(b.upgrading, 0)
+		// Remove the upgrading canary
+		err = s.Delete(ctx, path.Join(b.storagePrefix, "upgrading"))
+		if err != nil {
+			b.Logger().Error("versioned k/v: removing upgrade canary resulted in an error", "error", err)
+			return
+		}
+
+		atomic.StoreUint32(b.upgrading, 0)
+	}()
 	return nil
 }

@@ -3,10 +3,8 @@ package vkv
 import (
 	"context"
 	"fmt"
-	"path"
 	"strings"
 
-	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
@@ -64,19 +62,12 @@ func (b *versionedKVBackend) pathMetadataList() framework.OperationFunc {
 		key := strings.TrimPrefix(req.Path, "metadata/")
 
 		// Get an encrypted key storage object
-		policy, err := b.Policy(ctx, req.Storage)
+		wrapper, err := b.getKeyEncryptor(ctx, req.Storage)
 		if err != nil {
 			return nil, err
 		}
 
-		es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
-			Storage: req.Storage,
-			Policy:  policy,
-			Prefix:  metadataPrefix,
-		})
-		if err != nil {
-			return nil, err
-		}
+		es := wrapper.Wrap(req.Storage)
 
 		// Use encrypted key storage to list the keys
 		keys, err := es.List(ctx, key)
@@ -198,19 +189,12 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 		}
 
 		// Get an encrypted key storage object
-		policy, err := b.Policy(ctx, req.Storage)
+		wrapper, err := b.getKeyEncryptor(ctx, req.Storage)
 		if err != nil {
 			return nil, err
 		}
 
-		es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
-			Storage: req.Storage,
-			Policy:  policy,
-			Prefix:  path.Join(b.storagePrefix, metadataPrefix),
-		})
-		if err != nil {
-			return nil, err
-		}
+		es := wrapper.Wrap(req.Storage)
 
 		// Use encrypted key storage to delete the key
 		err = es.Delete(ctx, key)

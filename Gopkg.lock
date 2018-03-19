@@ -25,12 +25,6 @@
   version = "v1.0"
 
 [[projects]]
-  name = "github.com/golang/go"
-  packages = ["src/math/big"]
-  revision = "bf86aec25972f3a100c3aa58a6abcbcc35bdea49"
-  version = "go1.10"
-
-[[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = [
@@ -76,7 +70,7 @@
   branch = "master"
   name = "github.com/hashicorp/go-plugin"
   packages = ["."]
-  revision = "956b76edd382134e7e88a07f2d210bafcc730cce"
+  revision = "8068b0bdcfb702b4ab69d0e42c6023b4996c3026"
 
 [[projects]]
   branch = "master"
@@ -104,6 +98,12 @@
     "simplelru"
   ]
   revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/golang-math-big"
+  packages = ["big"]
+  revision = "561262b71329a2a771294d66accacab6b598b37b"
 
 [[projects]]
   branch = "master"
@@ -150,13 +150,13 @@
     "physical/inmem",
     "version"
   ]
-  revision = "0216f99727c1e7b74c203bf45e2963d8f4c75400"
+  revision = "1aef2cb1c53fac24d1f6f93c6c1ec1244775be99"
 
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/yamux"
   packages = ["."]
-  revision = "683f49123a33db61abfb241b7ac5e4af4dc54d55"
+  revision = "2658be15c5f05e76244154714161f17e3e77de2e"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -229,7 +229,7 @@
     "internal/chacha20",
     "poly1305"
   ]
-  revision = "c7dcf104e3a7a1417abc0230cb0d5240d764159d"
+  revision = "374053ea96cb300f8671b8d3b07edeeb06e203b4"
 
 [[projects]]
   branch = "master"
@@ -243,13 +243,13 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "d0aafc73d5cdc42264b0af071c261abac580695e"
+  revision = "24dd3780ca4f75fed9f321890729414a4b5d3f13"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "7dca6fe1f43775aa6d1334576870ff63f978f539"
+  revision = "01acb38716e021ed1fc03a602bdb5838e1358c5e"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -276,7 +276,7 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "df60624c1e9b9d2973e889c7a1cff73155da81c4"
+  revision = "f8c8703595236ae70fdf8789ecb656ea0bcdcf46"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -313,6 +313,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c1e3b9962466b3c85540842fbea354e84103859405349f01a115069fc7cacebb"
+  inputs-digest = "6b8333afea7c469d18b44d29fa2214a03c18a63f184da23ecb043c87421c97e9"
   solver-name = "gps-cdcl"
   solver-version = 1

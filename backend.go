@@ -36,9 +36,8 @@ const (
 type versionedKVBackend struct {
 	*framework.Backend
 
-	// keyPolicy is a cached version of the policy used to encrypt the storage
-	// keys for the key metadata objects.
-	keyPolicy *keysutil.Policy
+	// keyEncryptedWrapper is a cached version of the EncryptedKeyStorageWrapper
+	keyEncryptedWrapper *keysutil.EncryptedKeyStorageWrapper
 
 	// salt is the cached version of the salt used to create paths for version
 	// data storage paths.
@@ -111,10 +110,10 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 
 	b.locks = locksutil.CreateLocks()
 
-	if conf.Config["UID"] == "" {
+	if conf.Config["uid"] == "" {
 		return nil, errors.New("could not initialize versioned K/V Store, no UID was provided")
 	}
-	b.storagePrefix = conf.Config["UID"]
+	b.storagePrefix = conf.Config["uid"]
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
@@ -140,7 +139,7 @@ func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 		b.l.Unlock()
 	case path.Join(b.storagePrefix, "policy/metadata"):
 		b.l.Lock()
-		b.keyPolicy = nil
+		b.keyEncryptedWrapper = nil
 		b.l.Unlock()
 	}
 }
@@ -170,31 +169,16 @@ func (b *versionedKVBackend) Salt(ctx context.Context, s logical.Storage) (*salt
 	return salt, nil
 }
 
-// Policy loads the key policy for this backend, if one has not been created yet
-// it will generate and store a new policy.
-func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*keysutil.Policy, error) {
-	b.l.RLock()
-	if b.keyPolicy != nil {
-		defer b.l.RUnlock()
-		return b.keyPolicy, nil
-	}
-	b.l.RUnlock()
-	b.l.Lock()
-	defer b.l.Unlock()
-
-	if b.keyPolicy != nil {
-		return b.keyPolicy, nil
-	}
-
+// policy loads the key policy for this backend, if one has not been created yet
+// it will generate and store a new policy. The caller must have the backend lock.
+func (b *versionedKVBackend) policy(ctx context.Context, s logical.Storage) (*keysutil.Policy, error) {
 	// Try loading policy
 	policy, err := keysutil.LoadPolicy(ctx, s, path.Join(b.storagePrefix, "policy/metadata"))
 	if err != nil {
 		return nil, err
 	}
 	if policy != nil {
-		// Store and return the policy
-		b.keyPolicy = policy
-		return b.keyPolicy, nil
+		return policy, nil
 	}
 
 	// Policy didn't exist, create it.
@@ -205,7 +189,7 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 		KDF:                  keysutil.Kdf_hkdf_sha256,
 		ConvergentEncryption: true,
 		StoragePrefix:        b.storagePrefix,
-		VersionTemplate:      "{{version}}:",
+		VersionTemplate:      keysutil.EncryptedKeyPolicyVersionTpl,
 	})
 
 	err = policy.Rotate(ctx, s)
@@ -213,8 +197,40 @@ func (b *versionedKVBackend) Policy(ctx context.Context, s logical.Storage) (*ke
 		return nil, err
 	}
 
-	b.keyPolicy = policy
-	return b.keyPolicy, nil
+	return policy, nil
+}
+
+func (b *versionedKVBackend) getKeyEncryptor(ctx context.Context, s logical.Storage) (*keysutil.EncryptedKeyStorageWrapper, error) {
+	b.l.RLock()
+	if b.keyEncryptedWrapper != nil {
+		defer b.l.RUnlock()
+		return b.keyEncryptedWrapper, nil
+	}
+	b.l.RUnlock()
+	b.l.Lock()
+	defer b.l.Unlock()
+
+	if b.keyEncryptedWrapper != nil {
+		return b.keyEncryptedWrapper, nil
+	}
+
+	policy, err := b.policy(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	e, err := keysutil.NewEncryptedKeyStorageWrapper(keysutil.EncryptedKeyStorageConfig{
+		Policy: policy,
+		Prefix: path.Join(b.storagePrefix, metadataPrefix),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the value
+	b.keyEncryptedWrapper = e
+
+	return b.keyEncryptedWrapper, nil
 }
 
 // config takes a storage object and returns a configuration object
@@ -252,19 +268,13 @@ func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, vers
 // getKeyMetadata returns the metadata object for the provided key, if no object
 // exits it will return nil.
 func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Storage, key string) (*KeyMetadata, error) {
-	policy, err := b.Policy(ctx, s)
+
+	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return nil, err
 	}
 
-	es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
-		Storage: s,
-		Policy:  policy,
-		Prefix:  path.Join(b.storagePrefix, metadataPrefix),
-	})
-	if err != nil {
-		return nil, err
-	}
+	es := wrapper.Wrap(s)
 
 	item, err := es.Get(ctx, key)
 	if err != nil {
@@ -285,19 +295,12 @@ func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Stora
 
 // writeKeyMetadata writes a metadata object to storage.
 func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) error {
-	policy, err := b.Policy(ctx, s)
+	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	es, err := keysutil.NewEncryptedKeyStorage(keysutil.EncryptedKeyStorageConfig{
-		Storage: s,
-		Policy:  policy,
-		Prefix:  path.Join(b.storagePrefix, metadataPrefix),
-	})
-	if err != nil {
-		return err
-	}
+	es := wrapper.Wrap(s)
 
 	bytes, err := proto.Marshal(meta)
 	if err != nil {
