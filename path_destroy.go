@@ -38,8 +38,9 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 			return logical.ErrorResponse("no version number provided"), logical.ErrInvalidRequest
 		}
 
-		locksutil.LockForKey(b.locks, key).Lock()
-		defer locksutil.LockForKey(b.locks, key).Unlock()
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {

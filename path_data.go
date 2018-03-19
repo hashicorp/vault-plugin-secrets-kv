@@ -59,8 +59,9 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "data/")
 
-		locksutil.LockForKey(b.locks, key).Lock()
-		defer locksutil.LockForKey(b.locks, key).Unlock()
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {
@@ -166,8 +167,9 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 		}
 
-		locksutil.LockForKey(b.locks, key).Lock()
-		defer locksutil.LockForKey(b.locks, key).Unlock()
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {
@@ -298,8 +300,9 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "data/")
 
-		locksutil.LockForKey(b.locks, key).Lock()
-		defer locksutil.LockForKey(b.locks, key).Unlock()
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {

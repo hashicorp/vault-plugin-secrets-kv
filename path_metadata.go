@@ -134,8 +134,9 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			return logical.ErrorResponse("Can not set max_versions higher than backend config setting"), logical.ErrInvalidRequest
 		}
 
-		locksutil.LockForKey(b.locks, key).Lock()
-		defer locksutil.LockForKey(b.locks, key).Unlock()
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {
@@ -164,8 +165,9 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := strings.TrimPrefix(req.Path, "metadata/")
 
-		locksutil.LockForKey(b.locks, key).Lock()
-		defer locksutil.LockForKey(b.locks, key).Unlock()
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {
