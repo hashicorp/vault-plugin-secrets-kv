@@ -93,7 +93,7 @@ func (b *PassthroughDowngrader) handleWrite() framework.OperationFunc {
 		switch req.Data["data"].(type) {
 		case map[string]interface{}:
 		default:
-			return logical.ErrorResponse("Could not downgrade request, unexpected data format"), logical.ErrInvalidRequest
+			return logical.ErrorResponse("could not downgrade request, unexpected data format"), logical.ErrInvalidRequest
 		}
 
 		// Move the data object up a level and ignore the options object.
