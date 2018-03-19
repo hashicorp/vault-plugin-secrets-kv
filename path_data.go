@@ -60,8 +60,8 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 		key := strings.TrimPrefix(req.Path, "data/")
 
 		lock := locksutil.LockForKey(b.locks, key)
-		lock.Lock()
-		defer lock.Unlock()
+		lock.RLock()
+		defer lock.RUnlock()
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {

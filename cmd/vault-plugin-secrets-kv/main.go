@@ -5,7 +5,7 @@ import (
 
 	log "github.com/mgutz/logxi/v1"
 
-	"github.com/hashicorp/vault-plugin-secret-vkv"
+	vkv "github.com/hashicorp/vault-plugin-secrets-kv"
 	"github.com/hashicorp/vault/helper/pluginutil"
 	"github.com/hashicorp/vault/logical/plugin"
 )
