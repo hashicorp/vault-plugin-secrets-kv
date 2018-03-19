@@ -71,7 +71,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			Versions: map[uint64]*VersionMetadata{},
 		}
 
-		versionKey, err := b.getVersionKey(ctx, key, meta.CurrentVersion+1, s)
+		versionKey, err := b.getVersionKey(ctx, key, 1, s)
 		if err != nil {
 			return err
 		}
