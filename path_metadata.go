@@ -90,9 +90,9 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 		versions := make(map[string]interface{}, len(meta.Versions))
 		for i, v := range meta.Versions {
 			versions[fmt.Sprintf("%d", i)] = map[string]interface{}{
-				"created_time": ptypesTimestampToString(v.CreatedTime),
-				"archive_time": ptypesTimestampToString(v.ArchiveTime),
-				"destroyed":    v.Destroyed,
+				"created_time":  ptypesTimestampToString(v.CreatedTime),
+				"deletion_time": ptypesTimestampToString(v.DeletionTime),
+				"destroyed":     v.Destroyed,
 			}
 		}
 

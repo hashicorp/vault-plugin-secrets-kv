@@ -87,22 +87,22 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			Data: map[string]interface{}{
 				"data": nil,
 				"metadata": map[string]interface{}{
-					"version":      verNum,
-					"created_time": ptypesTimestampToString(vm.CreatedTime),
-					"archive_time": ptypesTimestampToString(vm.ArchiveTime),
-					"destroyed":    vm.Destroyed,
+					"version":       verNum,
+					"created_time":  ptypesTimestampToString(vm.CreatedTime),
+					"deletion_time": ptypesTimestampToString(vm.DeletionTime),
+					"destroyed":     vm.Destroyed,
 				},
 			},
 		}
 
-		// If the version has been archived return metadata with a 404
-		if vm.ArchiveTime != nil {
-			archiveTime, err := ptypes.Timestamp(vm.ArchiveTime)
+		// If the version has been deleted return metadata with a 404
+		if vm.DeletionTime != nil {
+			deletionTime, err := ptypes.Timestamp(vm.DeletionTime)
 			if err != nil {
 				return nil, err
 			}
 
-			if archiveTime.Before(time.Now()) {
+			if deletionTime.Before(time.Now()) {
 				return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
 
 			}
@@ -240,10 +240,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		// We create the response here so we can add warnings to it below.
 		resp := &logical.Response{
 			Data: map[string]interface{}{
-				"version":      meta.CurrentVersion,
-				"created_time": ptypesTimestampToString(vm.CreatedTime),
-				"archive_time": ptypesTimestampToString(vm.ArchiveTime),
-				"destroyed":    vm.Destroyed,
+				"version":       meta.CurrentVersion,
+				"created_time":  ptypesTimestampToString(vm.CreatedTime),
+				"deletion_time": ptypesTimestampToString(vm.DeletionTime),
+				"destroyed":     vm.Destroyed,
 			},
 		}
 
@@ -313,24 +313,24 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 		}
 
 		// If there is no latest version, or the latest version is already
-		// archived or destroyed return
+		// deleted or destroyed return
 		lv := meta.Versions[meta.CurrentVersion]
 		if lv == nil || lv.Destroyed {
 			return nil, nil
 		}
 
-		if lv.ArchiveTime != nil {
-			archiveTime, err := ptypes.Timestamp(lv.ArchiveTime)
+		if lv.DeletionTime != nil {
+			deletionTime, err := ptypes.Timestamp(lv.DeletionTime)
 			if err != nil {
 				return nil, err
 			}
 
-			if archiveTime.Before(time.Now()) {
+			if deletionTime.Before(time.Now()) {
 				return nil, nil
 			}
 		}
 
-		lv.ArchiveTime = ptypes.TimestampNow()
+		lv.DeletionTime = ptypes.TimestampNow()
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -344,14 +344,14 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 // AddVersion adds a version to the key metadata and moves the sliding window of
 // max versions. It returns the newly added version and the version to delete
 // from storage.
-func (k *KeyMetadata) AddVersion(createdTime, archiveTime *timestamp.Timestamp, configMaxVersions uint32) (*VersionMetadata, uint64) {
+func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp, configMaxVersions uint32) (*VersionMetadata, uint64) {
 	if k.Versions == nil {
 		k.Versions = map[uint64]*VersionMetadata{}
 	}
 
 	vm := &VersionMetadata{
-		CreatedTime: createdTime,
-		ArchiveTime: archiveTime,
+		CreatedTime:  createdTime,
+		DeletionTime: deletionTime,
 	}
 
 	k.CurrentVersion++

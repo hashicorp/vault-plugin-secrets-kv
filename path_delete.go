@@ -11,11 +11,11 @@ import (
 	"github.com/hashicorp/vault/logical/framework"
 )
 
-// pathsArchive returns the path configuration for the archive and unarchive paths
-func pathsArchive(b *versionedKVBackend) []*framework.Path {
+// pathsDelete returns the path configuration for the delete and undelete paths
+func pathsDelete(b *versionedKVBackend) []*framework.Path {
 	return []*framework.Path{
 		&framework.Path{
-			Pattern: "archive/.*",
+			Pattern: "delete/.*",
 			Fields: map[string]*framework.FieldSchema{
 				"versions": {
 					Type:        framework.TypeCommaIntSlice,
@@ -23,15 +23,15 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: b.upgradeCheck(b.pathArchiveWrite()),
-				logical.CreateOperation: b.upgradeCheck(b.pathArchiveWrite()),
+				logical.UpdateOperation: b.upgradeCheck(b.pathDeleteWrite()),
+				logical.CreateOperation: b.upgradeCheck(b.pathDeleteWrite()),
 			},
 
-			HelpSynopsis:    archiveHelpSyn,
-			HelpDescription: archiveHelpDesc,
+			HelpSynopsis:    deleteHelpSyn,
+			HelpDescription: deleteHelpDesc,
 		},
 		&framework.Path{
-			Pattern: "unarchive/.*",
+			Pattern: "undelete/.*",
 			Fields: map[string]*framework.FieldSchema{
 				"versions": {
 					Type:        framework.TypeCommaIntSlice,
@@ -39,20 +39,20 @@ func pathsArchive(b *versionedKVBackend) []*framework.Path {
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: b.upgradeCheck(b.pathUnarchiveWrite()),
-				logical.CreateOperation: b.upgradeCheck(b.pathUnarchiveWrite()),
+				logical.UpdateOperation: b.upgradeCheck(b.pathUndeleteWrite()),
+				logical.CreateOperation: b.upgradeCheck(b.pathUndeleteWrite()),
 			},
 
-			HelpSynopsis:    unarchiveHelpSyn,
-			HelpDescription: unarchiveHelpDesc,
+			HelpSynopsis:    undeleteHelpSyn,
+			HelpDescription: undeleteHelpDesc,
 		},
 	}
 }
 
-// pathUnarchiveWrite is used to unarchive a set of versions
-func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
+// pathUndeleteWrite is used to undelete a set of versions
+func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		key := strings.TrimPrefix(req.Path, "unarchive/")
+		key := strings.TrimPrefix(req.Path, "undelete/")
 
 		versions := data.Get("versions").([]int)
 		if len(versions) == 0 {
@@ -78,7 +78,7 @@ func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
 				continue
 			}
 
-			lv.ArchiveTime = nil
+			lv.DeletionTime = nil
 		}
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -89,10 +89,10 @@ func (b *versionedKVBackend) pathUnarchiveWrite() framework.OperationFunc {
 	}
 }
 
-// pathArchiveWrite is used to archive a set of versions.
-func (b *versionedKVBackend) pathArchiveWrite() framework.OperationFunc {
+// pathDeleteWrite is used to delete a set of versions.
+func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		key := strings.TrimPrefix(req.Path, "archive/")
+		key := strings.TrimPrefix(req.Path, "delete/")
 
 		versions := data.Get("versions").([]int)
 		if len(versions) == 0 {
@@ -113,24 +113,24 @@ func (b *versionedKVBackend) pathArchiveWrite() framework.OperationFunc {
 
 		for _, verNum := range versions {
 			// If there is no latest version, or the latest version is already
-			// archived or destroyed continue
+			// deleted or destroyed continue
 			lv := meta.Versions[uint64(verNum)]
 			if lv == nil || lv.Destroyed {
 				continue
 			}
 
-			if lv.ArchiveTime != nil {
-				archiveTime, err := ptypes.Timestamp(lv.ArchiveTime)
+			if lv.DeletionTime != nil {
+				deletionTime, err := ptypes.Timestamp(lv.DeletionTime)
 				if err != nil {
 					return nil, err
 				}
 
-				if archiveTime.Before(time.Now()) {
+				if deletionTime.Before(time.Now()) {
 					continue
 				}
 			}
 
-			lv.ArchiveTime = ptypes.TimestampNow()
+			lv.DeletionTime = ptypes.TimestampNow()
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
@@ -142,10 +142,10 @@ func (b *versionedKVBackend) pathArchiveWrite() framework.OperationFunc {
 	}
 }
 
-const archiveHelpSyn = ``
-const archiveHelpDesc = `
+const deleteHelpSyn = ``
+const deleteHelpDesc = `
 `
 
-const unarchiveHelpSyn = ``
-const unarchiveHelpDesc = `
+const undeleteHelpSyn = ``
+const undeleteHelpDesc = `
 `

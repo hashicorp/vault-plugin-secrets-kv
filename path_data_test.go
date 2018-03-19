@@ -208,7 +208,7 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 
-	parsed, err := time.Parse(time.RFC3339Nano, httpResp.Data["metadata"].(map[string]interface{})["archive_time"].(string))
+	parsed, err := time.Parse(time.RFC3339Nano, httpResp.Data["metadata"].(map[string]interface{})["deletion_time"].(string))
 	if err != nil {
 		t.Fatal(err)
 	}

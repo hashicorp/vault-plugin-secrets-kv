@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/vault/logical"
 )
 
-func TestVersionedKV_Archive_Put(t *testing.T) {
+func TestVersionedKV_Delete_Put(t *testing.T) {
 	b, storage := getBackend(t)
 
 	data := map[string]interface{}{
@@ -64,7 +64,7 @@ func TestVersionedKV_Archive_Put(t *testing.T) {
 
 	req = &logical.Request{
 		Operation: logical.CreateOperation,
-		Path:      "archive/foo",
+		Path:      "delete/foo",
 		Storage:   storage,
 		Data:      data,
 	}
@@ -86,7 +86,7 @@ func TestVersionedKV_Archive_Put(t *testing.T) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
 
-	parsed, err := time.Parse(time.RFC3339Nano, resp.Data["versions"].(map[string]interface{})["1"].(map[string]interface{})["archive_time"].(string))
+	parsed, err := time.Parse(time.RFC3339Nano, resp.Data["versions"].(map[string]interface{})["1"].(map[string]interface{})["deletion_time"].(string))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestVersionedKV_Archive_Put(t *testing.T) {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 
-	parsed, err = time.Parse(time.RFC3339Nano, resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["archive_time"].(string))
+	parsed, err = time.Parse(time.RFC3339Nano, resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["deletion_time"].(string))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestVersionedKV_Archive_Put(t *testing.T) {
 
 }
 
-func TestVersionedKV_Unarchive_Put(t *testing.T) {
+func TestVersionedKV_Undelete_Put(t *testing.T) {
 	b, storage := getBackend(t)
 
 	data := map[string]interface{}{
@@ -162,7 +162,7 @@ func TestVersionedKV_Unarchive_Put(t *testing.T) {
 
 	req = &logical.Request{
 		Operation: logical.CreateOperation,
-		Path:      "archive/foo",
+		Path:      "delete/foo",
 		Storage:   storage,
 		Data:      data,
 	}
@@ -178,7 +178,7 @@ func TestVersionedKV_Unarchive_Put(t *testing.T) {
 
 	req = &logical.Request{
 		Operation: logical.CreateOperation,
-		Path:      "unarchive/foo",
+		Path:      "undelete/foo",
 		Storage:   storage,
 		Data:      data,
 	}
@@ -200,10 +200,10 @@ func TestVersionedKV_Unarchive_Put(t *testing.T) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
 
-	if resp.Data["versions"].(map[string]interface{})["1"].(map[string]interface{})["archive_time"].(string) != "" {
+	if resp.Data["versions"].(map[string]interface{})["1"].(map[string]interface{})["deletion_time"].(string) != "" {
 		t.Fatalf("Bad response: %#v", resp)
 	}
-	if resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["archive_time"].(string) != "" {
+	if resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["deletion_time"].(string) != "" {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 }
