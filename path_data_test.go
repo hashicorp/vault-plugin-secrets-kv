@@ -18,9 +18,7 @@ func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 		Logger:      logformat.NewVaultLogger(log.LevelTrace),
 		System:      &logical.StaticSystemView{},
 		StorageView: &logical.InmemStorage{},
-		Config: map[string]string{
-			"uid": "test",
-		},
+		BackendUUID: "test",
 	}
 
 	b, err := VersionedKVFactory(context.Background(), config)

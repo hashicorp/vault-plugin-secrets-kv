@@ -86,10 +86,10 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	b := &versionedKVBackend{
 		upgrading: new(uint32),
 	}
-	if conf.Config["uid"] == "" {
-		return nil, errors.New("could not initialize versioned K/V Store, no UID was provided")
+	if conf.BackendUUID == "" {
+		return nil, errors.New("could not initialize versioned K/V Store, no UUID was provided")
 	}
-	b.storagePrefix = conf.Config["uid"]
+	b.storagePrefix = conf.BackendUUID
 
 	b.Backend = &framework.Backend{
 		BackendType: logical.TypeLogical,
