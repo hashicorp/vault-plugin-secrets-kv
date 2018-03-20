@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
@@ -143,9 +144,12 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			return nil, err
 		}
 		if meta == nil {
+			now := ptypes.TimestampNow()
 			meta = &KeyMetadata{
-				Key:      key,
-				Versions: map[uint64]*VersionMetadata{},
+				Key:         key,
+				Versions:    map[uint64]*VersionMetadata{},
+				CreatedTime: now,
+				UpdatedTime: now,
 			}
 		}
 

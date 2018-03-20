@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	kvClientHeader string = "X-Vault-KV-Client"
+	kvClientHeader string = "X-Vault-Kv-Client"
 )
 
 // PassthroughDowngrader wraps a normal passthrough backend and downgrades the
@@ -17,7 +17,7 @@ const (
 // This allows us to use the new "vault kv" subcommand with a non-versioned
 // instance of the kv store without doing a preflight API version check. The
 // CLI will always use the new API definition and this object will make it
-// compatible with the passthrough backend. The "X-Vault-KV-Client" header is
+// compatible with the passthrough backend. The "X-Vault-Kv-Client" header is
 // used to know the request originated from the CLI and uses the newer API.
 type PassthroughDowngrader struct {
 	next Passthrough
