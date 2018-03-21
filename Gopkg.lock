@@ -119,10 +119,10 @@
     "json/scanner",
     "json/token"
   ]
-  revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
+  revision = "f40e974e75af4e271d97ce0fc917af5898ae7bda"
 
 [[projects]]
-  branch = "master"
+  branch = "0.10-beta"
   name = "github.com/hashicorp/vault"
   packages = [
     "api",
@@ -150,7 +150,7 @@
     "physical/inmem",
     "version"
   ]
-  revision = "1aef2cb1c53fac24d1f6f93c6c1ec1244775be99"
+  revision = "44aa151b78976c6da41dc63d93b40d2070b23277"
 
 [[projects]]
   branch = "master"
@@ -229,7 +229,7 @@
     "internal/chacha20",
     "poly1305"
   ]
-  revision = "374053ea96cb300f8671b8d3b07edeeb06e203b4"
+  revision = "80db560fac1fb3e6ac81dbc7f8ae4c061f5257bd"
 
 [[projects]]
   branch = "master"
@@ -243,13 +243,13 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "24dd3780ca4f75fed9f321890729414a4b5d3f13"
+  revision = "6078986fec03a1dcc236c34816c71b0e05018fda"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "01acb38716e021ed1fc03a602bdb5838e1358c5e"
+  revision = "c488ab1dd8481ef762f96a79a9577c27825be697"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -313,6 +313,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6b8333afea7c469d18b44d29fa2214a03c18a63f184da23ecb043c87421c97e9"
+  inputs-digest = "591b8e75e4f2b6f6f2ea3ae177e4947e604378404813fa5046c7d3b47c3fb05c"
   solver-name = "gps-cdcl"
   solver-version = 1

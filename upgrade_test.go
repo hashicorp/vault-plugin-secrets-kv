@@ -38,10 +38,10 @@ func TestVersionedKV_Upgrade(t *testing.T) {
 		Logger:      logformat.NewVaultLogger(log.LevelTrace),
 		System:      &logical.StaticSystemView{},
 		StorageView: storage,
+		BackendUUID: "test",
 		Config: map[string]string{
 			"versioned": "true",
 			"upgrade":   "true",
-			"uid":       "test",
 		},
 	}
 
