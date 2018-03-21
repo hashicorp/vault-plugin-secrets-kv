@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -38,7 +39,7 @@ func TestPassthroughDowngrader_Data_Put(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -62,7 +63,7 @@ func TestPassthroughDowngrader_Data_Put(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -98,7 +99,7 @@ func TestPassthroughDowngrader_Data_Get(t *testing.T) {
 		Path:      "data/foo",
 		Storage:   storage,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -132,7 +133,7 @@ func TestPassthroughDowngrader_Data_Get(t *testing.T) {
 		Path:      "data/foo",
 		Storage:   storage,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -174,7 +175,7 @@ func TestPassthroughDowngrader_Data_Delete(t *testing.T) {
 		Path:      "data/foo",
 		Storage:   storage,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -188,7 +189,7 @@ func TestPassthroughDowngrader_Data_Delete(t *testing.T) {
 		Path:      "data/foo",
 		Storage:   storage,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -229,7 +230,7 @@ func TestPassthroughDowngrader_InvalidPaths(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -244,7 +245,7 @@ func TestPassthroughDowngrader_InvalidPaths(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -259,7 +260,7 @@ func TestPassthroughDowngrader_InvalidPaths(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -274,7 +275,7 @@ func TestPassthroughDowngrader_InvalidPaths(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -289,7 +290,7 @@ func TestPassthroughDowngrader_InvalidPaths(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
@@ -304,7 +305,7 @@ func TestPassthroughDowngrader_InvalidPaths(t *testing.T) {
 		Storage:   storage,
 		Data:      data,
 		Headers: map[string][]string{
-			kvClientHeader: []string{"true"},
+			consts.VaultKVCLIClientHeader: []string{"true"},
 		},
 	}
 
