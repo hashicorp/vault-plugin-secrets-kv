@@ -58,12 +58,24 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 // pathConfigWrite handles create and update commands to the config
 func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		maxVersions := uint32(data.Get("max_versions").(int))
-		casRequired := data.Get("cas_required").(bool)
+		maxRaw, mOk := data.GetOk("max_versions")
+		casRaw, cOk := data.GetOk("cas_required")
 
-		config := &Configuration{
-			MaxVersions: maxVersions,
-			CasRequired: casRequired,
+		// Fast path validation
+		if !mOk && !cOk {
+			return nil, nil
+		}
+
+		config, err := b.config(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		if mOk {
+			config.MaxVersions = uint32(maxRaw.(int))
+		}
+		if cOk {
+			config.CasRequired = casRaw.(bool)
 		}
 
 		bytes, err := proto.Marshal(config)
