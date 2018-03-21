@@ -126,14 +126,9 @@ func (b *PassthroughDowngrader) handleList() framework.OperationFunc {
 			return b.next.handleList()(ctx, req, data)
 		}
 
-		respErr := b.invalidPath(req)
-		if respErr != nil {
-			return respErr, logical.ErrInvalidRequest
-		}
-
 		reqDown := &logical.Request{}
 		*reqDown = *req
-		reqDown.Path = strings.TrimPrefix(req.Path, "data/")
+		reqDown.Path = strings.TrimPrefix(req.Path, "metadata/")
 
 		return b.next.handleList()(ctx, reqDown, data)
 	}

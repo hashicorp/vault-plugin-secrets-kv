@@ -343,7 +343,6 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 
 	// Read values back out
 	for i := 0; i < 10; i++ {
-
 		req := &logical.Request{
 			Operation: logical.ReadOperation,
 			Path:      fmt.Sprintf("data/%d", i),
