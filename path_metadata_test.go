@@ -1,4 +1,4 @@
-package vkv
+package kv
 
 import (
 	"context"

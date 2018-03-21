@@ -1,4 +1,4 @@
-package vkv
+package kv
 
 import (
 	"context"
@@ -363,10 +363,8 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 
 	var maxVersions uint32
 	switch {
-	case k.MaxVersions != 0:
-		maxVersions = k.MaxVersions
-	case configMaxVersions > 0:
-		maxVersions = configMaxVersions
+	case max(k.MaxVersions, configMaxVersions) > 0:
+		maxVersions = max(k.MaxVersions, configMaxVersions)
 	default:
 		maxVersions = defaultMaxVersions
 	}
@@ -385,6 +383,14 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 	}
 
 	return vm, 0
+}
+
+func max(a, b uint32) uint32 {
+	if b > a {
+		return b
+	}
+
+	return a
 }
 
 const dataHelpSyn = ``

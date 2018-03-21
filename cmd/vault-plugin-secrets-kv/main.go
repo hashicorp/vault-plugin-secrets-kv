@@ -5,7 +5,7 @@ import (
 
 	log "github.com/mgutz/logxi/v1"
 
-	vkv "github.com/hashicorp/vault-plugin-secrets-kv"
+	kv "github.com/hashicorp/vault-plugin-secrets-kv"
 	"github.com/hashicorp/vault/helper/pluginutil"
 	"github.com/hashicorp/vault/logical/plugin"
 )
@@ -19,7 +19,7 @@ func main() {
 	tlsProviderFunc := pluginutil.VaultPluginTLSProvider(tlsConfig)
 
 	err := plugin.Serve(&plugin.ServeOpts{
-		BackendFactoryFunc: vkv.Factory,
+		BackendFactoryFunc: kv.Factory,
 		TLSProviderFunc:    tlsProviderFunc,
 	})
 	if err != nil {

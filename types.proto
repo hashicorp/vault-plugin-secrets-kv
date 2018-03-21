@@ -1,5 +1,5 @@
 syntax = "proto3";
-package vkv;
+package kv;
 
 import "google/protobuf/timestamp.proto";
 

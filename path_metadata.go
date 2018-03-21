@@ -1,4 +1,4 @@
-package vkv
+package kv
 
 import (
 	"context"
@@ -127,12 +127,10 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		var resp *logical.Response
 		if cOk && config.CasRequired && !casRaw.(bool) {
-			return logical.ErrorResponse("Can not set cas_required to false if mandated by backend config"), logical.ErrInvalidRequest
-		}
-
-		if mOk && config.MaxVersions > 0 && config.MaxVersions < uint32(maxRaw.(int)) {
-			return logical.ErrorResponse("Can not set max_versions higher than backend config setting"), logical.ErrInvalidRequest
+			resp = &logical.Response{}
+			resp.AddWarning("\"cas_required\" set to false, but is mandated by backend config. This value will be ignored.")
 		}
 
 		lock := locksutil.LockForKey(b.locks, key)
@@ -161,7 +159,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
-		return nil, err
+		return resp, err
 	}
 }
 

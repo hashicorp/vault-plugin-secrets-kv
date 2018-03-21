@@ -1,4 +1,4 @@
-package vkv
+package kv
 
 import (
 	"context"
@@ -91,7 +91,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 	backend.Setup(ctx, conf)
 	passthroughBackend.Backend = backend
 
-	return backend, nil
+	return passthroughBackend, nil
 }
 
 // PassthroughBackend is used storing secrets directly into the physical
