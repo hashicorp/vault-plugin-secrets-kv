@@ -2,14 +2,12 @@ package kv
 
 import (
 	"context"
+	"net/http"
 	"strings"
 
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
-)
-
-const (
-	kvClientHeader string = "X-Vault-Kv-Client"
 )
 
 // PassthroughDowngrader wraps a normal passthrough backend and downgrades the
@@ -142,8 +140,7 @@ func (b *PassthroughDowngrader) handleList() framework.OperationFunc {
 }
 
 func (b *PassthroughDowngrader) shouldDowngrade(req *logical.Request) bool {
-	_, ok := req.Headers[kvClientHeader]
-	return ok
+	return http.Header(req.Headers).Get(consts.VaultKVCLIClientHeader) != ""
 }
 
 // invalidPaths returns an error if we are trying to access an versioned only
