@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"github.com/hashicorp/vault/helper/logging"
 	"net"
 	"net/http"
 	"testing"
@@ -21,7 +22,6 @@ import (
 	auditFile "github.com/hashicorp/vault/builtin/audit/file"
 	credUserpass "github.com/hashicorp/vault/builtin/credential/userpass"
 	vaulthttp "github.com/hashicorp/vault/http"
-	logxi "github.com/mgutz/logxi/v1"
 	dockertest "gopkg.in/ory-am/dockertest.v3"
 )
 
@@ -42,7 +42,7 @@ func testVaultServerUnseal(t testing.TB) (*api.Client, []string, func()) {
 	return testVaultServerCoreConfig(t, &vault.CoreConfig{
 		DisableMlock: true,
 		DisableCache: true,
-		Logger:       logxi.NullLog,
+		Logger:       logging.NewNullLogger(),
 		CredentialBackends: map[string]logical.Factory{
 			"userpass": credUserpass.Factory,
 		},

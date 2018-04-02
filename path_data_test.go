@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/vault/helper/logformat"
+	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/logical"
-	log "github.com/mgutz/logxi/v1"
 )
 
 func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 	config := &logical.BackendConfig{
-		Logger:      logformat.NewVaultLogger(log.LevelTrace),
+		Logger:      log.New(&log.LoggerOptions{Level: log.Trace}),
 		System:      &logical.StaticSystemView{},
 		StorageView: &logical.InmemStorage{},
 		BackendUUID: "test",
@@ -330,7 +329,7 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 	}
 
 	config := &logical.BackendConfig{
-		Logger:      logformat.NewVaultLogger(log.LevelTrace),
+		Logger:      log.New(&log.LoggerOptions{Level: log.Trace}),
 		System:      &logical.StaticSystemView{},
 		StorageView: storage,
 		BackendUUID: "test",

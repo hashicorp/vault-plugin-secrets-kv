@@ -26,11 +26,7 @@
 
 [[constraint]]
   name = "github.com/hashicorp/vault"
-  branch = "0.10-beta"
-
-[[constraint]]
-  name = "github.com/mgutz/logxi"
-  version = "1.0.0"
+  branch = "opensource-logging"
 
 [[override]]
   name = "github.com/golang/go"
