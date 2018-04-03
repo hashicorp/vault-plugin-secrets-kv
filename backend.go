@@ -168,6 +168,7 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 				logical.CreateOperation: handler,
 				logical.ReadOperation:   handler,
 				logical.DeleteOperation: handler,
+				logical.ListOperation:   handler,
 			},
 		},
 	}
