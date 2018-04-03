@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/locksutil"
+	"github.com/hashicorp/vault/helper/pluginutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -29,7 +30,12 @@ func (b *versionedKVBackend) upgradeCheck(next framework.OperationFunc) framewor
 
 func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) error {
 	if !b.System().LocalMount() && b.System().ReplicationState().HasState(consts.ReplicationPerformanceSecondary) {
-		b.Logger().Info("versioned k/v: upgrade not running on performace replication secondary")
+		b.Logger().Info("upgrade not running on performace replication secondary")
+		return nil
+	}
+
+	if pluginutil.InMetadataMode() {
+		b.Logger().Info("upgrade not running while plugin is in metadata mode")
 		return nil
 	}
 
@@ -130,7 +136,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			}
 		}
 
-		b.Logger().Info("collecting keys")
+		b.Logger().Info("collecting keys to upgrade")
 		keys, err := logical.CollectKeys(ctx, s)
 		if err != nil {
 			b.Logger().Error("upgrading resulted in error", "error", err)
@@ -151,7 +157,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 
 		b.Logger().Info("upgrading keys finished")
 
-		// Write upgrade canary
+		// Write upgrade done value
 		upgradeInfo.Done = true
 		info, err := proto.Marshal(upgradeInfo)
 		if err != nil {
