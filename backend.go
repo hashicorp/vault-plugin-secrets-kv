@@ -116,6 +116,10 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 				pathDestroy(b),
 			},
 			pathsDelete(b),
+
+			// Make sure this stays at the end so that the valid paths are
+			// processed first.
+			pathInvalid(b),
 		),
 	}
 
@@ -133,6 +137,26 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 	}
 
 	return b, nil
+}
+
+func pathInvalid(b *versionedKVBackend) []*framework.Path {
+	handler := func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		resp := &logical.Response{}
+		resp.AddWarning("Invalid path for a versioned K/V store. See the API docs for the appropriate endpoints.")
+		return resp, nil
+	}
+
+	return []*framework.Path{
+		&framework.Path{
+			Pattern: ".*",
+			Callbacks: map[logical.Operation]framework.OperationFunc{
+				logical.UpdateOperation: handler,
+				logical.CreateOperation: handler,
+				logical.ReadOperation:   handler,
+				logical.DeleteOperation: handler,
+			},
+		},
+	}
 }
 
 // Invalidate invalidates the salt and the policy so replication secondaries can

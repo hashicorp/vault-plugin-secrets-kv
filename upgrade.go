@@ -52,6 +52,9 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return err
 	}
 
+	// Because this is a long running process we need a new context.
+	ctx = context.Background()
+
 	upgradeKey := func(key string) error {
 		if strings.HasPrefix(key, b.storagePrefix) {
 			return nil
