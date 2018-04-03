@@ -19,7 +19,7 @@ import (
 func (b *versionedKVBackend) upgradeCheck(next framework.OperationFunc) framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		if atomic.LoadUint32(b.upgrading) == 1 {
-			return logical.ErrorResponse("Can not handle request while upgrade is in process"), logical.ErrInvalidRequest
+			return logical.ErrorResponse("Uprading from non-versioned to versioned data. This backend will be unavailable for a brief period and will resume service shortly."), logical.ErrInvalidRequest
 		}
 
 		return next(ctx, req, data)

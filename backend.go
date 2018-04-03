@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"path"
 	"sync"
 
@@ -143,7 +144,7 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 	handler := func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		resp := &logical.Response{}
 		resp.AddWarning("Invalid path for a versioned K/V store. See the API docs for the appropriate endpoints.")
-		return resp, nil
+		return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
 	}
 
 	return []*framework.Path{
