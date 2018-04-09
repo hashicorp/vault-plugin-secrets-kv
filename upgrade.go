@@ -29,8 +29,15 @@ func (b *versionedKVBackend) upgradeCheck(next framework.OperationFunc) framewor
 }
 
 func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) error {
+	// Don't run if the plugin is in metadata mode.
 	if pluginutil.InMetadataMode() {
 		b.Logger().Info("upgrade not running while plugin is in metadata mode")
+		return nil
+	}
+
+	// Don't run while on a DR secondary.
+	if b.System().ReplicationState().HasState(consts.ReplicationPerformanceSecondary) {
+		b.Logger().Info("upgrade not running on disaster recovery replication secondary")
 		return nil
 	}
 
