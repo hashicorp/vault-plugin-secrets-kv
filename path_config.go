@@ -42,9 +42,6 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-		if config == nil {
-			return nil, nil
-		}
 
 		return &logical.Response{
 			Data: map[string]interface{}{
@@ -90,6 +87,8 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
+
+		b.globalConfig.Store(config)
 
 		return nil, nil
 	}
