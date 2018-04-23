@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path"
 	"sync"
-	"sync/atomic"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -63,7 +62,8 @@ type versionedKVBackend struct {
 	upgrading *uint32
 
 	// globalConfig is a cached value for fast lookup
-	globalConfig *atomic.Value
+	globalConfig     *Configuration
+	globalConfigLock *sync.RWMutex
 }
 
 // Factory will return a logical backend of type versionedKVBackend or
@@ -89,8 +89,8 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 // Factory returns a new backend as logical.Backend.
 func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	b := &versionedKVBackend{
-		upgrading:    new(uint32),
-		globalConfig: new(atomic.Value),
+		upgrading:        new(uint32),
+		globalConfigLock: new(sync.RWMutex),
 	}
 	if conf.BackendUUID == "" {
 		return nil, errors.New("could not initialize versioned K/V Store, no UUID was provided")
@@ -145,9 +145,6 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 			return nil, err
 		}
 	}
-
-	// Ensure the right value type is stored
-	b.globalConfig.Store((*Configuration)(nil))
 
 	return b, nil
 }
@@ -216,7 +213,9 @@ func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 		b.keyEncryptedWrapper = nil
 		b.l.Unlock()
 	case path.Join(b.storagePrefix, configPath):
-		b.globalConfig.Store((*Configuration)(nil))
+		b.globalConfigLock.Lock()
+		b.globalConfig = nil
+		b.globalConfigLock.Unlock()
 	}
 }
 
@@ -311,9 +310,25 @@ func (b *versionedKVBackend) getKeyEncryptor(ctx context.Context, s logical.Stor
 
 // config takes a storage object and returns a configuration object
 func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Configuration, error) {
-	cached := b.globalConfig.Load().(*Configuration)
-	if cached != nil {
-		return cached, nil
+	b.globalConfigLock.RLock()
+	if b.globalConfig != nil {
+		defer b.globalConfigLock.RUnlock()
+		return &Configuration{
+			CasRequired: b.globalConfig.CasRequired,
+			MaxVersions: b.globalConfig.MaxVersions,
+		}, nil
+	}
+
+	b.globalConfigLock.RUnlock()
+	b.globalConfigLock.Lock()
+	defer b.globalConfigLock.Unlock()
+
+	// Verify this hasn't already changed
+	if b.globalConfig != nil {
+		return &Configuration{
+			CasRequired: b.globalConfig.CasRequired,
+			MaxVersions: b.globalConfig.MaxVersions,
+		}, nil
 	}
 
 	raw, err := s.Get(ctx, path.Join(b.storagePrefix, configPath))
@@ -328,7 +343,7 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 		}
 	}
 
-	b.globalConfig.Store(conf)
+	b.globalConfig = conf
 
 	return conf, nil
 }

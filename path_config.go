@@ -88,7 +88,10 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		b.globalConfig.Store(config)
+		b.globalConfigLock.Lock()
+		defer b.globalConfigLock.Unlock()
+
+		b.globalConfig = config
 
 		return nil, nil
 	}
