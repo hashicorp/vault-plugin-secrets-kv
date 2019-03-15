@@ -86,8 +86,11 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 				if err != nil {
 					b.Logger().Error("upgrading resulted in error", "error", err)
 
-					// If we failed because the context is closed return
+					// If we failed because the context is closed we are
+					// shutting down. Close this go routine and set the upgrade
+					// flag back to 0 for good measure.
 					if ctx.Err() != nil {
+						atomic.StoreUint32(b.upgrading, 0)
 						return
 					}
 				}
