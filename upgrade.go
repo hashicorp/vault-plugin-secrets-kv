@@ -68,7 +68,6 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 				done, err := b.upgradeDone(ctx, s)
 				if err != nil {
 					b.Logger().Error("upgrading resulted in error", "error", err)
-					return
 				}
 
 				if done {
