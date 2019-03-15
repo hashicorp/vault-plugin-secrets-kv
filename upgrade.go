@@ -86,7 +86,8 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 				if err != nil {
 					b.Logger().Error("upgrading resulted in error", "error", err)
 
-					if err == context.Canceled {
+					// If we failed because the context is closed return
+					if ctx.Err() != nil {
 						return
 					}
 				}
