@@ -3,6 +3,7 @@ package kv
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -10,9 +11,11 @@ import (
 func TestVersionedKV_Config(t *testing.T) {
 	b, storage := getBackend(t)
 
+	d := 5 * time.Minute
 	data := map[string]interface{}{
 		"max_versions": 4,
 		"cas_required": true,
+		"version_ttl":  d.String(),
 	}
 
 	req := &logical.Request{
@@ -43,6 +46,10 @@ func TestVersionedKV_Config(t *testing.T) {
 	}
 
 	if resp.Data["cas_required"] != true {
+		t.Fatalf("Bad response: %#v", resp)
+	}
+
+	if resp.Data["version_ttl"] != d.String() {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 }

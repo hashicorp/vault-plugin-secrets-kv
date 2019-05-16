@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -32,6 +33,12 @@ If false, the backend’s configuration will be used.`,
 				Description: `
 The number of versions to keep. If not set, the backend’s configured max
 version is used.`,
+			},
+			"version_ttl": {
+				Type: framework.TypeDurationSecond,
+				Description: `
+The length of time before a version is archived. If not set, the backend's
+configured version_ttl is used.`,
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -108,6 +115,14 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 			}
 		}
 
+		var ttl time.Duration
+		if meta.GetVersionTtl() != nil {
+			ttl, err = ptypes.Duration(meta.GetVersionTtl())
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return &logical.Response{
 			Data: map[string]interface{}{
 				"versions":        versions,
@@ -117,6 +132,7 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"updated_time":    ptypesTimestampToString(meta.UpdatedTime),
 				"max_versions":    meta.MaxVersions,
 				"cas_required":    meta.CasRequired,
+				"version_ttl":     ttl.String(),
 			},
 		}, nil
 	}
@@ -131,9 +147,10 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 
 		maxRaw, mOk := data.GetOk("max_versions")
 		casRaw, cOk := data.GetOk("cas_required")
+		ttlRaw, tOk := data.GetOk("version_ttl")
 
 		// Fast path validation
-		if !mOk && !cOk {
+		if !mOk && !cOk && !tOk {
 			return nil, nil
 		}
 
@@ -171,6 +188,9 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 		if cOk {
 			meta.CasRequired = casRaw.(bool)
+		}
+		if tOk {
+			meta.VersionTtl = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)

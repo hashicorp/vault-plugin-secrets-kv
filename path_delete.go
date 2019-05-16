@@ -44,6 +44,10 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Type:        framework.TypeCommaIntSlice,
 					Description: "The versions to unarchive. The versions will be restored and their data will be returned on normal get requests.",
 				},
+				"version_ttl": {
+					Type:        framework.TypeDurationSecond,
+					Description: "The length of time before a version is archived. If not set, the backend's configured version_ttl is used.",
+				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
 				logical.UpdateOperation: b.upgradeCheck(b.pathUndeleteWrite()),
@@ -66,6 +70,17 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 			return logical.ErrorResponse("No version number provided"), logical.ErrInvalidRequest
 		}
 
+		config, err := b.config(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		var dataVersionTtl time.Duration
+		ttlRaw, tOk := data.GetOk("version_ttl")
+		if tOk {
+			dataVersionTtl = time.Duration(ttlRaw.(int)) * time.Second
+		}
+
 		lock := locksutil.LockForKey(b.locks, key)
 		lock.Lock()
 		defer lock.Unlock()
@@ -85,7 +100,15 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 				continue
 			}
 
-			lv.DeletionTime = nil
+			if dtime, ok := deletionTime(time.Now(), versionTtl(config), versionTtl(meta), dataVersionTtl); ok {
+				dt, err := ptypes.TimestampProto(dtime)
+				if err != nil {
+					return logical.ErrorResponse("error setting deletion_time: converting %v to protobuf: %v", dtime, err), logical.ErrInvalidRequest
+				}
+				lv.DeletionTime = dt
+			} else {
+				lv.DeletionTime = nil
+			}
 		}
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {

@@ -319,6 +319,7 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 		return &Configuration{
 			CasRequired: b.globalConfig.CasRequired,
 			MaxVersions: b.globalConfig.MaxVersions,
+			VersionTtl:  b.globalConfig.VersionTtl,
 		}, nil
 	}
 
@@ -331,6 +332,7 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 		return &Configuration{
 			CasRequired: b.globalConfig.CasRequired,
 			MaxVersions: b.globalConfig.MaxVersions,
+			VersionTtl:  b.globalConfig.VersionTtl,
 		}, nil
 	}
 

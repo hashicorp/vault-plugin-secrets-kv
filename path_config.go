@@ -3,8 +3,10 @@ package kv
 import (
 	"context"
 	"path"
+	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -22,6 +24,10 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 			"cas_required": {
 				Type:        framework.TypeBool,
 				Description: "If true, the backend will require the cas parameter to be set for each write",
+			},
+			"version_ttl": {
+				Type:        framework.TypeDurationSecond,
+				Description: "If set, the length of time before a version is archived",
 			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
@@ -51,10 +57,19 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 			return nil, err
 		}
 
+		var ttl time.Duration
+		if config.GetVersionTtl() != nil {
+			ttl, err = ptypes.Duration(config.GetVersionTtl())
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return &logical.Response{
 			Data: map[string]interface{}{
 				"max_versions": config.MaxVersions,
 				"cas_required": config.CasRequired,
+				"version_ttl":  ttl.String(),
 			},
 		}, nil
 	}
@@ -65,9 +80,10 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		maxRaw, mOk := data.GetOk("max_versions")
 		casRaw, cOk := data.GetOk("cas_required")
+		ttlRaw, tOk := data.GetOk("version_ttl")
 
 		// Fast path validation
-		if !mOk && !cOk {
+		if !mOk && !cOk && !tOk {
 			return nil, nil
 		}
 
@@ -81,6 +97,10 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 		}
 		if cOk {
 			config.CasRequired = casRaw.(bool)
+		}
+
+		if tOk {
+			config.VersionTtl = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
 		}
 
 		bytes, err := proto.Marshal(config)
@@ -112,7 +132,11 @@ key-value store. This parameter accetps:
 
 	* max_versions (int) - The number of versions to keep for each key. Defaults
 	  to 10
-    
+
 	* cas_required (bool) - If true, the backend will require the cas parameter
 	  to be set for each write
+
+	* version_ttl (string|int) - If set, the length of time before a version
+	  is archived. Accepts integer number of seconds or Go duration format
+	  string.
 `
