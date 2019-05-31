@@ -28,14 +28,14 @@ func deletionTime(creation time.Time, mount, meta, data time.Duration) (time.Tim
 }
 
 type versionTtlGetter interface {
-	GetVersionTtl() *duration.Duration
+	GetVersionTTL() *duration.Duration
 }
 
 func versionTtl(v versionTtlGetter) time.Duration {
-	if v.GetVersionTtl() == nil {
+	if v.GetVersionTTL() == nil {
 		return time.Duration(0)
 	}
-	ttl, err := ptypes.Duration(v.GetVersionTtl())
+	ttl, err := ptypes.Duration(v.GetVersionTTL())
 	if err != nil {
 		return time.Duration(0)
 	}

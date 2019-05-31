@@ -116,8 +116,8 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 		}
 
 		var ttl time.Duration
-		if meta.GetVersionTtl() != nil {
-			ttl, err = ptypes.Duration(meta.GetVersionTtl())
+		if meta.GetVersionTTL() != nil {
+			ttl, err = ptypes.Duration(meta.GetVersionTTL())
 			if err != nil {
 				return nil, err
 			}
@@ -190,7 +190,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			meta.CasRequired = casRaw.(bool)
 		}
 		if tOk {
-			meta.VersionTtl = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
+			meta.VersionTTL = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)

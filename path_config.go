@@ -58,8 +58,8 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 		}
 
 		var ttl time.Duration
-		if config.GetVersionTtl() != nil {
-			ttl, err = ptypes.Duration(config.GetVersionTtl())
+		if config.GetVersionTTL() != nil {
+			ttl, err = ptypes.Duration(config.GetVersionTTL())
 			if err != nil {
 				return nil, err
 			}
@@ -100,7 +100,7 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 		}
 
 		if tOk {
-			config.VersionTtl = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
+			config.VersionTTL = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
 		}
 
 		bytes, err := proto.Marshal(config)

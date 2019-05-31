@@ -8,7 +8,7 @@ import "google/protobuf/duration.proto";
 message Configuration {
 	uint32 max_versions = 1;
 	bool cas_required = 2;
-	google.protobuf.Duration version_ttl = 3;
+	google.protobuf.Duration versionTTL = 3;
 }
 
 message VersionMetadata {
@@ -56,8 +56,8 @@ message KeyMetadata {
 	bool cas_required = 8;
 
 	// VersionTtl specifies how long to keep versions around. If empty
-	// value, defaults to the configured version_ttl for the mount.
-	google.protobuf.Duration version_ttl = 9;
+	// value, defaults to the configured versionTTL for the mount.
+	google.protobuf.Duration versionTTL = 9;
 }
 
 
