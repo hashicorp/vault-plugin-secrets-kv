@@ -27,7 +27,7 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 			},
 			"version_ttl": {
 				Type:        framework.TypeDurationSecond,
-				Description: "If set, the length of time before a version is archived",
+				Description: "If set, the length of time before a version is deleted",
 			},
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{

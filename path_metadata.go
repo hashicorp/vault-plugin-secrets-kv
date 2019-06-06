@@ -37,8 +37,8 @@ version is used.`,
 			"version_ttl": {
 				Type: framework.TypeDurationSecond,
 				Description: `
-The length of time before a version is archived. If not set, the backend's
-configured version_ttl is used.`,
+The length of time before a version is deleted. If not set, the backend's
+configured version_ttl is used. Cannot be greater than the backend's version_ttl.`,
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{

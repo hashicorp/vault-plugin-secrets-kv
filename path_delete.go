@@ -46,7 +46,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 				},
 				"version_ttl": {
 					Type:        framework.TypeDurationSecond,
-					Description: "The length of time before a version is archived. If not set, the backend's configured version_ttl is used.",
+					Description: "The length of time before a version is deleted. If not set, the metadata's version_ttl is used.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{

@@ -35,15 +35,16 @@ func pathData(b *versionedKVBackend) *framework.Path {
 			},
 			"options": {
 				Type: framework.TypeMap,
-				Description: `Options for writing a KV entry. 
+				Description: `Options for writing a KV entry.
 
 Set the "cas" value to use a Check-And-Set operation. If not set the write will
 be allowed. If set to 0 a write will only be allowed if the key doesn’t exist.
 If the index is non-zero the write will only be allowed if the key’s current
 version matches the version specified in the cas parameter.
 
-Set the "version_ttl" value to a duration to specify the deletion_time for this 
-version.
+Set the "version_ttl" value to a duration to specify the deletion_time for this
+version. If not set, the metadata's version_ttl is used. Cannot be greater than
+the metadata version_ttl.
 `,
 			},
 			"data": {
