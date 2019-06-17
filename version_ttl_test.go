@@ -96,7 +96,7 @@ func lifetime(t *testing.T, d map[string]interface{}) time.Duration {
 	return untilDeletion(t, ct, d)
 }
 
-func TestVersionTTL(t *testing.T) {
+func TestDeleteVersionAfter(t *testing.T) {
 	dl, dm, ds := 9*time.Hour, 6*time.Hour, 3*time.Hour
 	var tests = []struct {
 		mount, meta, data time.Duration
@@ -125,7 +125,7 @@ func TestVersionTTL(t *testing.T) {
 			b, storage := getBackend(t)
 
 			data := map[string]interface{}{
-				"version_ttl": tt.mount.String(),
+				"delete_version_after": tt.mount.String(),
 			}
 			req := &logical.Request{
 				Operation: logical.CreateOperation,
@@ -143,14 +143,14 @@ func TestVersionTTL(t *testing.T) {
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
-			want, got := tt.mount.String(), resp.Data["version_ttl"]
+			want, got := tt.mount.String(), resp.Data["delete_version_after"]
 			if want != got {
-				t.Fatalf("want version_ttl: %v, got %v", want, got)
+				t.Fatalf("want delete_version_after: %v, got %v", want, got)
 			}
 
 			data = map[string]interface{}{
-				"max_versions": 2,
-				"version_ttl":  tt.meta.String(),
+				"max_versions":         2,
+				"delete_version_after": tt.meta.String(),
 			}
 			req = &logical.Request{
 				Operation: logical.CreateOperation,
@@ -168,9 +168,9 @@ func TestVersionTTL(t *testing.T) {
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
-			want, got = tt.meta.String(), resp.Data["version_ttl"]
+			want, got = tt.meta.String(), resp.Data["delete_version_after"]
 			if want != got {
-				t.Fatalf("want version_ttl: %v, got %v", want, got)
+				t.Fatalf("want delete_version_after: %v, got %v", want, got)
 			}
 
 			data = map[string]interface{}{
@@ -178,7 +178,7 @@ func TestVersionTTL(t *testing.T) {
 					"bar": "baz1",
 				},
 				"options": map[string]interface{}{
-					"version_ttl": tt.data.String(),
+					"delete_version_after": tt.data.String(),
 				},
 			}
 			req = &logical.Request{
@@ -234,8 +234,8 @@ func TestVersionTTL(t *testing.T) {
 			wantNoResponse(t, resp, err)
 
 			data = map[string]interface{}{
-				"versions":    "1",
-				"version_ttl": tt.data.String(),
+				"versions":             "1",
+				"delete_version_after": tt.data.String(),
 			}
 			req = &logical.Request{
 				Operation: logical.CreateOperation,

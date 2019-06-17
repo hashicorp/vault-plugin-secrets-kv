@@ -27,17 +27,17 @@ func deletionTime(creation time.Time, mount, meta, data time.Duration) (time.Tim
 	return creation.Add(min), true
 }
 
-type versionTtlGetter interface {
-	GetVersionTTL() *duration.Duration
+type deleteVersionAfterGetter interface {
+	GetDeleteVersionAfter() *duration.Duration
 }
 
-func versionTtl(v versionTtlGetter) time.Duration {
-	if v.GetVersionTTL() == nil {
+func deleteVersionAfter(v deleteVersionAfterGetter) time.Duration {
+	if v.GetDeleteVersionAfter() == nil {
 		return time.Duration(0)
 	}
-	ttl, err := ptypes.Duration(v.GetVersionTTL())
+	dva, err := ptypes.Duration(v.GetDeleteVersionAfter())
 	if err != nil {
 		return time.Duration(0)
 	}
-	return ttl
+	return dva
 }

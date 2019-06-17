@@ -13,9 +13,9 @@ func TestVersionedKV_Config(t *testing.T) {
 
 	d := 5 * time.Minute
 	data := map[string]interface{}{
-		"max_versions": 4,
-		"cas_required": true,
-		"version_ttl":  d.String(),
+		"max_versions":         4,
+		"cas_required":         true,
+		"delete_version_after": d.String(),
 	}
 
 	req := &logical.Request{
@@ -49,7 +49,7 @@ func TestVersionedKV_Config(t *testing.T) {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 
-	if resp.Data["version_ttl"] != d.String() {
+	if resp.Data["delete_version_after"] != d.String() {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 }

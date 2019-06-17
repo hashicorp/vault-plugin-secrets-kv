@@ -42,9 +42,9 @@ be allowed. If set to 0 a write will only be allowed if the key doesn’t exist.
 If the index is non-zero the write will only be allowed if the key’s current
 version matches the version specified in the cas parameter.
 
-Set the "version_ttl" value to a duration to specify the deletion_time for this
-version. If not set, the metadata's version_ttl is used. Cannot be greater than
-the metadata version_ttl.
+Set the "delete_version_after" value to a duration to specify the deletion_time for this
+version. If not set, the metadata's delete_version_after is used. Cannot be greater than
+the metadata delete_version_after.
 `,
 			},
 			"data": {
@@ -217,18 +217,18 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 		}
 
-		var dataVersionTtl time.Duration
+		var dva time.Duration
 		// Parse options
 		{
-			var casRaw, ttlRaw interface{}
-			var casOk, ttlOk bool
+			var casRaw, dvaRaw interface{}
+			var casOk, dvaOk bool
 			optionsRaw, ok := data.GetOk("options")
 			if ok {
 				options := optionsRaw.(map[string]interface{})
 
 				// Verify the CAS parameter is valid.
 				casRaw, casOk = options["cas"]
-				ttlRaw, ttlOk = options["version_ttl"]
+				dvaRaw, dvaOk = options["delete_version_after"]
 			}
 
 			switch {
@@ -244,10 +244,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
 			}
 
-			if ttlOk {
-				dataVersionTtl, err = parseutil.ParseDurationSecond(ttlRaw)
+			if dvaOk {
+				dva, err = parseutil.ParseDurationSecond(dvaRaw)
 				if err != nil {
-					return logical.ErrorResponse("error parsing version_ttl parameter: %v", err), logical.ErrInvalidRequest
+					return logical.ErrorResponse("error parsing delete_version_after parameter: %v", err), logical.ErrInvalidRequest
 				}
 			}
 		}
@@ -266,7 +266,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		if err != nil {
 			return logical.ErrorResponse("unexpected error converting %T(%v) to time.Time: %v", version.CreatedTime, version.CreatedTime, err), logical.ErrInvalidRequest
 		}
-		if dtime, ok := deletionTime(ctime, versionTtl(config), versionTtl(meta), dataVersionTtl); ok {
+		if dtime, ok := deletionTime(ctime, deleteVersionAfter(config), deleteVersionAfter(meta), dva); ok {
 			dt, err := ptypes.TimestampProto(dtime)
 			if err != nil {
 				return logical.ErrorResponse("error setting deletion_time: converting %v to protobuf: %v", dtime, err), logical.ErrInvalidRequest

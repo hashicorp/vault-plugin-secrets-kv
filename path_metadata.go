@@ -34,11 +34,11 @@ If false, the backend’s configuration will be used.`,
 The number of versions to keep. If not set, the backend’s configured max
 version is used.`,
 			},
-			"version_ttl": {
+			"delete_version_after": {
 				Type: framework.TypeDurationSecond,
 				Description: `
 The length of time before a version is deleted. If not set, the backend's
-configured version_ttl is used. Cannot be greater than the backend's version_ttl.`,
+configured delete_version_after is used. Cannot be greater than the backend's delete_version_after.`,
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -115,9 +115,9 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 			}
 		}
 
-		var ttl time.Duration
-		if meta.GetVersionTTL() != nil {
-			ttl, err = ptypes.Duration(meta.GetVersionTTL())
+		var deleteVersionAfter time.Duration
+		if meta.GetDeleteVersionAfter() != nil {
+			deleteVersionAfter, err = ptypes.Duration(meta.GetDeleteVersionAfter())
 			if err != nil {
 				return nil, err
 			}
@@ -125,14 +125,14 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 
 		return &logical.Response{
 			Data: map[string]interface{}{
-				"versions":        versions,
-				"current_version": meta.CurrentVersion,
-				"oldest_version":  meta.OldestVersion,
-				"created_time":    ptypesTimestampToString(meta.CreatedTime),
-				"updated_time":    ptypesTimestampToString(meta.UpdatedTime),
-				"max_versions":    meta.MaxVersions,
-				"cas_required":    meta.CasRequired,
-				"version_ttl":     ttl.String(),
+				"versions":             versions,
+				"current_version":      meta.CurrentVersion,
+				"oldest_version":       meta.OldestVersion,
+				"created_time":         ptypesTimestampToString(meta.CreatedTime),
+				"updated_time":         ptypesTimestampToString(meta.UpdatedTime),
+				"max_versions":         meta.MaxVersions,
+				"cas_required":         meta.CasRequired,
+				"delete_version_after": deleteVersionAfter.String(),
 			},
 		}, nil
 	}
@@ -147,10 +147,10 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 
 		maxRaw, mOk := data.GetOk("max_versions")
 		casRaw, cOk := data.GetOk("cas_required")
-		ttlRaw, tOk := data.GetOk("version_ttl")
+		deleteVersionAfterRaw, dvaOk := data.GetOk("delete_version_after")
 
 		// Fast path validation
-		if !mOk && !cOk && !tOk {
+		if !mOk && !cOk && !dvaOk {
 			return nil, nil
 		}
 
@@ -189,8 +189,8 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		if cOk {
 			meta.CasRequired = casRaw.(bool)
 		}
-		if tOk {
-			meta.VersionTTL = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
+		if dvaOk {
+			meta.DeleteVersionAfter = ptypes.DurationProto(time.Duration(deleteVersionAfterRaw.(int)) * time.Second)
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)

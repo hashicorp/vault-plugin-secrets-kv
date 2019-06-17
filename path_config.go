@@ -25,7 +25,7 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 				Type:        framework.TypeBool,
 				Description: "If true, the backend will require the cas parameter to be set for each write",
 			},
-			"version_ttl": {
+			"delete_version_after": {
 				Type:        framework.TypeDurationSecond,
 				Description: "If set, the length of time before a version is deleted",
 			},
@@ -57,9 +57,9 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 			return nil, err
 		}
 
-		var ttl time.Duration
-		if config.GetVersionTTL() != nil {
-			ttl, err = ptypes.Duration(config.GetVersionTTL())
+		var deleteVersionAfter time.Duration
+		if config.GetDeleteVersionAfter() != nil {
+			deleteVersionAfter, err = ptypes.Duration(config.GetDeleteVersionAfter())
 			if err != nil {
 				return nil, err
 			}
@@ -67,9 +67,9 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 
 		return &logical.Response{
 			Data: map[string]interface{}{
-				"max_versions": config.MaxVersions,
-				"cas_required": config.CasRequired,
-				"version_ttl":  ttl.String(),
+				"max_versions":         config.MaxVersions,
+				"cas_required":         config.CasRequired,
+				"delete_version_after": deleteVersionAfter.String(),
 			},
 		}, nil
 	}
@@ -80,10 +80,10 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		maxRaw, mOk := data.GetOk("max_versions")
 		casRaw, cOk := data.GetOk("cas_required")
-		ttlRaw, tOk := data.GetOk("version_ttl")
+		deleteVersionAfterRaw, dvaOk := data.GetOk("delete_version_after")
 
 		// Fast path validation
-		if !mOk && !cOk && !tOk {
+		if !mOk && !cOk && !dvaOk {
 			return nil, nil
 		}
 
@@ -99,8 +99,8 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 			config.CasRequired = casRaw.(bool)
 		}
 
-		if tOk {
-			config.VersionTTL = ptypes.DurationProto(time.Duration(ttlRaw.(int)) * time.Second)
+		if dvaOk {
+			config.DeleteVersionAfter = ptypes.DurationProto(time.Duration(deleteVersionAfterRaw.(int)) * time.Second)
 		}
 
 		bytes, err := proto.Marshal(config)
@@ -136,7 +136,7 @@ key-value store. This parameter accetps:
 	* cas_required (bool) - If true, the backend will require the cas parameter
 	  to be set for each write
 
-	* version_ttl (string|int) - If set, the length of time before a version
-	  is archived. Accepts integer number of seconds or Go duration format
-	  string.
+	* delete_version_after (string|int) - If set, the length of time before
+	* a version is archived. Accepts integer number of seconds or Go
+	* duration format string.
 `

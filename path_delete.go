@@ -44,9 +44,9 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Type:        framework.TypeCommaIntSlice,
 					Description: "The versions to unarchive. The versions will be restored and their data will be returned on normal get requests.",
 				},
-				"version_ttl": {
+				"delete_version_after": {
 					Type:        framework.TypeDurationSecond,
-					Description: "The length of time before a version is deleted. If not set, the metadata's version_ttl is used.",
+					Description: "The length of time before a version is deleted. If not set, the metadata's delete_version_after is used.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -75,10 +75,10 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		var dataVersionTtl time.Duration
-		ttlRaw, tOk := data.GetOk("version_ttl")
-		if tOk {
-			dataVersionTtl = time.Duration(ttlRaw.(int)) * time.Second
+		var dva time.Duration
+		dvaRaw, dvaOk := data.GetOk("delete_version_after")
+		if dvaOk {
+			dva = time.Duration(dvaRaw.(int)) * time.Second
 		}
 
 		lock := locksutil.LockForKey(b.locks, key)
@@ -100,7 +100,7 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 				continue
 			}
 
-			if dtime, ok := deletionTime(time.Now(), versionTtl(config), versionTtl(meta), dataVersionTtl); ok {
+			if dtime, ok := deletionTime(time.Now(), deleteVersionAfter(config), deleteVersionAfter(meta), dva); ok {
 				dt, err := ptypes.TimestampProto(dtime)
 				if err != nil {
 					return logical.ErrorResponse("error setting deletion_time: converting %v to protobuf: %v", dtime, err), logical.ErrInvalidRequest
