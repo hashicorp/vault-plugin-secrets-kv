@@ -405,14 +405,7 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 		k.CreatedTime = createdTime
 	}
 
-	var maxVersions uint32
-	switch {
-	case max(k.MaxVersions, configMaxVersions) > 0:
-		maxVersions = max(k.MaxVersions, configMaxVersions)
-	default:
-		maxVersions = defaultMaxVersions
-	}
-
+	maxVersions := max(k.MaxVersions, configMaxVersions)
 	if uint32(k.CurrentVersion-k.OldestVersion) >= maxVersions {
 		versionToDelete := k.CurrentVersion - uint64(maxVersions)
 		// We need to do a loop here in the event that max versions has
