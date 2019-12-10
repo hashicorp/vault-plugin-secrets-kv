@@ -346,9 +346,6 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 		if err := proto.Unmarshal(raw.Value, conf); err != nil {
 			return nil, err
 		}
-	} else {
-		// Set config max versions to default
-		conf.MaxVersions = defaultMaxVersions
 	}
 
 	b.globalConfig = conf
