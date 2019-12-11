@@ -134,7 +134,7 @@ func (b *versionedKVBackend) pathMetadataListRecursive() framework.OperationFunc
 			return logical.ListResponse(keys), err
 		}
 
-		keys, err = recursiveLookup(ctx, keys, es)
+		keys, err = recursiveLookup(ctx, key, keys, es)
 		if err != nil {
 			return logical.ListResponse(keys), err
 		}
@@ -144,35 +144,40 @@ func (b *versionedKVBackend) pathMetadataListRecursive() framework.OperationFunc
 
 // recursiveLookup is a recursive function that looks up all subfolders from the given paths.
 // It returns a correlated list of all keys.
-func recursiveLookup(ctx context.Context, keys []string, es logical.Storage) ([]string, error) {
+func recursiveLookup(ctx context.Context, path string, keys []string, es logical.Storage) ([]string, error) {
 	lookedUpKeys := make([]string, 0, len(keys))
 
+	// Make sure the given path has the correct suffix
+	if path != "" && !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+
 	for _, key := range keys {
+		fullPath := path+key
+
 		// Add current key to list
-		lookedUpKeys = append(lookedUpKeys, key)
+		lookedUpKeys = append(lookedUpKeys, fullPath)
 
 		// Check if the current key is a subfolder
 		if strings.HasSuffix(key, "/") {
 			// Load keys from subfolder recursively
-			subFolderKeys, err := es.List(ctx, key)
+			subFolderKeys, err := es.List(ctx, fullPath)
 			if err != nil {
 				return lookedUpKeys, err
 			}
 
 			// Check if returned keys contains a subfolder and append it
 			for _, subFolderKey := range subFolderKeys {
-				fullPath := key + subFolderKey
-
 				// Check if returned key is a subfolder
 				if strings.HasSuffix(subFolderKey, "/") {
-					recursiveLookupKeys, err := recursiveLookup(ctx, []string{fullPath}, es)
+					recursiveLookupKeys, err := recursiveLookup(ctx, fullPath, []string{subFolderKey}, es)
 					if err != nil {
 						return lookedUpKeys, err
 					}
 					lookedUpKeys = append(lookedUpKeys, recursiveLookupKeys...)
 				} else {
 					// Append subfolder key
-					lookedUpKeys = append(lookedUpKeys, fullPath)
+					lookedUpKeys = append(lookedUpKeys, fullPath+subFolderKey)
 				}
 			}
 		}

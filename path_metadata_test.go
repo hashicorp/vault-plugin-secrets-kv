@@ -467,4 +467,39 @@ func TestVersionedKV_Metadata_List_Recursive(t *testing.T) {
 	if diff := deep.Equal(resp.Data, expectedResp); len(diff) != 0 {
 		t.Fatalf("Response is not expected. Diff: %#v", diff)
 	}
+
+	// Read all data below level4
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata-recursive/level4",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Define expected response
+	expectedResp = map[string]interface{}{
+		"keys": []string{
+			"level4/childlevel1/",
+			"level4/childlevel1/childchildlevel1/",
+			"level4/childlevel1/childchildlevel1/childchildchildlevel1",
+			"level4/childlevel2/",
+			"level4/childlevel2/childchildlevel2/",
+			"level4/childlevel2/childchildlevel2/childchildchildlevel2",
+			"level4/childlevel3/",
+			"level4/childlevel3/childchildlevel1/",
+			"level4/childlevel3/childchildlevel1/childchildchildlevel1",
+		},
+	}
+
+	// Validate response
+	if resp.Data == nil {
+		t.Fatal("expected response data but was nil")
+	}
+	if diff := deep.Equal(resp.Data, expectedResp); len(diff) != 0 {
+		t.Fatalf("Response is not expected. Diff: %#v", diff)
+	}
 }
