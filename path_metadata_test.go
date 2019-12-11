@@ -3,6 +3,7 @@ package kv
 import (
 	"context"
 	"fmt"
+	"github.com/go-test/deep"
 	"testing"
 	"time"
 
@@ -332,4 +333,138 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 
 	}
 
+}
+
+func TestVersionedKV_Metadata_List_Recursive(t *testing.T) {
+	b, storage := getBackend(t)
+
+	testData := []struct {
+		Path string
+		Data map[string]interface{}
+	}{
+		{
+			Path: "level1",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+		{
+			Path: "level2/childlevel1",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+		{
+			Path: "level2/childlevel2",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+		{
+			Path: "level3/childlevel1/childchildlevel1",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+		{
+			Path: "level3/childlevel2/childchildlevel2",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+		{
+			Path: "level4/childlevel1/childchildlevel1/childchildchildlevel1",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+		{
+			Path: "level4/childlevel2/childchildlevel2/childchildchildlevel2",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+		{
+			Path: "level4/childlevel3/childchildlevel1/childchildchildlevel1",
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"bar": "foo",
+				},
+			},
+		},
+	}
+
+	// Insert test data
+	for _, data := range testData {
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      "data/" + data.Path,
+			Storage:   storage,
+			Data:      data.Data,
+		}
+
+		resp, err := b.HandleRequest(context.Background(), req)
+		if err != nil || (resp != nil && resp.IsError()) {
+			t.Fatalf("err:%s resp:%#v\n", err, resp)
+		}
+	}
+
+	// Read all data
+	req := &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata-recursive/",
+		Storage:   storage,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Define expected response
+	expectedResp := map[string]interface{}{
+		"keys": []string{
+			"level1",
+			"level2/",
+			"level2/childlevel1",
+			"level2/childlevel2",
+			"level3/",
+			"level3/childlevel1/",
+			"level3/childlevel1/childchildlevel1",
+			"level3/childlevel2/",
+			"level3/childlevel2/childchildlevel2",
+			"level4/",
+			"level4/childlevel1/",
+			"level4/childlevel1/childchildlevel1/",
+			"level4/childlevel1/childchildlevel1/childchildchildlevel1",
+			"level4/childlevel2/",
+			"level4/childlevel2/childchildlevel2/",
+			"level4/childlevel2/childchildlevel2/childchildchildlevel2",
+			"level4/childlevel3/",
+			"level4/childlevel3/childchildlevel1/",
+			"level4/childlevel3/childchildlevel1/childchildchildlevel1",
+		},
+	}
+
+	// Validate response
+	if resp.Data == nil {
+		t.Fatal("expected response data but was nil")
+	}
+	if diff := deep.Equal(resp.Data, expectedResp); len(diff) != 0 {
+		t.Fatalf("Response is not expected. Diff: %#v", diff)
+	}
 }

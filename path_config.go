@@ -141,7 +141,7 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 const confHelpSyn = `Configures settings for the KV store`
 const confHelpDesc = `
 This path configures backend level settings that are applied to every key in the
-key-value store. This parameter accetps:
+key-value store. This parameter accepts:
 
 	* max_versions (int) - The number of versions to keep for each key. Defaults
 	  to 10
@@ -154,3 +154,6 @@ key-value store. This parameter accetps:
 	  delete_version_after on all keys. A zero duration clears the current
 	  setting. Accepts a Go duration format string.
 `
+
+const confHelpSynRecursive = `Lists all keys below the given path recursively.`
+const confHelpDescRecursive = `Lists all keys below the given path recursively.`

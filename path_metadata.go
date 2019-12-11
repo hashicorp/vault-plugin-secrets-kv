@@ -14,48 +14,67 @@ import (
 
 // pathMetadata returns the path configuration for CRUD operations on the
 // metadata endpoint
-func pathMetadata(b *versionedKVBackend) *framework.Path {
-	return &framework.Path{
-		Pattern: "metadata/" + framework.MatchAllRegex("path"),
-		Fields: map[string]*framework.FieldSchema{
-			"path": {
-				Type:        framework.TypeString,
-				Description: "Location of the secret.",
-			},
-			"cas_required": {
-				Type: framework.TypeBool,
-				Description: `
+func pathMetadata(b *versionedKVBackend) []*framework.Path {
+	return []*framework.Path{
+		{
+			Pattern: "metadata/" + framework.MatchAllRegex("path"),
+			Fields: map[string]*framework.FieldSchema{
+				"path": {
+					Type:        framework.TypeString,
+					Description: "Location of the secret.",
+				},
+				"cas_required": {
+					Type: framework.TypeBool,
+					Description: `
 If true the key will require the cas parameter to be set on all write requests.
 If false, the backend’s configuration will be used.`,
-			},
-			"max_versions": {
-				Type: framework.TypeInt,
-				Description: `
+				},
+				"max_versions": {
+					Type: framework.TypeInt,
+					Description: `
 The number of versions to keep. If not set, the backend’s configured max
 version is used.`,
-			},
-			"delete_version_after": {
-				Type: framework.TypeDurationSecond,
-				Description: `
+				},
+				"delete_version_after": {
+					Type: framework.TypeDurationSecond,
+					Description: `
 The length of time before a version is deleted. If not set, the backend's
 configured delete_version_after is used. Cannot be greater than the
 backend's delete_version_after. A zero duration clears the current setting.
 A negative duration will cause an error.
 `,
+				},
 			},
-		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.CreateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.ReadOperation:   b.upgradeCheck(b.pathMetadataRead()),
-			logical.DeleteOperation: b.upgradeCheck(b.pathMetadataDelete()),
-			logical.ListOperation:   b.upgradeCheck(b.pathMetadataList()),
-		},
+			Callbacks: map[logical.Operation]framework.OperationFunc{
+				logical.UpdateOperation: b.upgradeCheck(b.pathMetadataWrite()),
+				logical.CreateOperation: b.upgradeCheck(b.pathMetadataWrite()),
+				logical.ReadOperation:   b.upgradeCheck(b.pathMetadataRead()),
+				logical.DeleteOperation: b.upgradeCheck(b.pathMetadataDelete()),
+				logical.ListOperation:   b.upgradeCheck(b.pathMetadataList()),
+			},
 
-		ExistenceCheck: b.metadataExistenceCheck(),
+			ExistenceCheck: b.metadataExistenceCheck(),
 
-		HelpSynopsis:    confHelpSyn,
-		HelpDescription: confHelpDesc,
+			HelpSynopsis:    confHelpSyn,
+			HelpDescription: confHelpDesc,
+		},
+		{
+			Pattern: "metadata-recursive/" + framework.MatchAllRegex("path"),
+			Fields: map[string]*framework.FieldSchema{
+				"path": {
+					Type:        framework.TypeString,
+					Description: "Location of the subfolder.",
+				},
+			},
+			Callbacks: map[logical.Operation]framework.OperationFunc{
+				logical.ListOperation:   b.upgradeCheck(b.pathMetadataListRecursive()),
+			},
+
+			ExistenceCheck: b.metadataExistenceCheck(),
+
+			HelpSynopsis:    confHelpSynRecursive,
+			HelpDescription: confHelpDescRecursive,
+		},
 	}
 }
 
@@ -95,6 +114,70 @@ func (b *versionedKVBackend) pathMetadataList() framework.OperationFunc {
 		keys, err := es.List(ctx, key)
 		return logical.ListResponse(keys), err
 	}
+}
+
+func (b *versionedKVBackend) pathMetadataListRecursive() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		key := data.Get("path").(string)
+
+		// Get an encrypted key storage object
+		wrapper, err := b.getKeyEncryptor(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		es := wrapper.Wrap(req.Storage)
+
+		// Use encrypted key storage to list the keys
+		keys, err := es.List(ctx, key)
+		if err != nil {
+			return logical.ListResponse(keys), err
+		}
+
+		keys, err = recursiveLookup(ctx, keys, es)
+		if err != nil {
+			return logical.ListResponse(keys), err
+		}
+		return logical.ListResponse(keys), nil
+	}
+}
+
+// recursiveLookup is a recursive function that looks up all subfolders from the given paths.
+// It returns a correlated list of all keys.
+func recursiveLookup(ctx context.Context, keys []string, es logical.Storage) ([]string, error) {
+	lookedUpKeys := make([]string, 0, len(keys))
+
+	for _, key := range keys {
+		// Add current key to list
+		lookedUpKeys = append(lookedUpKeys, key)
+
+		// Check if the current key is a subfolder
+		if strings.HasSuffix(key, "/") {
+			// Load keys from subfolder recursively
+			subFolderKeys, err := es.List(ctx, key)
+			if err != nil {
+				return lookedUpKeys, err
+			}
+
+			// Check if returned keys contains a subfolder and append it
+			for _, subFolderKey := range subFolderKeys {
+				fullPath := key + subFolderKey
+
+				// Check if returned key is a subfolder
+				if strings.HasSuffix(subFolderKey, "/") {
+					recursiveLookupKeys, err := recursiveLookup(ctx, []string{fullPath}, es)
+					if err != nil {
+						return lookedUpKeys, err
+					}
+					lookedUpKeys = append(lookedUpKeys, recursiveLookupKeys...)
+				} else {
+					// Append subfolder key
+					lookedUpKeys = append(lookedUpKeys, fullPath)
+				}
+			}
+		}
+	}
+	return lookedUpKeys, nil
 }
 
 func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
