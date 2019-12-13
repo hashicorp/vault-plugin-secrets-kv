@@ -3,6 +3,7 @@ package kv
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -62,6 +63,10 @@ A negative duration will cause an error.
 func (b *versionedKVBackend) metadataExistenceCheck() framework.ExistenceFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
 		key := data.Get("path").(string)
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			return false, fmt.Errorf("malformed path received: %s", err.Error())
+		}
 
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {
@@ -82,6 +87,10 @@ func (b *versionedKVBackend) metadataExistenceCheck() framework.ExistenceFunc {
 func (b *versionedKVBackend) pathMetadataList() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
+		key, err := url.QueryUnescape(key)
+		if err != nil {
+			return logical.ErrorResponse("malformed path received: %s", err.Error()), logical.ErrInvalidRequest
+		}
 
 		// Get an encrypted key storage object
 		wrapper, err := b.getKeyEncryptor(ctx, req.Storage)
