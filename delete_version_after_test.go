@@ -131,7 +131,7 @@ func TestDeleteVersionAfter(t *testing.T) {
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
-			want, got = tt.mount.String(), resp.Data["delete_version_after"]
+			want, got := tt.mount.String(), resp.Data["delete_version_after"]
 			if want != got {
 				t.Fatalf("want delete_version_after: %v, got %v", want, got)
 			}
@@ -156,7 +156,7 @@ func TestDeleteVersionAfter(t *testing.T) {
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
-			want, got := tt.meta.String(), resp.Data["delete_version_after"]
+			want, got = tt.meta.String(), resp.Data["delete_version_after"]
 			if want != got {
 				t.Fatalf("want delete_version_after: %v, got %v", want, got)
 			}
