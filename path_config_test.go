@@ -70,8 +70,8 @@ func getDuration(t *testing.T, in string) time.Duration {
 
 func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 	var tests = []struct {
-		ds1, ds2               string
-		want                   time.Duration
+		ds1, ds2 string
+		want     time.Duration
 	}{
 		{"0s", "0s", 0},
 		{"10s", "0s", 0},
@@ -97,9 +97,9 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			resp, err := b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
 			got := resp.Data["delete_version_after"]
-			if got != nil {
+			if got == nil {
 				t.Logf("resp: %#v", resp)
-				t.Fatalf("default value: delete_version_after %#v, want no delete_version_after", got)
+				t.Fatal("delete_version_after missing, want the default")
 			}
 
 			// set first value
@@ -124,18 +124,10 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantResponse(t, resp, err)
 
 			d1 := getDuration(t, tt.ds1)
-			if d1 == 0 {
-				got := resp.Data["delete_version_after"]
-				if got != nil {
-					t.Logf("resp: %#v", resp)
-					t.Fatalf("first value: delete_version_after %#v, want no delete_version_after", got)
-				}
-			} else {
-				want, got := d1.String(), resp.Data["delete_version_after"]
-				if want != got {
-					t.Logf("resp: %#v", resp)
-					t.Fatalf("first value: want delete_version_after: %v, got %v", want, got)
-				}
+			want, got := d1.String(), resp.Data["delete_version_after"]
+			if want != got {
+				t.Logf("resp: %#v", resp)
+				t.Fatalf("first value: want delete_version_after: %v, got %v", want, got)
 			}
 
 			// set second value
@@ -158,7 +150,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
-			want, got := tt.want.String(), resp.Data["delete_version_after"]
+			want, got = tt.want.String(), resp.Data["delete_version_after"]
 			if want != got {
 				t.Logf("resp: %#v", resp)
 				t.Fatalf("second value: want delete_version_after: %v, got %v", want, got)
