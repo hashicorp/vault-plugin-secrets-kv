@@ -62,7 +62,7 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 
 		rdata := map[string]interface{}{
 			"max_versions": config.MaxVersions,
-			"cas_requred":  config.CasRequired,
+			"cas_required":  config.CasRequired,
 		}
 
 		var deleteVersionAfter time.Duration
