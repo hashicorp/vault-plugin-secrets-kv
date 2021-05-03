@@ -51,7 +51,7 @@ type Secret struct {
 // names rather than official names, to eliminate confusion
 type PrivateKeyType string
 
-//Well-known PrivateKeyTypes
+// Well-known PrivateKeyTypes
 const (
 	UnknownPrivateKey PrivateKeyType = ""
 	RSAPrivateKey     PrivateKeyType = "rsa"
@@ -63,24 +63,24 @@ const (
 // client use, or both, which affects which values are set
 type TLSUsage int
 
-//Well-known TLSUsage types
+// Well-known TLSUsage types
 const (
 	TLSUnknown TLSUsage = 0
 	TLSServer  TLSUsage = 1 << iota
 	TLSClient
 )
 
-//BlockType indicates the serialization format of the key
+// BlockType indicates the serialization format of the key
 type BlockType string
 
-//Well-known formats
+// Well-known formats
 const (
 	PKCS1Block BlockType = "RSA PRIVATE KEY"
 	PKCS8Block BlockType = "PRIVATE KEY"
 	ECBlock    BlockType = "EC PRIVATE KEY"
 )
 
-//ParsedPrivateKeyContainer allows common key setting for certs and CSRs
+// ParsedPrivateKeyContainer allows common key setting for certs and CSRs
 type ParsedPrivateKeyContainer interface {
 	SetParsedPrivateKey(crypto.Signer, PrivateKeyType, []byte)
 }
@@ -283,7 +283,7 @@ func (p *ParsedCertBundle) ToCertBundle() (*CertBundle, error) {
 		block.Bytes = p.PrivateKeyBytes
 		result.PrivateKeyType = p.PrivateKeyType
 
-		//Handle bundle not parsed by us
+		// Handle bundle not parsed by us
 		if block.Type == "" {
 			switch p.PrivateKeyType {
 			case ECPrivateKey:
@@ -321,8 +321,10 @@ func (p *ParsedCertBundle) Verify() error {
 				return fmt.Errorf("certificate %d of certificate chain is not a certificate authority", i+1)
 			}
 			if !bytes.Equal(certPath[i].Certificate.AuthorityKeyId, caCert.Certificate.SubjectKeyId) {
-				return fmt.Errorf("certificate %d of certificate chain ca trust path is incorrect (%q/%q)",
-					i+1, certPath[i].Certificate.Subject.CommonName, caCert.Certificate.Subject.CommonName)
+				return fmt.Errorf("certificate %d of certificate chain ca trust path is incorrect (%q/%q) (%X/%X)",
+					i+1,
+					certPath[i].Certificate.Subject.CommonName, caCert.Certificate.Subject.CommonName,
+					certPath[i].Certificate.AuthorityKeyId, caCert.Certificate.SubjectKeyId)
 			}
 		}
 	}

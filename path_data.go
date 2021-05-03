@@ -80,92 +80,105 @@ func (b *versionedKVBackend) dataExistenceCheck() framework.ExistenceFunc {
 	}
 }
 
+func (b *versionedKVBackend) readData(ctx context.Context, s logical.Storage, key string, ver int) (map[string]interface{}, []byte, error) {
+	lock := locksutil.LockForKey(b.locks, key)
+	lock.RLock()
+	defer lock.RUnlock()
+
+	meta, err := b.getKeyMetadata(ctx, s, key)
+	if err != nil {
+		return nil, nil, err
+	}
+	if meta == nil {
+		return nil, nil, nil
+	}
+
+	verNum := meta.CurrentVersion
+	if ver > 0 {
+		verNum = uint64(ver)
+	}
+
+	// If there is no version with that number, return
+	vm := meta.Versions[verNum]
+	if vm == nil {
+		return nil, nil, nil
+	}
+
+	retMeta := map[string]interface{}{
+		"version":       verNum,
+		"created_time":  ptypesTimestampToString(vm.CreatedTime),
+		"deletion_time": ptypesTimestampToString(vm.DeletionTime),
+		"destroyed":     vm.Destroyed,
+	}
+
+	// If the version has been deleted return metadata with a 404
+	if vm.DeletionTime != nil {
+		deletionTime, err := ptypes.Timestamp(vm.DeletionTime)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if deletionTime.Before(time.Now()) {
+			return retMeta, nil, nil
+		}
+	}
+
+	// If the version has been destroyed return metadata with a 404
+	if vm.Destroyed {
+		return retMeta, nil, nil
+	}
+
+	versionKey, err := b.getVersionKey(ctx, key, verNum, s)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	raw, err := s.Get(ctx, versionKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	if raw == nil {
+		return nil, nil, errors.New("could not find version data")
+	}
+
+	version := &Version{}
+	if err := proto.Unmarshal(raw.Value, version); err != nil {
+		return nil, nil, err
+	}
+
+	return retMeta, version.Data, nil
+}
+
 // pathDataRead handles read commands to a kv entry
 func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
-
-		lock := locksutil.LockForKey(b.locks, key)
-		lock.RLock()
-		defer lock.RUnlock()
-
-		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
-		if err != nil {
-			return nil, err
-		}
-		if meta == nil {
-			return nil, nil
-		}
-
-		verNum := meta.CurrentVersion
 		verParam := data.Get("version").(int)
-		if verParam > 0 {
-			verNum = uint64(verParam)
-		}
-
-		// If there is no version with that number, return
-		vm := meta.Versions[verNum]
-		if vm == nil {
-			return nil, nil
-		}
+		meta, b, err := b.readData(ctx, req.Storage, key, verParam)
 
 		resp := &logical.Response{
 			Data: map[string]interface{}{
-				"data": nil,
-				"metadata": map[string]interface{}{
-					"version":       verNum,
-					"created_time":  ptypesTimestampToString(vm.CreatedTime),
-					"deletion_time": ptypesTimestampToString(vm.DeletionTime),
-					"destroyed":     vm.Destroyed,
-				},
+				"data":     nil,
+				"metadata": meta,
 			},
 		}
 
-		// If the version has been deleted return metadata with a 404
-		if vm.DeletionTime != nil {
-			deletionTime, err := ptypes.Timestamp(vm.DeletionTime)
-			if err != nil {
+		switch {
+		case err != nil:
+			return nil, err
+		case meta == nil:
+			return nil, nil
+		case b == nil:
+			return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
+		default:
+			vData := map[string]interface{}{}
+			if err := json.Unmarshal(b, &vData); err != nil {
 				return nil, err
 			}
+			resp.Data["data"] = vData
 
-			if deletionTime.Before(time.Now()) {
-				return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
-
-			}
+			return resp, nil
 		}
-
-		// If the version has been destroyed return metadata with a 404
-		if vm.Destroyed {
-			return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
-
-		}
-
-		versionKey, err := b.getVersionKey(ctx, key, verNum, req.Storage)
-		if err != nil {
-			return nil, err
-		}
-
-		raw, err := req.Storage.Get(ctx, versionKey)
-		if err != nil {
-			return nil, err
-		}
-		if raw == nil {
-			return nil, errors.New("could not find version data")
-		}
-
-		version := &Version{}
-		if err := proto.Unmarshal(raw.Value, version); err != nil {
-			return nil, err
-		}
-
-		vData := map[string]interface{}{}
-		if err := json.Unmarshal(version.Data, &vData); err != nil {
-			return nil, err
-		}
-
-		resp.Data["data"] = vData
-
-		return resp, nil
 	}
 }
 

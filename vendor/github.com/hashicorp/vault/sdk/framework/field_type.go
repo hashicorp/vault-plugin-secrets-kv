@@ -53,6 +53,17 @@ const (
 	// benevolent MITM for a request, and the headers are sent through and
 	// parsed.
 	TypeHeader
+
+	// TypeFloat parses both float32 and float64 values
+	TypeFloat
+
+	// TypeTime represents absolute time. It accepts an RFC3999-formatted
+	// string (with or without fractional seconds), or an epoch timestamp
+	// formatted as a string or a number. The resulting time.Time
+	// is converted to UTC.
+	TypeTime
+
+	TypeAny
 )
 
 func (t FieldType) String() string {
@@ -77,6 +88,12 @@ func (t FieldType) String() string {
 		return "slice"
 	case TypeHeader:
 		return "header"
+	case TypeFloat:
+		return "float"
+	case TypeTime:
+		return "time"
+	case TypeAny:
+		return "any"
 	default:
 		return "unknown type"
 	}
