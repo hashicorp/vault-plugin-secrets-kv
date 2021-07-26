@@ -3,20 +3,27 @@ package kv
 import (
 	"context"
 	"fmt"
+	"github.com/go-test/deep"
+	"github.com/hashicorp/vault/sdk/logical"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Metadata_Put(t *testing.T) {
 	b, storage := getBackend(t)
 
 	d := 5 * time.Minute
+
+	expectedCustomMetadata := map[string]string{
+		"foo": "abc",
+		"bar": "123",
+	}
+
 	data := map[string]interface{}{
 		"max_versions":         2,
 		"cas_required":         true,
 		"delete_version_after": d.String(),
+		"custom_metadata":      expectedCustomMetadata,
 	}
 
 	req := &logical.Request{
@@ -51,6 +58,10 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	if resp.Data["delete_version_after"] != d.String() {
 		t.Fatalf("Bad response: %#v", resp)
+	}
+
+	if diff := deep.Equal(resp.Data["custom_metadata"], expectedCustomMetadata); len(diff) > 0 {
+		t.Fatal(diff)
 	}
 
 	data = map[string]interface{}{

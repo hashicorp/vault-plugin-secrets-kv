@@ -43,6 +43,13 @@ backend's delete_version_after. A zero duration clears the current setting.
 A negative duration will cause an error.
 `,
 			},
+			"custom_metadata": {
+				Type: framework.TypeKVPairs,
+				Description: `
+User-provided key-value pairs that are used to describe arbitrary and
+version-agnostic information about a secret.
+`,
+			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: b.upgradeCheck(b.pathMetadataWrite()),
@@ -136,6 +143,7 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"max_versions":         meta.MaxVersions,
 				"cas_required":         meta.CasRequired,
 				"delete_version_after": deleteVersionAfter.String(),
+				"custom_metadata":      meta.CustomMetadata,
 			},
 		}, nil
 	}
@@ -151,9 +159,10 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		maxRaw, mOk := data.GetOk("max_versions")
 		casRaw, cOk := data.GetOk("cas_required")
 		deleteVersionAfterRaw, dvaOk := data.GetOk("delete_version_after")
+		customMetadataRaw, cmOk := data.GetOk("custom_metadata")
 
 		// Fast path validation
-		if !mOk && !cOk && !dvaOk {
+		if !mOk && !cOk && !dvaOk && !cmOk {
 			return nil, nil
 		}
 
@@ -179,10 +188,11 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		if meta == nil {
 			now := ptypes.TimestampNow()
 			meta = &KeyMetadata{
-				Key:         key,
-				Versions:    map[uint64]*VersionMetadata{},
-				CreatedTime: now,
-				UpdatedTime: now,
+				Key:            key,
+				Versions:       map[uint64]*VersionMetadata{},
+				CreatedTime:    now,
+				UpdatedTime:    now,
+				CustomMetadata: map[string]string{},
 			}
 		}
 
@@ -194,6 +204,10 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 		if dvaOk {
 			meta.DeleteVersionAfter = ptypes.DurationProto(time.Duration(deleteVersionAfterRaw.(int)) * time.Second)
+		}
+
+		if cmOk {
+			meta.CustomMetadata = customMetadataRaw.(map[string]string)
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
