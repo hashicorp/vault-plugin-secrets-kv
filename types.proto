@@ -1,4 +1,7 @@
 syntax = "proto3";
+
+option go_package = "github.com/hashicorp/kv";
+
 package kv;
 
 import "google/protobuf/timestamp.proto";
