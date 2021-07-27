@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-test/deep"
 	"github.com/hashicorp/vault/sdk/logical"
+	"strings"
 	"testing"
 	"time"
 )
@@ -343,4 +344,166 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 
 	}
 
+}
+
+func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
+	b, storage := getBackend(t)
+	metadataPath := "metadata/foo"
+
+	stringToRepeat := "a"
+	longKeyLength := 129
+	longKey := strings.Repeat(stringToRepeat, longKeyLength)
+
+	longValueKey := "long_value"
+	longValueLength := 513
+
+	emptyValueKey := "empty_value"
+	unprintableString := "unprint\u200bable"
+	unprintableValueKey := "unprintable"
+
+
+	customMetadata := map[string]string{
+		longValueKey:   strings.Repeat(stringToRepeat, longValueLength),
+		longKey: "abc123",
+		"": "abc123",
+		emptyValueKey: "",
+		unprintableString: "abc123",
+		unprintableValueKey: unprintableString,
+	}
+
+	data := map[string]interface{}{
+		"custom_metadata": customMetadata,
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil {
+		t.Fatalf("Write err: %s resp: %#v\n", err, resp)
+	}
+
+	// Should fail with validation errors
+	if !resp.IsError() {
+		t.Fatalf("expected resp error, resp: %#v", resp)
+	}
+
+	respError := resp.Error().Error()
+
+	if keyCount := len(customMetadata); !strings.Contains(respError, fmt.Sprintf("%d errors occurred", keyCount)) {
+		t.Fatalf("Expected %d validation errors, resp: %#v", keyCount, resp)
+	}
+
+	if !strings.Contains(respError, fmt.Sprintf("length of key '%s' is %d",
+		longKey,
+		longKeyLength)) {
+		t.Fatalf("Expected key length error for key %s, resp: %#v", longKey, resp)
+	}
+
+	if !strings.Contains(respError, fmt.Sprintf("length of value for key '%s' is %d",
+		longValueKey,
+		longValueLength)) {
+		t.Fatalf("Expected value length error for key %s, resp: %#v", longValueKey, resp)
+	}
+
+	if !strings.Contains(respError, "length of key '' is 0") {
+		t.Fatalf("Expected key length error for key %s, resp: %#v", longKey, resp)
+	}
+
+	if !strings.Contains(respError, fmt.Sprintf("length of value for key '%s' is 0", emptyValueKey)) {
+		t.Fatalf("Expected value length error for key %s, resp: %#v", emptyValueKey, resp)
+	}
+
+	if !strings.Contains(respError, fmt.Sprintf("key '%s' contains unprintable", unprintableString)) {
+		t.Fatalf("Expected unprintable character error for key %s, resp: %#v", unprintableString, resp)
+	}
+
+	if !strings.Contains(respError, fmt.Sprintf("value for key '%s' contains unprintable", unprintableValueKey)) {
+		t.Fatalf("Expected unpritnable character for value of key '%s', resp: %#v", unprintableValueKey, resp)
+	}
+
+	//TODO: READ GETS NOTHING
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path: metadataPath,
+		Storage: storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil {
+		t.Fatalf("Read err: %#v, resp: %#v", err, resp)
+	}
+
+	if resp != nil {
+		t.Fatalf("Expected empty read due to validation errors, resp: %#v", resp)
+	}
+}
+
+func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
+	b, storage := getBackend(t)
+
+	metadataPath := "metadata/foo"
+
+	customMetadata := map[string]string{}
+
+	for i := 0; i < maxCustomMetadataKeys + 1; i++ {
+		k := fmt.Sprint(i)
+		customMetadata[k] = k
+	}
+
+	data := map[string]interface{}{
+		"custom_metadata": customMetadata,
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path: metadataPath,
+		Storage: storage,
+		Data: data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil {
+		t.Fatalf("Write err: %s resp: %#v\n", err, resp)
+
+	}
+
+	if !resp.IsError() {
+		t.Fatalf("expected resp error, resp: %#v", resp)
+	}
+
+	respError := resp.Error().Error()
+
+	if !strings.Contains(respError, "1 error occurred") {
+		t.Fatalf("Expected 1 validation error, resp: %#v", resp)
+	}
+
+	if !strings.Contains(respError, fmt.Sprintf("payload must contain at most %d keys, provided %d",
+		maxCustomMetadataKeys,
+		len(customMetadata))) {
+		t.Fatalf("Expected max custom metadata keys error, resp: %#v", resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path: metadataPath,
+		Storage: storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil {
+		t.Fatalf("Read err: %#v, resp :%#v", err, resp)
+	}
+
+	if resp != nil {
+		t.Fatalf("Expected empty read due to validation errors, resp: %#v", resp)
+	}
 }

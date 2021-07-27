@@ -3,6 +3,8 @@ package kv
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"strings"
 	"time"
 
@@ -149,6 +151,63 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 	}
 }
 
+const maxCustomMetadataKeys = 64
+const maxCustomMetadataKeyLength = 128
+const maxCustomMetadataValueLength = 512
+const customMetadataValidationErrorPrefix = "custom_metadata validation failed"
+
+// Perform input validation on custom_metadata field. If the key count
+// exceeds maxCustomMetadataKeys, the validation will be short-circuited
+// to prevent unnecessary (and potentially costly) validation to be run.
+// If the key count falls at or below maxCustomMetadataKeys, multiple
+// checks will be made per key and value. These checks include:
+//   - 0 < length of key <= maxCustomMetadataKeyLength
+//   - 0 < length of value <= maxCustomMetadataValueLength
+//   - keys and values cannot include unprintable characters
+func validateCustomMetadata(customMetadata map[string]string) error {
+	var errs *multierror.Error
+
+	if keyCount := len(customMetadata); keyCount > maxCustomMetadataKeys {
+		errs = multierror.Append(errs, fmt.Errorf("%s: payload must contain at most %d keys, provided %d",
+			customMetadataValidationErrorPrefix,
+			maxCustomMetadataKeys,
+			keyCount))
+	} else {
+		// Perform validation on each key and value and return ALL errors
+		for key, value := range customMetadata {
+			if keyLen := len(key); 0 == keyLen || keyLen > maxCustomMetadataKeyLength {
+				errs = multierror.Append(errs, fmt.Errorf("%s: length of key '%s' is %d but must be 0 < len(key) <= %d",
+					customMetadataValidationErrorPrefix,
+					key,
+					keyLen,
+					maxCustomMetadataKeyLength))
+			}
+
+			if valueLen := len(value); 0 == valueLen || valueLen > maxCustomMetadataValueLength {
+				errs = multierror.Append(errs, fmt.Errorf("%s: length of value for key '%s' is %d but must be 0 < len(value) <= %d",
+					customMetadataValidationErrorPrefix,
+					key,
+					valueLen,
+					maxCustomMetadataValueLength))
+			}
+
+			if !strutil.Printable(key) {
+				errs = multierror.Append(errs, fmt.Errorf("%s: key '%s' contains unprintable characters",
+					customMetadataValidationErrorPrefix,
+					key))
+			}
+
+			if !strutil.Printable(value) {
+				errs = multierror.Append(errs, fmt.Errorf("%s: value for key '%s' contains unprintable characters",
+					customMetadataValidationErrorPrefix,
+					key))
+			}
+		}
+	}
+
+	return errs.ErrorOrNil()
+}
+
 func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
@@ -207,6 +266,12 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 
 		if cmOk {
+			validationErrs := validateCustomMetadata(customMetadataRaw.(map[string]string))
+
+			if validationErrs != nil {
+				return logical.ErrorResponse(validationErrs.Error()), nil
+			}
+
 			meta.CustomMetadata = customMetadataRaw.(map[string]string)
 		}
 
