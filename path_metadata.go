@@ -276,6 +276,8 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			meta.DeleteVersionAfter = ptypes.DurationProto(time.Duration(deleteVersionAfterRaw.(int)) * time.Second)
 		}
 
+		meta.CustomMetadata = customMetadataMap
+
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		return resp, err
 	}
