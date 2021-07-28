@@ -361,13 +361,12 @@ func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 	unprintableString := "unprint\u200bable"
 	unprintableValueKey := "unprintable"
 
-
 	customMetadata := map[string]string{
-		longValueKey:   strings.Repeat(stringToRepeat, longValueLength),
-		longKey: "abc123",
-		"": "abc123",
-		emptyValueKey: "",
-		unprintableString: "abc123",
+		longValueKey:        strings.Repeat(stringToRepeat, longValueLength),
+		longKey:             "abc123",
+		"":                  "abc123",
+		emptyValueKey:       "",
+		unprintableString:   "abc123",
 		unprintableValueKey: unprintableString,
 	}
 
@@ -430,8 +429,8 @@ func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 	//TODO: READ GETS NOTHING
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
-		Path: metadataPath,
-		Storage: storage,
+		Path:      metadataPath,
+		Storage:   storage,
 	}
 
 	resp, err = b.HandleRequest(context.Background(), req)
@@ -452,7 +451,7 @@ func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
 
 	customMetadata := map[string]string{}
 
-	for i := 0; i < maxCustomMetadataKeys + 1; i++ {
+	for i := 0; i < maxCustomMetadataKeys+1; i++ {
 		k := fmt.Sprint(i)
 		customMetadata[k] = k
 	}
@@ -463,9 +462,9 @@ func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
 
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
-		Path: metadataPath,
-		Storage: storage,
-		Data: data,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
 	}
 
 	resp, err := b.HandleRequest(context.Background(), req)
@@ -493,8 +492,8 @@ func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
-		Path: metadataPath,
-		Storage: storage,
+		Path:      metadataPath,
+		Storage:   storage,
 	}
 
 	resp, err = b.HandleRequest(context.Background(), req)
@@ -505,5 +504,211 @@ func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
 
 	if resp != nil {
 		t.Fatalf("Expected empty read due to validation errors, resp: %#v", resp)
+	}
+}
+
+func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
+	b, storage := getBackend(t)
+
+	metadataPath := "metadata/foo"
+
+	data := map[string]interface{}{
+		"custom_metadata": map[string]string{},
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("Write err: %s, resp: %#v", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("Read err: %s, resp %#v", err, resp)
+	}
+
+	// writing custom_metadata as {} should result in nil
+	if diff := deep.Equal(resp.Data["custom_metadata"], map[string]string(nil)); len(diff) > 0 {
+		t.Fatal(diff)
+	}
+}
+
+func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
+	b, storage := getBackend(t)
+
+	metadataPath := "metadata/foo"
+	expectedMaxVersions := uint32(5)
+	expectedCasRequired := true
+
+	data := map[string]interface{}{
+		"max_versions": expectedMaxVersions,
+		"cas_required": expectedCasRequired,
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("Write err: %s, resp: %#v", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("Read err: %s, resp %#v", err, resp)
+	}
+
+	if resp.Data["max_versions"] != expectedMaxVersions {
+		t.Fatalf("max_versions mismatch, expected: %d, actual: %d, resp: %#v",
+			expectedMaxVersions,
+			resp.Data["max_versions"],
+			resp)
+	}
+
+	if resp.Data["cas_required"] != expectedCasRequired {
+		t.Fatalf("cas_required mismatch, expected: %t, actual: %t, resp: %#v",
+			expectedCasRequired,
+			resp.Data["cas_required"],
+			resp)
+	}
+
+	// custom_metadata was not provided so it should come back as a nil map
+	if diff := deep.Equal(resp.Data["custom_metadata"], map[string]string(nil)); len(diff) > 0 {
+		t.Fatal(diff)
+	}
+
+	expectedCasRequired = false
+	expectedCustomMetadata := map[string]string{
+		"foo": "abc",
+		"bar": "123",
+	}
+
+	data = map[string]interface{}{
+		"cas_required":    expectedCasRequired,
+		"custom_metadata": expectedCustomMetadata,
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("Write err: %s, resp: %#v", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("Read err: %s, resp %#v", err, resp)
+	}
+
+	// max_versions not provided, should not have changed
+	if resp.Data["max_versions"] != expectedMaxVersions {
+		t.Fatalf("max_versions mismatch, expected: %d, actual: %d, resp: %#v",
+			expectedMaxVersions,
+			resp.Data["max_versions"],
+			resp)
+	}
+
+	// cas_required should be overwritten
+	if resp.Data["cas_required"] != expectedCasRequired {
+		t.Fatalf("cas_required mismatch, expected: %t, actual: %t, resp: %#v",
+			expectedCasRequired,
+			resp.Data["cas_required"],
+			resp)
+	}
+
+	// custom_metadata provided for the first time, should no longer be a nil map
+	if diff := deep.Equal(resp.Data["custom_metadata"], expectedCustomMetadata); len(diff) > 0 {
+		t.Fatal(diff)
+	}
+
+	expectedCustomMetadata = map[string]string{
+		"baz": "abc123",
+	}
+
+	data = map[string]interface{}{
+		"custom_metadata": expectedCustomMetadata,
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("Write err: %s, resp: %#v", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("Read err: %s, resp %#v", err, resp)
+	}
+
+	// max_versions not provided, should not have changed
+	if resp.Data["max_versions"] != expectedMaxVersions {
+		t.Fatalf("max_versions mismatch, expected: %d, actual: %d",
+			expectedMaxVersions,
+			resp.Data["max_versions"])
+	}
+
+	// cas_required not provided, should not have changed
+	if resp.Data["cas_required"] != expectedCasRequired {
+		t.Fatalf("cas_required mismatch, expected: %t, actual: %t,",
+			expectedCasRequired,
+			resp.Data["cas_required"])
+	}
+
+	// custom_metadata should be completely overwritten
+	if diff := deep.Equal(resp.Data["custom_metadata"], expectedCustomMetadata); len(diff) > 0 {
+		t.Fatal(diff)
 	}
 }
