@@ -230,6 +230,17 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		customMetadataMap := map[string]string{}
+
+		if cmOk {
+			customMetadataMap = customMetadataRaw.(map[string]string)
+			customMetadataErrs := validateCustomMetadata(customMetadataMap)
+
+			if customMetadataErrs != nil {
+				return logical.ErrorResponse(customMetadataErrs.Error()), nil
+			}
+		}
+
 		var resp *logical.Response
 		if cOk && config.CasRequired && !casRaw.(bool) {
 			resp = &logical.Response{}
@@ -251,7 +262,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 				Versions:       map[uint64]*VersionMetadata{},
 				CreatedTime:    now,
 				UpdatedTime:    now,
-				CustomMetadata: map[string]string{},
+				CustomMetadata: customMetadataMap,
 			}
 		}
 
@@ -263,16 +274,6 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 		if dvaOk {
 			meta.DeleteVersionAfter = ptypes.DurationProto(time.Duration(deleteVersionAfterRaw.(int)) * time.Second)
-		}
-
-		if cmOk {
-			validationErrs := validateCustomMetadata(customMetadataRaw.(map[string]string))
-
-			if validationErrs != nil {
-				return logical.ErrorResponse(validationErrs.Error()), nil
-			}
-
-			meta.CustomMetadata = customMetadataRaw.(map[string]string)
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
