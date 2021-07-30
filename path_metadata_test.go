@@ -711,4 +711,42 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if diff := deep.Equal(resp.Data["custom_metadata"], expectedCustomMetadata); len(diff) > 0 {
 		t.Fatal(diff)
 	}
+
+	expectedMaxVersions = 20
+
+	data = map[string]interface{}{
+		"max_versions": expectedMaxVersions,
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("Write err: %s, resp: %#v", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("Read err: %s, resp %#v", err, resp)
+	}
+
+	// custom_metadata not provided, should not have changed
+	if diff := deep.Equal(resp.Data["custom_metadata"], expectedCustomMetadata); len(diff) > 0 {
+		t.Fatal(diff)
+	}
+
+
 }

@@ -262,7 +262,6 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 				Versions:       map[uint64]*VersionMetadata{},
 				CreatedTime:    now,
 				UpdatedTime:    now,
-				CustomMetadata: customMetadataMap,
 			}
 		}
 
@@ -276,7 +275,10 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			meta.DeleteVersionAfter = ptypes.DurationProto(time.Duration(deleteVersionAfterRaw.(int)) * time.Second)
 		}
 
-		meta.CustomMetadata = customMetadataMap
+		// Only overwrite CustomMetadata if it was provided
+		if _, exists := data.Raw["custom_metadata"]; exists && cmOk {
+			meta.CustomMetadata = customMetadataMap
+		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		return resp, err
