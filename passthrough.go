@@ -3,7 +3,9 @@ package kv
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
@@ -249,9 +251,38 @@ func (b *PassthroughBackend) handleList() framework.OperationFunc {
 			return nil, err
 		}
 
+		//If pagination info is present in request, perform pagination
+		if req.PaginationInfo != nil && len(keys) > 0 {
+			keys, err = pagination(keys, req.PaginationInfo.Page, req.PaginationInfo.PageSize)
+			if err != nil {
+				return nil, err
+			}
+
+		}
 		// Generate the response
 		return logical.ListResponse(keys), nil
 	}
+}
+
+//basic pagination function here
+func pagination(keys []string, page int, itemsPerPage int) ([]string, error) {
+
+	total := len(keys)
+	start := (page - 1) * itemsPerPage
+	stop := start + itemsPerPage
+
+	if start > total {
+		return []string{}, errors.New("No values found in page " + strconv.Itoa(page))
+	}
+
+	if stop > total {
+		stop = total
+	}
+
+	keys = keys[start:stop]
+
+	return keys, nil
+
 }
 
 const passthroughHelp = `
