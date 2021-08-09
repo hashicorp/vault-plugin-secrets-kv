@@ -398,35 +398,34 @@ func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 		t.Fatalf("Expected %d validation errors, resp: %#v", keyCount, resp)
 	}
 
-	if !strings.Contains(respError, fmt.Sprintf("length of key '%s' is %d",
+	if !strings.Contains(respError, fmt.Sprintf("length of key %q is %d",
 		longKey,
 		longKeyLength)) {
-		t.Fatalf("Expected key length error for key %s, resp: %#v", longKey, resp)
+		t.Fatalf("Expected key length error for key %q, resp: %#v", longKey, resp)
 	}
 
-	if !strings.Contains(respError, fmt.Sprintf("length of value for key '%s' is %d",
+	if !strings.Contains(respError, fmt.Sprintf("length of value for key %q is %d",
 		longValueKey,
 		longValueLength)) {
-		t.Fatalf("Expected value length error for key %s, resp: %#v", longValueKey, resp)
+		t.Fatalf("Expected value length error for key %q, resp: %#v", longValueKey, resp)
 	}
 
-	if !strings.Contains(respError, "length of key '' is 0") {
-		t.Fatalf("Expected key length error for key %s, resp: %#v", longKey, resp)
+	if !strings.Contains(respError, "length of key \"\" is 0") {
+		t.Fatalf("Expected key length error for key \"\", resp: %#v", resp)
 	}
 
-	if !strings.Contains(respError, fmt.Sprintf("length of value for key '%s' is 0", emptyValueKey)) {
-		t.Fatalf("Expected value length error for key %s, resp: %#v", emptyValueKey, resp)
+	if !strings.Contains(respError, fmt.Sprintf("length of value for key %q is 0", emptyValueKey)) {
+		t.Fatalf("Expected value length error for key %q, resp: %#v", emptyValueKey, resp)
 	}
 
-	if !strings.Contains(respError, fmt.Sprintf("key '%s' contains unprintable", unprintableString)) {
-		t.Fatalf("Expected unprintable character error for key %s, resp: %#v", unprintableString, resp)
+	if !strings.Contains(respError, fmt.Sprintf("key %q contains unprintable", unprintableString)) {
+		t.Fatalf("Expected unprintable character error for key %q, resp: %#v", unprintableString, resp)
 	}
 
-	if !strings.Contains(respError, fmt.Sprintf("value for key '%s' contains unprintable", unprintableValueKey)) {
-		t.Fatalf("Expected unpritnable character for value of key '%s', resp: %#v", unprintableValueKey, resp)
+	if !strings.Contains(respError, fmt.Sprintf("value for key %q contains unprintable", unprintableValueKey)) {
+		t.Fatalf("Expected unpritnable character for value of key %q, resp: %#v", unprintableValueKey, resp)
 	}
 
-	//TODO: READ GETS NOTHING
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      metadataPath,

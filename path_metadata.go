@@ -176,7 +176,7 @@ func validateCustomMetadata(customMetadata map[string]string) error {
 		// Perform validation on each key and value and return ALL errors
 		for key, value := range customMetadata {
 			if keyLen := len(key); 0 == keyLen || keyLen > maxCustomMetadataKeyLength {
-				errs = multierror.Append(errs, fmt.Errorf("%s: length of key '%s' is %d but must be 0 < len(key) <= %d",
+				errs = multierror.Append(errs, fmt.Errorf("%s: length of key %q is %d but must be 0 < len(key) <= %d",
 					customMetadataValidationErrorPrefix,
 					key,
 					keyLen,
@@ -184,7 +184,7 @@ func validateCustomMetadata(customMetadata map[string]string) error {
 			}
 
 			if valueLen := len(value); 0 == valueLen || valueLen > maxCustomMetadataValueLength {
-				errs = multierror.Append(errs, fmt.Errorf("%s: length of value for key '%s' is %d but must be 0 < len(value) <= %d",
+				errs = multierror.Append(errs, fmt.Errorf("%s: length of value for key %q is %d but must be 0 < len(value) <= %d",
 					customMetadataValidationErrorPrefix,
 					key,
 					valueLen,
@@ -192,13 +192,13 @@ func validateCustomMetadata(customMetadata map[string]string) error {
 			}
 
 			if !strutil.Printable(key) {
-				errs = multierror.Append(errs, fmt.Errorf("%s: key '%s' contains unprintable characters",
+				errs = multierror.Append(errs, fmt.Errorf("%s: key %q contains unprintable characters",
 					customMetadataValidationErrorPrefix,
 					key))
 			}
 
 			if !strutil.Printable(value) {
-				errs = multierror.Append(errs, fmt.Errorf("%s: value for key '%s' contains unprintable characters",
+				errs = multierror.Append(errs, fmt.Errorf("%s: value for key %q contains unprintable characters",
 					customMetadataValidationErrorPrefix,
 					key))
 			}
