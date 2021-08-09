@@ -258,10 +258,10 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		if meta == nil {
 			now := ptypes.TimestampNow()
 			meta = &KeyMetadata{
-				Key:            key,
-				Versions:       map[uint64]*VersionMetadata{},
-				CreatedTime:    now,
-				UpdatedTime:    now,
+				Key:         key,
+				Versions:    map[uint64]*VersionMetadata{},
+				CreatedTime: now,
+				UpdatedTime: now,
 			}
 		}
 
@@ -274,9 +274,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		if dvaOk {
 			meta.DeleteVersionAfter = ptypes.DurationProto(time.Duration(deleteVersionAfterRaw.(int)) * time.Second)
 		}
-
-		// Only overwrite CustomMetadata if it was provided
-		if _, exists := data.Raw["custom_metadata"]; exists && cmOk {
+		if cmOk {
 			meta.CustomMetadata = customMetadataMap
 		}
 

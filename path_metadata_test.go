@@ -746,6 +746,4 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if diff := deep.Equal(resp.Data["custom_metadata"], expectedCustomMetadata); len(diff) > 0 {
 		t.Fatal(diff)
 	}
-
-
 }
