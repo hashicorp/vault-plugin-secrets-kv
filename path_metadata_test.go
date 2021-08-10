@@ -418,11 +418,11 @@ func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 		t.Fatalf("Expected value length error for key %q, resp: %#v", emptyValueKey, resp)
 	}
 
-	if !strings.Contains(respError, fmt.Sprintf("key %q contains unprintable", unprintableString)) {
+	if !strings.Contains(respError, fmt.Sprintf("key %q (%s) contains unprintable", unprintableString, unprintableString)) {
 		t.Fatalf("Expected unprintable character error for key %q, resp: %#v", unprintableString, resp)
 	}
 
-	if !strings.Contains(respError, fmt.Sprintf("value for key %q contains unprintable", unprintableValueKey)) {
+	if !strings.Contains(respError, fmt.Sprintf("key %q contains unprintable", unprintableValueKey)) {
 		t.Fatalf("Expected unpritnable character for value of key %q, resp: %#v", unprintableValueKey, resp)
 	}
 

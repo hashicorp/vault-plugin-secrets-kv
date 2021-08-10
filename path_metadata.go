@@ -195,8 +195,11 @@ func validateCustomMetadata(customMetadata map[string]string) error {
 		}
 
 		if !strutil.Printable(key) {
-			errs = multierror.Append(errs, fmt.Errorf("%s: key %q contains unprintable characters",
+			// Include unquoted format (%s) to also include the string without the unprintable
+			//  characters visible to allow for easier debug and key identification
+			errs = multierror.Append(errs, fmt.Errorf("%s: key %q (%s) contains unprintable characters",
 				customMetadataValidationErrorPrefix,
+				key,
 				key))
 		}
 
