@@ -51,6 +51,7 @@ version matches the version specified in the cas parameter.`,
 			logical.CreateOperation: b.upgradeCheck(b.pathDataWrite()),
 			logical.ReadOperation:   b.upgradeCheck(b.pathDataRead()),
 			logical.DeleteOperation: b.upgradeCheck(b.pathDataDelete()),
+			logical.PatchOperation:  b.upgradeCheck(b.pathDataPatch()),
 		},
 
 		ExistenceCheck: b.dataExistenceCheck(),
@@ -166,6 +167,17 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 		resp.Data["data"] = vData
 
 		return resp, nil
+	}
+}
+
+// pathDataPatch handles patching existing data
+func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		return &logical.Response{
+			Data: map[string]interface{}{
+				"lol": true,
+			},
+		}, nil
 	}
 }
 
