@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"net/http"
 	"strings"
 	"time"
@@ -173,11 +174,179 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 // pathDataPatch handles patching existing data
 func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		return &logical.Response{
+		key := data.Get("path").(string)
+
+		if key == "" {
+			return logical.ErrorResponse("missing path"), nil
+		}
+
+		config, err := b.config(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		// Parse data, this can happen before the lock so we can fail early if
+		// not set.
+		dataRaw, ok := data.GetOk("data")
+		if !ok {
+			return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
+		}
+
+		marshaledData, err := json.Marshal(dataRaw.(map[string]interface{}))
+		if err != nil {
+			return nil, err
+		}
+
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
+
+		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
+		if err != nil {
+			return nil, err
+		}
+
+		if meta == nil {
+			return nil, nil
+		}
+
+		// Parse options
+		// TODO: this is taken as is from pathDataWrite. We probably want to
+		// abstract it out into a separate shared function
+		{
+			var casRaw interface{}
+			var casOk bool
+			optionsRaw, ok := data.GetOk("options")
+			if ok {
+				options := optionsRaw.(map[string]interface{})
+
+				// Verify the CAS parameter is valid.
+				casRaw, casOk = options["cas"]
+			}
+
+			switch {
+			case casOk:
+				var cas int
+				if err := mapstructure.WeakDecode(casRaw, &cas); err != nil {
+					return logical.ErrorResponse("error parsing check-and-set parameter"), logical.ErrInvalidRequest
+				}
+				if uint64(cas) != meta.CurrentVersion {
+					return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
+				}
+			case config.CasRequired, meta.CasRequired:
+				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
+			}
+		}
+
+		currentVersionKey, err := b.getVersionKey(ctx, key, meta.CurrentVersion, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		raw, err := req.Storage.Get(ctx, currentVersionKey)
+		if err != nil {
+
+			return nil, err
+		}
+
+		existingVersion := &Version{}
+
+		if err := proto.Unmarshal(raw.Value, existingVersion); err != nil {
+			return nil, err
+		}
+
+		modifiedData, err := jsonpatch.MergePatch(existingVersion.Data, marshaledData)
+		if err != nil {
+			return nil, err
+		}
+
+		newVersion := &Version{
+			Data:        modifiedData,
+			CreatedTime: ptypes.TimestampNow(),
+		}
+
+		buf, err := proto.Marshal(newVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create a version key for the new version
+		newVersionKey, err := b.getVersionKey(ctx, key, meta.CurrentVersion+1, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		// Write the new version
+		if err := req.Storage.Put(ctx, &logical.StorageEntry{
+			Key:   newVersionKey,
+			Value: buf,
+		}); err != nil {
+			return nil, err
+		}
+
+		vm, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		if err != nil {
+			return nil, err
+		}
+
+		resp := &logical.Response{
 			Data: map[string]interface{}{
-				"lol": true,
+				"version":       meta.CurrentVersion,
+				"created_time":  ptypesTimestampToString(vm.CreatedTime),
+				"deletion_time": ptypesTimestampToString(vm.DeletionTime),
+				"destroyed":     vm.Destroyed,
 			},
-		}, nil
+		}
+
+		// Cleanup the version data that is past max version.
+		// TODO: this is taken as is from pathDataWrite. We probably want to
+		// abstract it out into a separate shared function
+		if versionToDelete > 0 {
+
+			// Create a list of version keys to delete. We will delete from the
+			// back of the array so we can delete the oldest versions
+			// first. If there is an error deleting one of the keys we can
+			// ensure the rest will be deleted on the next go around.
+			var versionKeysToDelete []string
+
+			for i := versionToDelete; i > 0; i-- {
+				versionKey, err := b.getVersionKey(ctx, key, i, req.Storage)
+				if err != nil {
+					resp.AddWarning(fmt.Sprintf("Error occured when cleaning up old versions, these will be cleaned up on next write: %s", err))
+					return resp, nil
+				}
+
+				// We intentionally do not return these errors here. If the get
+				// or delete fail they will be cleaned up on the next write.
+				v, err := req.Storage.Get(ctx, versionKey)
+				if err != nil {
+					resp.AddWarning(fmt.Sprintf("Error occured when cleaning up old versions, these will be cleaned up on next write: %s", err))
+					return resp, nil
+				}
+
+				if v == nil {
+					break
+				}
+
+				// append to the end of the list
+				versionKeysToDelete = append(versionKeysToDelete, versionKey)
+			}
+
+			// Walk the list backwards deleting the oldest versions first. This
+			// allows us to continue the cleanup on next write if an error
+			// occurs during one of the deletes.
+			for i := len(versionKeysToDelete) - 1; i >= 0; i-- {
+				err := req.Storage.Delete(ctx, versionKeysToDelete[i])
+				if err != nil {
+					resp.AddWarning(fmt.Sprintf("Error occured when cleaning up old versions, these will be cleaned up on next write: %s", err))
+					break
+				}
+			}
+
+		}
+
+		return resp, nil
 	}
 }
 
@@ -202,6 +371,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			if !ok {
 				return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
 			}
+
 			marshaledData, err = json.Marshal(dataRaw.(map[string]interface{}))
 			if err != nil {
 				return nil, err

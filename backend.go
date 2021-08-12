@@ -170,6 +170,8 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 		switch req.Operation {
 		case logical.CreateOperation, logical.UpdateOperation:
 			subCommand = "put"
+		case logical.PatchOperation:
+			subCommand = "patch"
 		case logical.ReadOperation:
 			subCommand = "get"
 		case logical.ListOperation:
@@ -189,6 +191,7 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 				logical.UpdateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.CreateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.ReadOperation:   &framework.PathOperation{Callback: handler, Unpublished: true},
+				logical.PatchOperation:  &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.DeleteOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.ListOperation:   &framework.PathOperation{Callback: handler, Unpublished: true},
 			},
