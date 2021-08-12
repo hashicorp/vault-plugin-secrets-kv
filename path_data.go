@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	jsonpatch "github.com/evanphx/json-patch/v5"
 	"net/http"
 	"strings"
 	"time"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -245,7 +245,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 
 		raw, err := req.Storage.Get(ctx, currentVersionKey)
 		if err != nil {
-
 			return nil, err
 		}
 
@@ -303,7 +302,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		// TODO: this is taken as is from pathDataWrite. We probably want to
 		// abstract it out into a separate shared function
 		if versionToDelete > 0 {
-
 			// Create a list of version keys to delete. We will delete from the
 			// back of the array so we can delete the oldest versions
 			// first. If there is an error deleting one of the keys we can
