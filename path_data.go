@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -187,14 +186,8 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 
 		// Parse data, this can happen before the lock so we can fail early if
 		// not set.
-		dataRaw, ok := data.GetOk("data")
-		if !ok {
+		if _, ok := data.GetOk("data"); !ok {
 			return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
-		}
-
-		marshaledData, err := json.Marshal(dataRaw.(map[string]interface{}))
-		if err != nil {
-			return nil, err
 		}
 
 		lock := locksutil.LockForKey(b.locks, key)
@@ -254,7 +247,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		modifiedData, err := jsonpatch.MergePatch(existingVersion.Data, marshaledData)
+		modifiedData, err := framework.HandlePatchOperation(req, data, existingVersion.Data, nil)
 		if err != nil {
 			return nil, err
 		}
