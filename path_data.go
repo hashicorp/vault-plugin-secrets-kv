@@ -247,14 +247,17 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		dataRaw := data.Raw["data"].(map[string]interface{})
 		var existingVersionData *map[string]interface{}
 		err = json.Unmarshal(existingVersion.Data, &existingVersionData)
 		if err != nil {
 			return nil, err
 		}
 
-		modifiedData, err := framework.HandlePatchOperation(req, dataRaw, *existingVersionData, nil)
+		preProcessRules := framework.PatchPreProcessRules{
+			DataKey: "data",
+		}
+
+		modifiedData, err := framework.HandlePatchOperation(req, data, *existingVersionData, preProcessRules)
 		if err != nil {
 			return nil, err
 		}
