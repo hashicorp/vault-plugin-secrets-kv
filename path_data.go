@@ -170,6 +170,22 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 	}
 }
 
+// The data stored in the "data" key in the input provided to the
+// PatchOperation request handler is what is ultimately stored. It must
+// be lifted out of the input to properly handle that patch operation
+// against the existing resource.
+func patchPreProcessor() framework.PatchPreProcessorFunc {
+	return func(input map[string]interface{}) (map[string]interface{}, error) {
+		data, ok := input["data"]
+
+		if !ok {
+			return nil, errors.New("no data provided")
+		}
+
+		return data.(map[string]interface{}), nil
+	}
+}
+
 // pathDataPatch handles patching existing data
 func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -186,7 +202,9 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 
 		// Parse data, this can happen before the lock so we can fail early if
 		// not set.
-		if _, ok := data.GetOk("data"); !ok {
+		_, ok := data.GetOk("data")
+
+		if req.PatchType == logical.JSONMergePatch && !ok {
 			return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
 		}
 
@@ -253,11 +271,14 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		preProcessRules := framework.PatchPreProcessRules{
-			DataKey: "data",
-		}
+		// COMMENTING OUT TO TEST PatchPreProcessorFunc OVER PatchPreProcessRules
+		//preProcessRules := framework.PatchPreProcessRules{
+		//	DataKey: "data",
+		//}
+		//
+		//modifiedData, err := framework.HandlePatchOperation(req, data, *existingVersionData, preProcessRules)
+		modifiedData, err := framework.HandlePatchOperation(req, data, *existingVersionData, patchPreProcessor())
 
-		modifiedData, err := framework.HandlePatchOperation(req, data, *existingVersionData, preProcessRules)
 		if err != nil {
 			return nil, err
 		}
