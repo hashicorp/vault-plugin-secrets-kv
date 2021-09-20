@@ -51,6 +51,7 @@ version matches the version specified in the cas parameter.`,
 			logical.CreateOperation: b.upgradeCheck(b.pathDataWrite()),
 			logical.ReadOperation:   b.upgradeCheck(b.pathDataRead()),
 			logical.DeleteOperation: b.upgradeCheck(b.pathDataDelete()),
+			logical.PatchOperation:  b.upgradeCheck(b.pathDataPatch()),
 		},
 
 		ExistenceCheck: b.dataExistenceCheck(),
@@ -169,6 +170,32 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 	}
 }
 
+func validateCheckAndSetOption(data *framework.FieldData, config *Configuration, meta *KeyMetadata) error {
+	var casRaw interface{}
+	var casOk bool
+	optionsRaw, ok := data.GetOk("options")
+	if ok {
+		options := optionsRaw.(map[string]interface{})
+
+		// Verify the CAS parameter is valid.
+		casRaw, casOk = options["cas"]
+	}
+
+	if casOk {
+		var cas int
+		if err := mapstructure.WeakDecode(casRaw, &cas); err != nil {
+			return errors.New("error parsing check-and-set parameter")
+		}
+		if uint64(cas) != meta.CurrentVersion {
+			return errors.New("check-and-set parameter did not match the current version")
+		}
+	} else if config.CasRequired || meta.CasRequired {
+		return errors.New("check-and-set parameter required for this call")
+	}
+
+	return nil
+}
+
 // pathDataWrite handles create and update commands to a kv entry
 func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -211,30 +238,9 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			}
 		}
 
-		// Parse options
-		{
-			var casRaw interface{}
-			var casOk bool
-			optionsRaw, ok := data.GetOk("options")
-			if ok {
-				options := optionsRaw.(map[string]interface{})
-
-				// Verify the CAS parameter is valid.
-				casRaw, casOk = options["cas"]
-			}
-
-			switch {
-			case casOk:
-				var cas int
-				if err := mapstructure.WeakDecode(casRaw, &cas); err != nil {
-					return logical.ErrorResponse("error parsing check-and-set parameter"), logical.ErrInvalidRequest
-				}
-				if uint64(cas) != meta.CurrentVersion {
-					return logical.ErrorResponse("check-and-set parameter did not match the current version"), logical.ErrInvalidRequest
-				}
-			case config.CasRequired, meta.CasRequired:
-				return logical.ErrorResponse("check-and-set parameter required for this call"), logical.ErrInvalidRequest
-			}
+		err = validateCheckAndSetOption(data, config, meta)
+		if err != nil {
+			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 		}
 
 		// Create a version key for the new version
@@ -337,6 +343,39 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 
 		return resp, nil
+	}
+}
+
+func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		key := data.Get("path").(string)
+
+		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
+		if err != nil {
+			return nil, err
+		}
+
+		// Returning a nil logical.Response will ultimately result
+		// in a 404 HTTP response status
+		if meta == nil {
+			return nil, nil
+		}
+
+		config, err := b.config(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		err = validateCheckAndSetOption(data, config, meta)
+		if err != nil {
+			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+		}
+
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
+
+		return nil, nil
 	}
 }
 
