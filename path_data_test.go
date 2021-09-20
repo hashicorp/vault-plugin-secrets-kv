@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-test/deep"
 	"reflect"
 	"testing"
 	"time"
@@ -365,6 +366,29 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 
 }
 
+func TestVersionedKV_Patch_NotFound(t *testing.T) {
+	b, storage := getBackend(t)
+
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+
+	req := &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || resp != nil {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+}
+
 func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -411,5 +435,88 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	// Resp should be error since cas value does not match current version
 	if err == nil || (resp != nil && !resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+}
+
+func TestVersionedKV_Patch_Success(t *testing.T) {
+	b, storage := getBackend(t)
+
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+			"quux": map[string]interface{}{
+				"quuz": []string{"1", "2", "3"},
+			},
+		},
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	if resp.Data["version"] != uint64(1) {
+		t.Fatalf("Bad response: %#v", resp)
+	}
+
+	data = map[string]interface{}{
+		"data": map[string]interface{}{
+			"abc": float64(123),
+			"quux": map[string]interface{}{
+				"def": float64(456),
+				"quuz": []string{"1", "2", "3", "4"},
+			},
+		},
+		"options": map[string]interface{}{
+			"cas": float64(1),
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	// Resp should be error since cas value does not match current version
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	// Resp should be error since cas value does not match current version
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	expectedData := map[string]interface{}{
+		"bar": "baz",
+		"abc": float64(123),
+		"quux": map[string]interface{}{
+			"def": float64(456),
+			"quuz": []interface{}{"1", "2", "3", "4"},
+		},
+	}
+
+	fmt.Printf("RESP %#v\n", resp)
+	if diff := deep.Equal(resp.Data["data"], expectedData);  len(diff) > 0 {
+		t.Fatal(diff)
 	}
 }

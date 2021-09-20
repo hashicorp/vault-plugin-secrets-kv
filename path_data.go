@@ -346,6 +346,18 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	}
 }
 
+func patchPreprocessor() framework.PatchPreprocessorFunc {
+	return func(input map[string]interface{}) (map[string]interface{}, error) {
+		data, ok := input["data"]
+
+		if !ok {
+			return nil, errors.New("no data provided")
+		}
+
+		return data.(map[string]interface{}), nil
+	}
+}
+
 func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
@@ -355,8 +367,8 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Returning a nil logical.Response will ultimately result
-		// in a 404 HTTP response status
+		// Returning a nil logical.Response and error will ultimately
+		// result in a 404 HTTP response status
 		if meta == nil {
 			return nil, nil
 		}
@@ -375,7 +387,116 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		lock.Lock()
 		defer lock.Unlock()
 
-		return nil, nil
+		currentVersion := meta.CurrentVersion
+
+		versionMetadata := meta.Versions[currentVersion]
+		if versionMetadata == nil {
+			return nil, nil
+		}
+
+		// If the version has been deleted return metadata with a 404
+		if versionMetadata.DeletionTime != nil {
+			deletionTime, err := ptypes.Timestamp(versionMetadata.DeletionTime)
+			if err != nil {
+				return nil, err
+			}
+
+			if deletionTime.Before(time.Now()) {
+				return nil, nil
+
+			}
+		}
+
+		// If the version has been destroyed return metadata with a 404
+		if versionMetadata.Destroyed {
+			return nil, nil
+		}
+
+		currentVersionKey, err := b.getVersionKey(ctx, key, currentVersion, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		raw, err := req.Storage.Get(ctx, currentVersionKey)
+		if err != nil {
+			return nil, err
+		}
+		if raw == nil {
+			return nil, errors.New("could not find version data")
+		}
+
+		existingVersion := &Version{}
+
+		if err := proto.Unmarshal(raw.Value, existingVersion); err != nil {
+			return nil, err
+		}
+
+		var versionData map[string]interface{}
+		if err := json.Unmarshal(existingVersion.Data, &versionData); err != nil {
+			return nil, err
+		}
+
+		patchedBytes, err := framework.HandlePatchOperation(data, versionData, patchPreprocessor())
+		if err != nil {
+			return nil, err
+		}
+
+		newVersion := &Version{
+			Data: patchedBytes,
+			CreatedTime: ptypes.TimestampNow(),
+		}
+
+		ctime, err := ptypes.Timestamp(newVersion.CreatedTime)
+		if err != nil {
+			return logical.ErrorResponse("unexpected error converting %T(%v) to time.Time: %v", newVersion.CreatedTime, newVersion.CreatedTime, err), logical.ErrInvalidRequest
+		}
+
+		if !config.IsDeleteVersionAfterDisabled() {
+			if dtime, ok := deletionTime(ctime, deleteVersionAfter(config), deleteVersionAfter(meta)); ok {
+				dt, err := ptypes.TimestampProto(dtime)
+				if err != nil {
+					return logical.ErrorResponse("error setting deletion_time: converting %v to protobuf: %v", dtime, err), logical.ErrInvalidRequest
+				}
+				newVersion.DeletionTime = dt
+			}
+		}
+
+		buf, err := proto.Marshal(newVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		newVersionKey, err := b.getVersionKey(ctx, key, meta.CurrentVersion+1, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+		// Write the new version
+		if err := req.Storage.Put(ctx, &logical.StorageEntry{
+			Key:   newVersionKey,
+			Value: buf,
+		}); err != nil {
+			return nil, err
+		}
+
+		// TODO: process versions to delete
+		newVersionMetadata, _ := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		if err != nil {
+			return nil, err
+		}
+
+		// We create the response here so we can add warnings to it below.
+		resp := &logical.Response{
+			Data: map[string]interface{}{
+				"version":       meta.CurrentVersion,
+				"created_time":  ptypesTimestampToString(newVersionMetadata.CreatedTime),
+				"deletion_time": ptypesTimestampToString(newVersionMetadata.DeletionTime),
+				"destroyed":     newVersionMetadata.Destroyed,
+			},
+		}
+
+
+		return resp, nil
 	}
 }
 

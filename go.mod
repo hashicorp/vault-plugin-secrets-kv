@@ -5,6 +5,7 @@ go 1.12
 replace github.com/hashicorp/vault/sdk => ../vault/sdk
 
 require (
+	github.com/evanphx/json-patch v0.5.2 // indirect
 	github.com/go-test/deep v1.0.7 // indirect
 	github.com/golang/protobuf v1.5.0
 	github.com/hashicorp/go-hclog v0.16.2
