@@ -196,6 +196,50 @@ func validateCheckAndSetOption(data *framework.FieldData, config *Configuration,
 	return nil
 }
 
+func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, req *logical.Request, data *framework.FieldData, versionToDelete uint64) error {
+	key := data.Get("path").(string)
+	warningFormat := "Error occurred when cleaning up old versions, these will be cleaned up on next write: %s"
+
+	// Create a list of version keys to delete. We will delete from the
+	// back of the array so we can delete the oldest versions
+	// first. If there is an error deleting one of the keys we can
+	// ensure the rest will be deleted on the next go around.
+	var versionKeysToDelete []string
+
+	for i := versionToDelete; i > 0; i-- {
+		versionKey, err := b.getVersionKey(ctx, key, i, req.Storage)
+		if err != nil {
+			return errors.New(fmt.Sprintf(warningFormat, err))
+		}
+
+		// We intentionally do not return these errors here. If the get
+		// or delete fail they will be cleaned up on the next write.
+		v, err := req.Storage.Get(ctx, versionKey)
+		if err != nil {
+			return errors.New(fmt.Sprintf(warningFormat, err))
+		}
+
+		if v == nil {
+			break
+		}
+
+		// append to the end of the list
+		versionKeysToDelete = append(versionKeysToDelete, versionKey)
+	}
+
+	// Walk the list backwards deleting the oldest versions first. This
+	// allows us to continue the cleanup on next write if an error
+	// occurs during one of the deletes.
+	for i := len(versionKeysToDelete) - 1; i >= 0; i-- {
+		err := req.Storage.Delete(ctx, versionKeysToDelete[i])
+		if err != nil {
+			return errors.New(fmt.Sprintf(warningFormat, err))
+		}
+	}
+
+	return nil
+}
+
 // pathDataWrite handles create and update commands to a kv entry
 func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -287,7 +331,6 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		// We create the response here so we can add warnings to it below.
 		resp := &logical.Response{
 			Data: map[string]interface{}{
 				"version":       meta.CurrentVersion,
@@ -297,49 +340,9 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			},
 		}
 
-		// Cleanup the version data that is past max version.
-		if versionToDelete > 0 {
-
-			// Create a list of version keys to delete. We will delete from the
-			// back of the array so we can delete the oldest versions
-			// first. If there is an error deleting one of the keys we can
-			// ensure the rest will be deleted on the next go around.
-			var versionKeysToDelete []string
-
-			for i := versionToDelete; i > 0; i-- {
-				versionKey, err := b.getVersionKey(ctx, key, i, req.Storage)
-				if err != nil {
-					resp.AddWarning(fmt.Sprintf("Error occured when cleaning up old versions, these will be cleaned up on next write: %s", err))
-					return resp, nil
-				}
-
-				// We intentionally do not return these errors here. If the get
-				// or delete fail they will be cleaned up on the next write.
-				v, err := req.Storage.Get(ctx, versionKey)
-				if err != nil {
-					resp.AddWarning(fmt.Sprintf("Error occured when cleaning up old versions, these will be cleaned up on next write: %s", err))
-					return resp, nil
-				}
-
-				if v == nil {
-					break
-				}
-
-				// append to the end of the list
-				versionKeysToDelete = append(versionKeysToDelete, versionKey)
-			}
-
-			// Walk the list backwards deleting the oldest versions first. This
-			// allows us to continue the cleanup on next write if an error
-			// occurs during one of the deletes.
-			for i := len(versionKeysToDelete) - 1; i >= 0; i-- {
-				err := req.Storage.Delete(ctx, versionKeysToDelete[i])
-				if err != nil {
-					resp.AddWarning(fmt.Sprintf("Error occured when cleaning up old versions, these will be cleaned up on next write: %s", err))
-					break
-				}
-			}
-
+		err = b.cleanupOldVersions(ctx, req, data, versionToDelete)
+		if err != nil {
+			resp.AddWarning(err.Error())
 		}
 
 		return resp, nil
@@ -403,7 +406,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 
 			if deletionTime.Before(time.Now()) {
 				return nil, nil
-
 			}
 		}
 
@@ -442,7 +444,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		}
 
 		newVersion := &Version{
-			Data: patchedBytes,
+			Data:        patchedBytes,
 			CreatedTime: ptypes.TimestampNow(),
 		}
 
@@ -470,6 +472,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
+
 		// Write the new version
 		if err := req.Storage.Put(ctx, &logical.StorageEntry{
 			Key:   newVersionKey,
@@ -478,14 +481,12 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		// TODO: process versions to delete
-		newVersionMetadata, _ := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
+		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}
 
-		// We create the response here so we can add warnings to it below.
 		resp := &logical.Response{
 			Data: map[string]interface{}{
 				"version":       meta.CurrentVersion,
@@ -495,6 +496,10 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			},
 		}
 
+		err = b.cleanupOldVersions(ctx, req, data, versionToDelete)
+		if err != nil {
+			resp.AddWarning(err.Error())
+		}
 
 		return resp, nil
 	}
