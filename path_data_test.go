@@ -605,3 +605,233 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestVersionedKV_Patch_CurrentVersionDeleted (t *testing.T) {
+	b, storage := getBackend(t)
+
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.DeleteOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("DeleteOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("ReadOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	// Use of logical.RespondWithStatusCode in handler will
+	// serialize the JSON response body as a string
+	respBody := map[string]interface{}{}
+
+	if rawRespBody, ok := resp.Data[logical.HTTPRawBody]; ok {
+		err = json.Unmarshal([]byte(rawRespBody.(string)), &respBody)
+	}
+
+	respDataRaw, ok := respBody["data"]
+	if !ok {
+		t.Fatalf("No data provided in response, resp: %#v\n", resp)
+	}
+
+	respData := respDataRaw.(map[string]interface{})
+
+	respMetadataRaw, ok := respData["metadata"]
+	if !ok {
+		t.Fatalf("No metadata provided in response, resp: %#v\n", resp)
+	}
+
+	respMetadata := respMetadataRaw.(map[string]interface{})
+
+	if respMetadata["deletion_time"] == "" {
+		t.Fatalf("Expected deletion_time to be set, resp:%#v\n", resp)
+	}
+
+	data["quux"] = "quuz"
+
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("PatchOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	// Use of logical.RespondWithStatusCode in handler will
+	// serialize the JSON response body as a string
+	respBody = map[string]interface{}{}
+
+	if rawRespBody, ok := resp.Data[logical.HTTPRawBody]; ok {
+		err = json.Unmarshal([]byte(rawRespBody.(string)), &respBody)
+	}
+
+	respDataRaw, ok = respBody["data"]
+	if !ok {
+		t.Fatalf("No data provided in response, resp: %#v\n", resp)
+	}
+
+	respData = respDataRaw.(map[string]interface{})
+
+	respMetadataRaw, ok = respData["metadata"]
+	if !ok {
+		t.Fatalf("No metadata provided in response, resp: %#v\n", resp)
+	}
+
+	respMetadata = respMetadataRaw.(map[string]interface{})
+
+	if resp.Data["http_status_code"] != 404 ||
+		respMetadata["version"] != float64(1) ||
+		respMetadata["deletion_time"] == "" {
+		t.Fatalf("Expected 404 status code for deleted version: resp:%#v\n", resp)
+	}
+}
+
+func TestVersionedKV_Patch_CurrentVersionDestroyed (t *testing.T) {
+	b, storage := getBackend(t)
+
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	versionsToDestroy := map[string]interface{}{
+		"versions": []int{1},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "destroy/foo",
+		Storage:   storage,
+		Data:      versionsToDestroy,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("DeleteOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("ReadOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	// Use of logical.RespondWithStatusCode in handler will
+	// serialize the JSON response body as a string
+	respBody := map[string]interface{}{}
+
+	if rawRespBody, ok := resp.Data[logical.HTTPRawBody]; ok {
+		err = json.Unmarshal([]byte(rawRespBody.(string)), &respBody)
+	}
+
+	respDataRaw, ok := respBody["data"]
+	if !ok {
+		t.Fatalf("No data provided in response, resp: %#v\n", resp)
+	}
+
+	respData := respDataRaw.(map[string]interface{})
+
+	respMetadataRaw, ok := respData["metadata"]
+	if !ok {
+		t.Fatalf("No metadata provided in response, resp: %#v\n", resp)
+	}
+
+	respMetadata := respMetadataRaw.(map[string]interface{})
+
+	if respMetadata["destroyed"] == nil || !respMetadata["destroyed"].(bool) {
+		t.Fatalf("Expected version to be destroyed, resp:%#v\n", resp)
+	}
+
+	data["quux"] = "quuz"
+
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("PatchOperation request failed - err:%s resp:%#v\n", err, resp)
+	}
+
+	// Use of logical.RespondWithStatusCode in handler will
+	// serialize the JSON response body as a string
+	respBody = map[string]interface{}{}
+
+	if rawRespBody, ok := resp.Data[logical.HTTPRawBody]; ok {
+		err = json.Unmarshal([]byte(rawRespBody.(string)), &respBody)
+	}
+
+	respDataRaw, ok = respBody["data"]
+	if !ok {
+		t.Fatalf("No data provided in response, resp: %#v\n", resp)
+	}
+
+	respData = respDataRaw.(map[string]interface{})
+
+	respMetadataRaw, ok = respData["metadata"]
+	if !ok {
+		t.Fatalf("No metadata provided in response, resp: %#v\n", respData)
+	}
+
+	respMetadata = respMetadataRaw.(map[string]interface{})
+
+	if resp.Data["http_status_code"] != 404 ||
+		respMetadata["version"] != float64(1) ||
+		(respMetadata["destroyed"] == nil || !respMetadata["destroyed"].(bool)) {
+		t.Fatalf("Expected 404 status code for destroyed version: resp:%#v\n", resp)
+	}
+}

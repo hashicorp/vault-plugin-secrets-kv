@@ -393,11 +393,24 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		currentVersion := meta.CurrentVersion
 
 		versionMetadata := meta.Versions[currentVersion]
+
 		if versionMetadata == nil {
 			return nil, nil
 		}
 
-		// If the version has been deleted return metadata with a 404
+		notFoundResp := &logical.Response{
+			Data: map[string]interface{}{
+				"data": nil,
+				"metadata": map[string]interface{}{
+					"version":       currentVersion,
+					"created_time":  ptypesTimestampToString(versionMetadata.CreatedTime),
+					"deletion_time": ptypesTimestampToString(versionMetadata.DeletionTime),
+					"destroyed":     versionMetadata.Destroyed,
+				},
+			},
+		}
+
+		// If the current version has been deleted return metadata with a 404
 		if versionMetadata.DeletionTime != nil {
 			deletionTime, err := ptypes.Timestamp(versionMetadata.DeletionTime)
 			if err != nil {
@@ -405,13 +418,13 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			}
 
 			if deletionTime.Before(time.Now()) {
-				return nil, nil
+				return logical.RespondWithStatusCode(notFoundResp, req, http.StatusNotFound)
 			}
 		}
 
-		// If the version has been destroyed return metadata with a 404
+		// If the current version has been destroyed return metadata with a 404
 		if versionMetadata.Destroyed {
-			return nil, nil
+			return logical.RespondWithStatusCode(notFoundResp, req, http.StatusNotFound)
 		}
 
 		currentVersionKey, err := b.getVersionKey(ctx, key, currentVersion, req.Storage)
