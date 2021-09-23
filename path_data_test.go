@@ -606,7 +606,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	}
 }
 
-func TestVersionedKV_Patch_CurrentVersionDeleted (t *testing.T) {
+func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 	b, storage := getBackend(t)
 
 	data := map[string]interface{}{
@@ -719,7 +719,7 @@ func TestVersionedKV_Patch_CurrentVersionDeleted (t *testing.T) {
 	}
 }
 
-func TestVersionedKV_Patch_CurrentVersionDestroyed (t *testing.T) {
+func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	b, storage := getBackend(t)
 
 	data := map[string]interface{}{
