@@ -514,9 +514,38 @@ func TestVersionedKV_Patch_NotFound(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || resp != nil {
+		t.Fatalf("expected nil response - err:%s resp:%#v\n", err, resp)
+	}
+
+	metadata := map[string]interface{}{
+		"max_versions": 5,
+	}
+
+	// A patch request should not be allowed if a metadata entry
+	// exists but a data entry does not
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "metadata/foo",
+		Storage:   storage,
+		Data:      metadata,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp != nil {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
 
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp != nil {
+		t.Fatalf("expected nil response - err:%s resp:%#v\n", err, resp)
+	}
 }
 
 func TestVersionedKV_Patch_CASValidation(t *testing.T) {
@@ -571,6 +600,39 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 
 	if errorMsg, ok := resp.Data["error"]; !(ok && strings.Contains(errorMsg.(string), expectedSubStr)) {
 		t.Fatalf("expected check-and-set validation error, resp: %#v\n", resp)
+	}
+}
+
+func TestVersionedKV_Patch_NoData(t *testing.T) {
+	b, storage := getBackend(t)
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if resp != nil || err == nil || err.Error() != "no data provided" {
+		t.Fatalf("expected no data error - err:%s resp:%#v\n", err, resp)
 	}
 }
 
