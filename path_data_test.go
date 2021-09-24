@@ -106,7 +106,7 @@ func TestVersionedKV_Data_Put_ZeroCas(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	req = &logical.Request{
@@ -118,7 +118,7 @@ func TestVersionedKV_Data_Put_ZeroCas(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err == nil || (resp != nil && !resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	expectedSubStr := "check-and-set parameter did not match"
@@ -285,11 +285,12 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 
 		resp, err := b.HandleRequest(context.Background(), req)
 		if err != nil || (resp != nil && resp.IsError()) {
-			t.Fatalf("err:%s resp:%#v\n", err, resp)
+			t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 		}
 
-		if resp.Data["version"] != uint64(i+1) {
-			t.Fatalf("Bad response: %#v", resp)
+		expectedVersion := uint64(i + 1)
+		if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
+			t.Fatalf("expected version %d but received %d, resp: %#v", actualVersion, expectedVersion, resp)
 		}
 	}
 
@@ -307,7 +308,7 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("metadata CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	// write another version
@@ -326,30 +327,30 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
-	if resp.Data["version"] != uint64(11) {
-		t.Fatalf("Bad response: %#v", resp)
+	expectedVersion := uint64(11)
+	if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
+		t.Fatalf("expected version %d but received %d, resp: %#v", actualVersion, expectedVersion, resp)
 	}
 
 	// Make sure versions 1-9 were cleaned up.
 	for i := 1; i <= 9; i++ {
 		versionKey, err := b.(*versionedKVBackend).getVersionKey(context.Background(), "foo", uint64(i), storage)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("error getting version key for version %d, err: %#v\n", i, err)
 		}
 
 		v, err := storage.Get(context.Background(), versionKey)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("error getting entry for key %s, err: %#v\n", versionKey, err)
 		}
 
 		if v != nil {
 			t.Fatalf("version not cleaned up %d", i)
 		}
 	}
-
 }
 
 func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
@@ -372,11 +373,12 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 
 		resp, err := b.HandleRequest(context.Background(), req)
 		if err != nil || (resp != nil && resp.IsError()) {
-			t.Fatalf("err:%s resp:%#v\n", err, resp)
+			t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 		}
 
-		if resp.Data["version"] != uint64(i+1) {
-			t.Fatalf("Bad response: %#v", resp)
+		expectedVersion := uint64(i + 1)
+		if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
+			t.Fatalf("expected version %d but received %d, resp: %#v", actualVersion, expectedVersion, resp)
 		}
 	}
 
@@ -394,7 +396,7 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("metadata CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	// write another version
@@ -413,23 +415,24 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("data PatchOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
-	if resp.Data["version"] != uint64(11) {
-		t.Fatalf("Bad response: %#v", resp)
+	expectedVersion := uint64(11)
+	if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
+		t.Fatalf("expected version %d but received %d, resp: %#v", actualVersion, expectedVersion, resp)
 	}
 
 	// Make sure versions 1-9 were cleaned up.
 	for i := 1; i <= 9; i++ {
 		versionKey, err := b.(*versionedKVBackend).getVersionKey(context.Background(), "foo", uint64(i), storage)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("error getting version key for version %d, err: %#v\n", i, err)
 		}
 
 		v, err := storage.Get(context.Background(), versionKey)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("error getting entry for key %s, err: %#v\n", versionKey, err)
 		}
 
 		if v != nil {
@@ -514,7 +517,7 @@ func TestVersionedKV_Patch_NotFound(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || resp != nil {
-		t.Fatalf("expected nil response - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("expected nil response for PatchOperation - err:%s resp:%#v\n", err, resp)
 	}
 
 	metadata := map[string]interface{}{
@@ -532,7 +535,7 @@ func TestVersionedKV_Patch_NotFound(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || resp != nil {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("metadata CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	req = &logical.Request{
@@ -544,7 +547,7 @@ func TestVersionedKV_Patch_NotFound(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || resp != nil {
-		t.Fatalf("expected nil response - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("expected nil response for PatchOperation - err:%s resp:%#v\n", err, resp)
 	}
 }
 
@@ -570,7 +573,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	}
 
 	if resp.Data["version"] != uint64(1) {
-		t.Fatalf("Bad response: %#v", resp)
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	data = map[string]interface{}{
@@ -593,7 +596,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 
 	// Resp should be error since cas value does not match current version
 	if err == nil || (resp != nil && !resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("expected PatchOperation to fail - err:%s resp:%#v\n", err, resp)
 	}
 
 	expectedSubStr := "check-and-set parameter did not match"
@@ -620,7 +623,7 @@ func TestVersionedKV_Patch_NoData(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	req = &logical.Request{
@@ -632,7 +635,7 @@ func TestVersionedKV_Patch_NoData(t *testing.T) {
 	resp, err = b.HandleRequest(context.Background(), req)
 
 	if resp != nil || err == nil || err.Error() != "no data provided" {
-		t.Fatalf("expected no data error - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("expected no data error for PatchOperation - err:%s resp:%#v\n", err, resp)
 	}
 }
 
@@ -657,7 +660,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	if resp.Data["version"] != uint64(1) {
@@ -686,9 +689,8 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 
-	// Resp should be error since cas value does not match current version
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("PatchOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	req = &logical.Request{
@@ -699,9 +701,8 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 
-	// Resp should be error since cas value does not match current version
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("Readperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	expectedData := map[string]interface{}{
@@ -714,7 +715,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	}
 
 	if diff := deep.Equal(resp.Data["data"], expectedData); len(diff) > 0 {
-		t.Fatal(diff)
+		t.Fatalf("secret data mismatch, diff: %#v\n", diff)
 	}
 }
 
