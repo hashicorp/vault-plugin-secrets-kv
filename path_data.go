@@ -170,6 +170,10 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 	}
 }
 
+// validateCheckAndSetOption will validate the cas flag from the options map
+// provided. The cas flag must be provided if required based on the engine's
+// config or the secret's key metadata. If provided, the cas value must match
+// the current version of the secret as denoted by its key metadata entry.
 func validateCheckAndSetOption(data *framework.FieldData, config *Configuration, meta *KeyMetadata) error {
 	var casRaw interface{}
 	var casOk bool
@@ -196,14 +200,16 @@ func validateCheckAndSetOption(data *framework.FieldData, config *Configuration,
 	return nil
 }
 
+// cleanupOldVersions is responsible for cleaning up old versions. Once a key
+// has more than the configured allowed versions the oldest version will be
+// permanently deleted. A list of version keys to delete will be created.
+// Indices will be ordered such that the oldest version is at the end of the
+// list. Deletes will be performed back-to-front. If there is an error deleting
+// one of the keys, the can remaining keys will be deleted on the next go around.
 func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, req *logical.Request, data *framework.FieldData, versionToDelete uint64) error {
 	key := data.Get("path").(string)
 	warningFormat := "Error occurred when cleaning up old versions, these will be cleaned up on next write: %s"
 
-	// Create a list of version keys to delete. We will delete from the
-	// back of the array so we can delete the oldest versions
-	// first. If there is an error deleting one of the keys we can
-	// ensure the rest will be deleted on the next go around.
 	var versionKeysToDelete []string
 
 	for i := versionToDelete; i > 0; i-- {
@@ -212,8 +218,6 @@ func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, req *logica
 			return errors.New(fmt.Sprintf(warningFormat, err))
 		}
 
-		// We intentionally do not return these errors here. If the get
-		// or delete fail they will be cleaned up on the next write.
 		v, err := req.Storage.Get(ctx, versionKey)
 		if err != nil {
 			return errors.New(fmt.Sprintf(warningFormat, err))
@@ -325,7 +329,11 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Add version to the key metadata and calculate version to delete
+		// based on the max_versions specified by either the secret's key
+		// metadata or the engine's config
 		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions)
+
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
@@ -349,6 +357,11 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	}
 }
 
+// patchPreprocessor is passed to framework.HandlePatchOperation within the
+// pathDataPatch handler. The framework.HandlePatchOperation abstraction
+// expects only the resource data to be provided. The "data" key must be lifted
+// from the request data to the pathDataPatch handler since it also accepts an
+// options map.
 func patchPreprocessor() framework.PatchPreprocessorFunc {
 	return func(input map[string]interface{}) (map[string]interface{}, error) {
 		data, ok := input["data"]
@@ -361,6 +374,14 @@ func patchPreprocessor() framework.PatchPreprocessorFunc {
 	}
 }
 
+// pathDataPatch handles the patch command to a kv entry. A PatchOperation must
+// be performed on an existing entry specified by the provided path. This
+// handler supports the "cas" flag and is required if cas_required is set to true
+// on either the secret or the engine's config. In order for a patch to be
+// successful, cas must be set to the current version of the secret. The contents
+// of the data map under the "data" key will be applied as a partial update to
+// the existing entry via a JSON merge patch to the existing entry using the
+// framework.HandlePatchOperation abstraction.
 func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
@@ -432,6 +453,8 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
+		// The patch operation will be performed using the provided "data" and
+		// the data from the current version of the secret
 		raw, err := req.Storage.Get(ctx, currentVersionKey)
 		if err != nil {
 			return nil, err
@@ -466,6 +489,8 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return logical.ErrorResponse("unexpected error converting %T(%v) to time.Time: %v", newVersion.CreatedTime, newVersion.CreatedTime, err), logical.ErrInvalidRequest
 		}
 
+		// Set the deletion_time for the new version based on delete_version_after value if set
+		// on either the secret's key metadata or the engine's config
 		if !config.IsDeleteVersionAfterDisabled() {
 			if dtime, ok := deletionTime(ctime, deleteVersionAfter(config), deleteVersionAfter(meta)); ok {
 				dt, err := ptypes.TimestampProto(dtime)
@@ -486,7 +511,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Write the new version
+		// Write the newly patched version to storage
 		if err := req.Storage.Put(ctx, &logical.StorageEntry{
 			Key:   newVersionKey,
 			Value: buf,
@@ -494,12 +519,18 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Add version to the key metadata and calculate version to delete
+		// based on the max_versions specified by either the secret's key
+		// metadata or the engine's config
 		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
+
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}
 
+		// Initialize resp so that warnings from the attempt to clean up old
+		// versions can be added
 		resp := &logical.Response{
 			Data: map[string]interface{}{
 				"version":       meta.CurrentVersion,
