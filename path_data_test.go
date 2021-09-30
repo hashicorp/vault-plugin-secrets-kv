@@ -818,16 +818,12 @@ func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 
 	respData = respDataRaw.(map[string]interface{})
 
-	respMetadataRaw, ok = respData["metadata"]
-	if !ok {
-		t.Fatalf("No metadata provided in response, resp: %#v\n", resp)
-	}
-
-	respMetadata = respMetadataRaw.(map[string]interface{})
-
+	// Unlike the ReadOperation handler, the PatchOperation handler
+	// does not ever return secret data. Thus, the secret metadata is
+	// returned as top-level keys in the response.
 	if resp.Data["http_status_code"] != 404 ||
-		respMetadata["version"] != float64(1) ||
-		respMetadata["deletion_time"] == "" {
+		respData["version"] != float64(1) ||
+		respData["deletion_time"] == "" {
 		t.Fatalf("Expected 404 status code for deleted version: resp:%#v\n", resp)
 	}
 }
@@ -935,16 +931,14 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 
 	respData = respDataRaw.(map[string]interface{})
 
-	respMetadataRaw, ok = respData["metadata"]
-	if !ok {
-		t.Fatalf("No metadata provided in response, resp: %#v\n", respData)
-	}
-
 	respMetadata = respMetadataRaw.(map[string]interface{})
 
+	// Unlike the ReadOperation handler, the PatchOperation handler
+	// does not ever return secret data. Thus, the secret metadata is
+	// returned as top-level keys in the response.
 	if resp.Data["http_status_code"] != 404 ||
-		respMetadata["version"] != float64(1) ||
-		(respMetadata["destroyed"] == nil || !respMetadata["destroyed"].(bool)) {
+		respData["version"] != float64(1) ||
+		(respData["destroyed"] == nil || !respData["destroyed"].(bool)) {
 		t.Fatalf("Expected 404 status code for destroyed version: resp:%#v\n", resp)
 	}
 }

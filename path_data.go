@@ -419,15 +419,15 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, nil
 		}
 
+		// Like the read handler, initialize a resp with the version metadata
+		// to be used in a 404 response when the entry has either been deleted
+		// or destroyed
 		notFoundResp := &logical.Response{
 			Data: map[string]interface{}{
-				"data": nil,
-				"metadata": map[string]interface{}{
-					"version":       currentVersion,
-					"created_time":  ptypesTimestampToString(versionMetadata.CreatedTime),
-					"deletion_time": ptypesTimestampToString(versionMetadata.DeletionTime),
-					"destroyed":     versionMetadata.Destroyed,
-				},
+				"version":       currentVersion,
+				"created_time":  ptypesTimestampToString(versionMetadata.CreatedTime),
+				"deletion_time": ptypesTimestampToString(versionMetadata.DeletionTime),
+				"destroyed":     versionMetadata.Destroyed,
 			},
 		}
 
