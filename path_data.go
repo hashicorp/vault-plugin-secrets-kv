@@ -386,6 +386,14 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
 
+		// Only validate that data is present to provide error response since
+		// HandlePatchOperation and patchPreprocessor will ultimately
+		// properly parse the field
+		_, ok := data.GetOk("data")
+		if !ok {
+			return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
+		}
+
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {
 			return nil, err
@@ -431,7 +439,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			},
 		}
 
-		// If the current version has been deleted return metadata with a 404
 		if versionMetadata.DeletionTime != nil {
 			deletionTime, err := ptypes.Timestamp(versionMetadata.DeletionTime)
 			if err != nil {
@@ -443,7 +450,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			}
 		}
 
-		// If the current version has been destroyed return metadata with a 404
 		if versionMetadata.Destroyed {
 			return logical.RespondWithStatusCode(notFoundResp, req, http.StatusNotFound)
 		}
@@ -453,8 +459,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		// The patch operation will be performed using the provided "data" and
-		// the data from the current version of the secret
 		raw, err := req.Storage.Get(ctx, currentVersionKey)
 		if err != nil {
 			return nil, err
@@ -511,7 +515,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Write the newly patched version to storage
 		if err := req.Storage.Put(ctx, &logical.StorageEntry{
 			Key:   newVersionKey,
 			Value: buf,
@@ -529,8 +532,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Initialize resp so that warnings from the attempt to clean up old
-		// versions can be added
 		resp := &logical.Response{
 			Data: map[string]interface{}{
 				"version":       meta.CurrentVersion,
@@ -542,6 +543,8 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 
 		err = b.cleanupOldVersions(ctx, req, data, versionToDelete)
 		if err != nil {
+			// A failed attempt to clean up old versions will be retried on
+			// next write/patch attempt, prefer a warning over an error resp
 			resp.AddWarning(err.Error())
 		}
 
