@@ -206,19 +206,18 @@ func validateCheckAndSetOption(data *framework.FieldData, config *Configuration,
 // Indices will be ordered such that the oldest version is at the end of the
 // list. Deletes will be performed back-to-front. If there is an error deleting
 // one of the keys, the remaining keys will be deleted on the next go around.
-func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, req *logical.Request, data *framework.FieldData, versionToDelete uint64) error {
-	key := data.Get("path").(string)
+func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, storage logical.Storage, key string, versionToDelete uint64) error {
 	warningFormat := "error occurred when cleaning up old versions, these will be cleaned up on next write: %s"
 
 	var versionKeysToDelete []string
 
 	for i := versionToDelete; i > 0; i-- {
-		versionKey, err := b.getVersionKey(ctx, key, i, req.Storage)
+		versionKey, err := b.getVersionKey(ctx, key, i, storage)
 		if err != nil {
 			return fmt.Errorf(warningFormat, err)
 		}
 
-		v, err := req.Storage.Get(ctx, versionKey)
+		v, err := storage.Get(ctx, versionKey)
 		if err != nil {
 			return fmt.Errorf(warningFormat, err)
 		}
@@ -235,7 +234,7 @@ func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, req *logica
 	// allows us to continue the cleanup on next write if an error
 	// occurs during one of the deletes.
 	for i := len(versionKeysToDelete) - 1; i >= 0; i-- {
-		err := req.Storage.Delete(ctx, versionKeysToDelete[i])
+		err := storage.Delete(ctx, versionKeysToDelete[i])
 		if err != nil {
 			return fmt.Errorf(warningFormat, err)
 		}
@@ -348,7 +347,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			},
 		}
 
-		err = b.cleanupOldVersions(ctx, req, data, versionToDelete)
+		err = b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
 		if err != nil {
 			resp.AddWarning(err.Error())
 		}
@@ -541,7 +540,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			},
 		}
 
-		err = b.cleanupOldVersions(ctx, req, data, versionToDelete)
+		err = b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
 		if err != nil {
 			// A failed attempt to clean up old versions will be retried on
 			// next write/patch attempt, prefer a warning over an error resp
