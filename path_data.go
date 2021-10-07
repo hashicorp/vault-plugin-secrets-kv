@@ -206,7 +206,7 @@ func validateCheckAndSetOption(data *framework.FieldData, config *Configuration,
 // Indices will be ordered such that the oldest version is at the end of the
 // list. Deletes will be performed back-to-front. If there is an error deleting
 // one of the keys, the remaining keys will be deleted on the next go around.
-func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, storage logical.Storage, key string, versionToDelete uint64) error {
+func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, storage logical.Storage, key string, versionToDelete uint64) string {
 	warningFormat := "error occurred when cleaning up old versions, these will be cleaned up on next write: %s"
 
 	var versionKeysToDelete []string
@@ -214,12 +214,12 @@ func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, storage log
 	for i := versionToDelete; i > 0; i-- {
 		versionKey, err := b.getVersionKey(ctx, key, i, storage)
 		if err != nil {
-			return fmt.Errorf(warningFormat, err)
+			return fmt.Sprintf(warningFormat, err)
 		}
 
 		v, err := storage.Get(ctx, versionKey)
 		if err != nil {
-			return fmt.Errorf(warningFormat, err)
+			return fmt.Sprintf(warningFormat, err)
 		}
 
 		if v == nil {
@@ -236,11 +236,11 @@ func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, storage log
 	for i := len(versionKeysToDelete) - 1; i >= 0; i-- {
 		err := storage.Delete(ctx, versionKeysToDelete[i])
 		if err != nil {
-			return fmt.Errorf(warningFormat, err)
+			return fmt.Sprintf(warningFormat, err)
 		}
 	}
 
-	return nil
+	return ""
 }
 
 // pathDataWrite handles create and update commands to a kv entry
@@ -347,9 +347,11 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			},
 		}
 
-		err = b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
-		if err != nil {
-			resp.AddWarning(err.Error())
+		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
+		if warning != "" {
+			// A failed attempt to clean up old versions will be retried on
+			// next write attempt, prefer a warning over an error resp
+			resp.AddWarning(warning)
 		}
 
 		return resp, nil
@@ -540,11 +542,11 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			},
 		}
 
-		err = b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
-		if err != nil {
+		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
+		if warning != "" {
 			// A failed attempt to clean up old versions will be retried on
-			// next write/patch attempt, prefer a warning over an error resp
-			resp.AddWarning(err.Error())
+			// next patch attempt, prefer a warning over an error resp
+			resp.AddWarning(warning)
 		}
 
 		return resp, nil
