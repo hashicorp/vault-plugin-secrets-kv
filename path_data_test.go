@@ -554,26 +554,71 @@ func TestVersionedKV_Patch_NotFound(t *testing.T) {
 func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	b, storage := getBackend(t)
 
+	config := map[string]interface{}{
+		"cas_required": true,
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "config",
+		Storage:   storage,
+		Data:      config,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("CreateOperation request for config failed - err:%s resp:%#v\n", err, resp)
+	}
+
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
 		},
+		"options": map[string]interface{}{
+			"cas": 0,
+		},
 	}
 
-	req := &logical.Request{
+	req = &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      "data/foo",
 		Storage:   storage,
 		Data:      data,
 	}
 
-	resp, err := b.HandleRequest(context.Background(), req)
+	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
+		t.Fatalf("CreateOperation request for data failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	if resp.Data["version"] != uint64(1) {
-		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("Version 1 was not created - err:%s resp:%#v\n", err, resp)
+	}
+
+	data = map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz1",
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	// Resp should be error since cas value was not provided but is required
+	if err == nil || (resp != nil && !resp.IsError()) {
+		t.Fatalf("expected PatchOperation to fail - err:%s resp:%#v\n", err, resp)
+	}
+
+	expectedSubStr := "check-and-set parameter required for this call"
+
+	if errorMsg, ok := resp.Data["error"]; !(ok && strings.Contains(errorMsg.(string), expectedSubStr)) {
+		t.Fatalf("expected check-and-set validation error, resp: %#v\n", resp)
 	}
 
 	data = map[string]interface{}{
@@ -599,7 +644,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 		t.Fatalf("expected PatchOperation to fail - err:%s resp:%#v\n", err, resp)
 	}
 
-	expectedSubStr := "check-and-set parameter did not match"
+	expectedSubStr = "check-and-set parameter did not match"
 
 	if errorMsg, ok := resp.Data["error"]; !(ok && strings.Contains(errorMsg.(string), expectedSubStr)) {
 		t.Fatalf("expected check-and-set validation error, resp: %#v\n", resp)
