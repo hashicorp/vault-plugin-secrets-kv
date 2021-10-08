@@ -1,6 +1,6 @@
 module github.com/hashicorp/vault-plugin-secrets-kv
 
-go 1.12
+go 1.16
 
 require (
 	github.com/evanphx/json-patch v0.5.2 // indirect
