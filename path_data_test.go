@@ -679,8 +679,19 @@ func TestVersionedKV_Patch_NoData(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 
-	if resp != nil || err == nil || err.Error() != "no data provided" {
-		t.Fatalf("expected no data error for PatchOperation - err:%s resp:%#v\n", err, resp)
+	expectedError := logical.ErrInvalidRequest
+	if err == nil || err != expectedError {
+		t.Fatalf("expected PatchOperation to fail with %#v error but received %#v error\n", err, expectedError)
+	}
+
+	if resp == nil || resp.Data == nil {
+		t.Fatalf("expected PatchOperation to have resp data: %#v\n", resp)
+	}
+
+	expectedRespError := "no data provided"
+
+	if errorRaw, ok := resp.Data["error"]; ok && errorRaw.(string) != expectedRespError {
+		t.Fatalf("Expected resp error to be %s but received %s", expectedRespError, errorRaw.(string))
 	}
 }
 
