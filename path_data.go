@@ -435,10 +435,11 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		// or destroyed
 		notFoundResp := &logical.Response{
 			Data: map[string]interface{}{
-				"version":       currentVersion,
-				"created_time":  ptypesTimestampToString(versionMetadata.CreatedTime),
-				"deletion_time": ptypesTimestampToString(versionMetadata.DeletionTime),
-				"destroyed":     versionMetadata.Destroyed,
+				"version":         currentVersion,
+				"created_time":    ptypesTimestampToString(versionMetadata.CreatedTime),
+				"deletion_time":   ptypesTimestampToString(versionMetadata.DeletionTime),
+				"destroyed":       versionMetadata.Destroyed,
+				"custom_metadata": meta.CustomMetadata,
 			},
 		}
 
@@ -537,10 +538,11 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 
 		resp := &logical.Response{
 			Data: map[string]interface{}{
-				"version":       meta.CurrentVersion,
-				"created_time":  ptypesTimestampToString(newVersionMetadata.CreatedTime),
-				"deletion_time": ptypesTimestampToString(newVersionMetadata.DeletionTime),
-				"destroyed":     newVersionMetadata.Destroyed,
+				"version":         meta.CurrentVersion,
+				"created_time":    ptypesTimestampToString(newVersionMetadata.CreatedTime),
+				"deletion_time":   ptypesTimestampToString(newVersionMetadata.DeletionTime),
+				"destroyed":       newVersionMetadata.Destroyed,
+				"custom_metadata": meta.CustomMetadata,
 			},
 		}
 
