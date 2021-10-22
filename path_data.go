@@ -654,7 +654,7 @@ func max(a, b uint32) uint32 {
 
 const dataHelpSyn = `Write, Read, and Delete data in the Key-Value Store.`
 const dataHelpDesc = `
-This path takes a key name and based on the opperation stores, retreives or
+This path takes a key name and based on the operation stores, retrieves or
 deletes versions of data.
 
 If a write operation is used the endpoint takes an options object and a data
