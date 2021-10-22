@@ -341,10 +341,11 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 
 		resp := &logical.Response{
 			Data: map[string]interface{}{
-				"version":       meta.CurrentVersion,
-				"created_time":  ptypesTimestampToString(vm.CreatedTime),
-				"deletion_time": ptypesTimestampToString(vm.DeletionTime),
-				"destroyed":     vm.Destroyed,
+				"version":         meta.CurrentVersion,
+				"created_time":    ptypesTimestampToString(vm.CreatedTime),
+				"deletion_time":   ptypesTimestampToString(vm.DeletionTime),
+				"destroyed":       vm.Destroyed,
+				"custom_metadata": meta.CustomMetadata,
 			},
 		}
 
