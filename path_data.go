@@ -654,7 +654,7 @@ func max(a, b uint32) uint32 {
 	return a
 }
 
-const dataHelpSyn = `Write, Read, and Delete data in the Key-Value Store.`
+const dataHelpSyn = `Write, Patch, Read, and Delete data in the Key-Value Store.`
 const dataHelpDesc = `
 This path takes a key name and based on the operation stores, retrieves or
 deletes versions of data.
@@ -664,6 +664,12 @@ object. The options object is used to pass some options to the write command and
 the data object is encrypted and stored in the storage backend. Each write
 operation for a key creates a new version and does not overwrite the previous
 data.
+
+A patch operation must be performed on an existing secret. The secret must neither
+be deleted nor destroyed. Like a write operation, patch operations accept an
+options object and data object. The options object is used to pass some options to
+the patch command and the data object is used to perform a partial update on the
+current version of the secret and store the encrypted result in the storage backend. 
 
 A read operation will return the latest version for a key unless the "version"
 parameter is set, then it returns the version at that number.
