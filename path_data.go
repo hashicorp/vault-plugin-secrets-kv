@@ -114,10 +114,11 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 			Data: map[string]interface{}{
 				"data": nil,
 				"metadata": map[string]interface{}{
-					"version":       verNum,
-					"created_time":  ptypesTimestampToString(vm.CreatedTime),
-					"deletion_time": ptypesTimestampToString(vm.DeletionTime),
-					"destroyed":     vm.Destroyed,
+					"version":         verNum,
+					"created_time":    ptypesTimestampToString(vm.CreatedTime),
+					"deletion_time":   ptypesTimestampToString(vm.DeletionTime),
+					"destroyed":       vm.Destroyed,
+					"custom_metadata": meta.CustomMetadata,
 				},
 			},
 		}
