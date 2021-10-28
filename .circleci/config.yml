@@ -10,7 +10,6 @@ jobs:
       - image: *GOLANG_IMAGE
         environment:
           GO111MODULE: "on"
-    working_directory: /go/src/github.com/hashicorp/vault-plugin-secrets-kv
     steps:
       - checkout
       - run: go test
