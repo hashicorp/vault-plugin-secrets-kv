@@ -210,6 +210,25 @@ func TestPassthroughBackend_List(t *testing.T) {
 	test(b)
 }
 
+func TestPassthroughBackend_Renew(t *testing.T) {
+	test := func(b logical.Backend) {
+		req := logical.TestRequest(t, logical.RenewOperation, "kv")
+		req.Secret = &logical.Secret{
+			InternalData: map[string]interface{}{
+				"secret_type": "kv",
+			},
+		}
+
+		if _, err := b.HandleRequest(context.Background(), req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+	b := testPassthroughBackend()
+	test(b)
+	b = testPassthroughLeasedBackend()
+	test(b)
+}
+
 func TestPassthroughBackend_Revoke(t *testing.T) {
 	test := func(b logical.Backend) {
 		req := logical.TestRequest(t, logical.RevokeOperation, "kv")
