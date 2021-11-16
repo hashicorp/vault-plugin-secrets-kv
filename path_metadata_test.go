@@ -873,3 +873,57 @@ func TestVersionedKV_Metadata_Patch_NotFound(t *testing.T) {
 		t.Fatalf("expected 404 response, resp:%#v", resp)
 	}
 }
+
+func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
+	b, storage := getBackend(t)
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "config",
+		Storage:   storage,
+		Data:      map[string]interface{}{
+			"cas_required": true,
+		},
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("config request failed, err:%s resp:%#v\n", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "metadata/foo",
+		Storage:   storage,
+		Data:      map[string]interface{}{
+			"max_versions": 5,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("metadata create request failed, err:%s resp:%#v\n", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "metadata/foo",
+		Storage:   storage,
+		Data:      map[string]interface{}{
+			"cas_required": false,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("metadata patch request failed, err:%s resp:%#v\n", err, resp)
+	}
+
+	if len(resp.Warnings) != 1 ||
+		!strings.Contains(resp.Warnings[0], "\"cas_required\" set to false, but is mandated by backend config") {
+		t.Fatalf("expected cas_required warning, resp warnings: %#v", resp.Warnings)
+	}
+}

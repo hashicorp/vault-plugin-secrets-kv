@@ -307,6 +307,11 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			}
 		}
 
+		config, err := b.config(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
 		lock := locksutil.LockForKey(b.locks, key)
 		lock.Lock()
 		defer lock.Unlock()
@@ -320,7 +325,15 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			return logical.RespondWithStatusCode(nil, req, http.StatusNotFound)
 		}
 
-		return nil, nil
+		var resp *logical.Response
+		casRaw, cOk := data.GetOk("cas_required")
+
+		if cOk && config.CasRequired && !casRaw.(bool) {
+			resp = &logical.Response{}
+			resp.AddWarning("\"cas_required\" set to false, but is mandated by backend config. This value will be ignored.")
+		}
+
+		return resp, nil
 	}
 }
 
