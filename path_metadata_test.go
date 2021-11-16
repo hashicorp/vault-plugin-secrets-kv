@@ -751,6 +751,14 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 	t.Parallel()
 
+	unprintableString := "unprint\u200bable"
+
+	longKeyLength := 129
+	longValueLength := 513
+
+	longKey := strings.Repeat("a", longKeyLength)
+	longValue := strings.Repeat("a", longValueLength)
+
 	cases := []struct{
 		name          string
 		path          string
@@ -762,6 +770,56 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 			"",
 			map[string]interface{}{},
 			"missing path",
+		},
+		{
+			"custom_metadata_empty_key",
+			"empty_key",
+			map[string]interface{}{
+				"custom_metadata": map[string]string{
+					"": "foo",
+				},
+			},
+			fmt.Sprintf("length of key %q is 0", ""),
+			},
+		{
+			"custom_metadata_unprintable_key",
+			"unprintable_key",
+			map[string]interface{}{
+				"custom_metadata": map[string]string{
+					unprintableString: "foo",
+				},
+			},
+			fmt.Sprintf("key %q (%s) contains unprintable characters", unprintableString, unprintableString),
+		},
+		{
+			"custom_metadata_unprintable_value",
+			"unprintable_value",
+			map[string]interface{}{
+				"custom_metadata": map[string]string{
+					"foo": unprintableString,
+				},
+			},
+			fmt.Sprintf("value for key %q contains unprintable characters", "foo"),
+		},
+		{
+			"custom_metadata_key_too_long",
+			"key_too_long",
+			map[string]interface{}{
+				"custom_metadata": map[string]string{
+					longKey: "foo",
+				},
+			},
+			fmt.Sprintf("length of key %q is %d", longKey, longKeyLength),
+		},
+		{
+			"custom_metadata_value_too_long",
+			"value_too_long",
+			map[string]interface{}{
+				"custom_metadata": map[string]string{
+					"foo": longValue,
+				},
+			},
+			fmt.Sprintf("length of value for key %q is %d", "foo", longValueLength),
 		},
 	}
 
@@ -778,7 +836,7 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 
 			resp, err := b.HandleRequest(context.Background(), req)
 
-			if err != nil || resp == nil {
+			if err != nil {
 				t.Fatalf("unexpected error, err: %#v", err)
 			}
 

@@ -297,6 +297,15 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			return logical.ErrorResponse("missing path"), nil
 		}
 
+		if cmRaw, cmOk := data.GetOk("custom_metadata"); cmOk {
+			customMetadataMap := cmRaw.(map[string]string)
+			customMetadataErrs := validateCustomMetadata(customMetadataMap)
+
+			if customMetadataErrs != nil {
+				return logical.ErrorResponse(customMetadataErrs.Error()), nil
+			}
+		}
+
 		return nil, nil
 	}
 }
