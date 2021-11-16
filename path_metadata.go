@@ -59,6 +59,7 @@ version-agnostic information about a secret.
 			logical.ReadOperation:   b.upgradeCheck(b.pathMetadataRead()),
 			logical.DeleteOperation: b.upgradeCheck(b.pathMetadataDelete()),
 			logical.ListOperation:   b.upgradeCheck(b.pathMetadataList()),
+			logical.PatchOperation:  b.upgradeCheck(b.pathMetadataPatch()),
 		},
 
 		ExistenceCheck: b.metadataExistenceCheck(),
@@ -285,6 +286,18 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		return resp, err
+	}
+}
+
+func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		key := data.Get("path").(string)
+
+		if key == "" {
+			return logical.ErrorResponse("missing path"), nil
+		}
+
+		return nil, nil
 	}
 }
 

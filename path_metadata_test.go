@@ -747,3 +747,48 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct{
+		name          string
+		path          string
+		metadata      map[string]interface{}
+		expectedError string
+	}{
+		{
+			"path_missing",
+			"",
+			map[string]interface{}{},
+			"missing path",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T){
+			b, storage := getBackend(t)
+
+			req := &logical.Request{
+				Operation: logical.PatchOperation,
+				Path:      "metadata/" + tc.path,
+				Storage:   storage,
+				Data:      tc.metadata,
+			}
+
+			resp, err := b.HandleRequest(context.Background(), req)
+
+			if err != nil || resp == nil {
+				t.Fatalf("unexpected error, err: %#v", err)
+			}
+
+			if resp == nil || !resp.IsError(){
+				t.Fatalf("expected error resp, actual: %#v", resp)
+			}
+
+			if respErr := resp.Error().Error(); !strings.Contains(respErr, tc.expectedError) {
+				t.Fatalf("expected response error to contain %s, actual: %s", tc.expectedError, respErr)
+			}
+		})
+	}
+}
