@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -304,6 +305,19 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			if customMetadataErrs != nil {
 				return logical.ErrorResponse(customMetadataErrs.Error()), nil
 			}
+		}
+
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
+
+		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
+		if err != nil {
+			return nil, err
+		}
+
+		if meta == nil {
+			return logical.RespondWithStatusCode(nil, req, http.StatusNotFound)
 		}
 
 		return nil, nil

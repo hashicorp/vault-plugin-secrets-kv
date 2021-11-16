@@ -850,3 +850,26 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 		})
 	}
 }
+
+func TestVersionedKV_Metadata_Patch_NotFound(t *testing.T) {
+	b, storage := getBackend(t)
+
+	req := &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "metadata/foo",
+		Storage:   storage,
+		Data:      map[string]interface{}{
+			"cas_required": true,
+		},
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("request failed, err:%s resp:%#v\n", err, resp)
+	}
+
+	if resp.Data["http_status_code"] != 404 {
+		t.Fatalf("expected 404 response, resp:%#v", resp)
+	}
+}
