@@ -2,6 +2,7 @@ package kv
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
@@ -290,6 +291,22 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 	}
 }
 
+func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
+	return func(input map[string]interface{}) (map[string]interface{}, error) {
+		patchableKeys := []string{"max_versions", "cas_required", "delete_versions_after", "custom_metadata"}
+		patchData := map[string]interface{}{}
+
+		for _, k := range patchableKeys {
+			// filter out nils as we do not want to remove fields as part of the patch operation
+			if v, _ := input[k]; v != nil {
+				patchData[k] = input[k]
+			}
+		}
+
+		return patchData, nil
+	}
+}
+
 func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
@@ -331,6 +348,32 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 		if cOk && config.CasRequired && !casRaw.(bool) {
 			resp = &logical.Response{}
 			resp.AddWarning("\"cas_required\" set to false, but is mandated by backend config. This value will be ignored.")
+		}
+
+		// proto-generated structs do not have mapstructure tags so marshal
+		// metadata here so that map keys are consistent with request data
+		metadataJSON, err := json.Marshal(meta)
+		if err != nil {
+			return nil, err
+		}
+
+		var metaMap map[string]interface{}
+		if err = json.Unmarshal(metadataJSON, &metaMap); err != nil {
+			return nil, err
+		}
+
+		patchedBytes, err := framework.HandlePatchOperation(data, metaMap, metadataPatchPreprocessor())
+		if err != nil {
+			return nil, err
+		}
+
+		var patchedMetadata *KeyMetadata
+		if err = json.Unmarshal(patchedBytes, &patchedMetadata); err != nil {
+			return nil, err
+		}
+
+		if err = b.writeKeyMetadata(ctx, req.Storage, patchedMetadata); err != nil {
+			return nil, err
 		}
 
 		return resp, nil

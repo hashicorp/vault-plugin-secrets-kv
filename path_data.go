@@ -365,7 +365,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 // expects only the resource data to be provided. The "data" key must be lifted
 // from the request data to the pathDataPatch handler since it also accepts an
 // options map.
-func patchPreprocessor() framework.PatchPreprocessorFunc {
+func dataPatchPreprocessor() framework.PatchPreprocessorFunc {
 	return func(input map[string]interface{}) (map[string]interface{}, error) {
 		data, ok := input["data"]
 
@@ -390,7 +390,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		key := data.Get("path").(string)
 
 		// Only validate that data is present to provide error response since
-		// HandlePatchOperation and patchPreprocessor will ultimately
+		// HandlePatchOperation and dataPatchPreprocessor will ultimately
 		// properly parse the field
 		_, ok := data.GetOk("data")
 		if !ok {
@@ -482,7 +482,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		patchedBytes, err := framework.HandlePatchOperation(data, versionData, patchPreprocessor())
+		patchedBytes, err := framework.HandlePatchOperation(data, versionData, dataPatchPreprocessor())
 		if err != nil {
 			return nil, err
 		}
