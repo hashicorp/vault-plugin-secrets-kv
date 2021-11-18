@@ -361,7 +361,7 @@ func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 	unprintableString := "unprint\u200bable"
 	unprintableValueKey := "unprintable"
 
-	customMetadata := map[string]string{
+	customMetadata := map[string]interface{}{
 		longValueKey:        strings.Repeat(stringToRepeat, longValueLength),
 		longKey:             "abc123",
 		"":                  "abc123",
@@ -441,6 +441,39 @@ func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 	if resp != nil {
 		t.Fatalf("Expected empty read due to validation errors, resp: %#v", resp)
 	}
+
+	data = map[string]interface{}{
+		"custom_metadata": map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      metadataPath,
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil {
+		t.Fatalf("Write err: %s resp: %#v\n", err, resp)
+	}
+
+	if !resp.IsError() {
+		t.Fatalf("expected resp error, resp: %#v", resp)
+	}
+
+	respError = resp.Error().Error()
+	expectedError := "got unconvertible type 'map[string]interface {}', value: 'map[bar:baz]'"
+
+	if !strings.Contains(respError, expectedError) {
+		t.Fatalf("expected response error %q to include %q validation errors", respError, expectedError)
+	}
+
 }
 
 func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
@@ -887,6 +920,18 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 			false,
 			fmt.Sprintf("length of value for key %q is %d", "foo", longValueLength),
 		},
+		{
+			"custom_metadata_invalid_type",
+			map[string]interface{}{
+				"custom_metadata": map[string]interface{}{
+					"foo": map[string]interface{}{
+						"bar": "baz",
+					},
+				},
+			},
+			false,
+			"got unconvertible type 'map[string]interface {}', value: 'map[bar:baz]'",
+		},
 	}
 
 	for _, tc := range cases {
@@ -1019,6 +1064,132 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	if len(resp.Warnings) != 1 ||
 		!strings.Contains(resp.Warnings[0], "\"cas_required\" set to false, but is mandated by backend config") {
 		t.Fatalf("expected cas_required warning, resp warnings: %#v", resp.Warnings)
+	}
+}
+
+func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
+	t.Parallel()
+
+	initialCustomMetadata := map[string]string{
+		"foo": "abc",
+		"bar": "def",
+	}
+
+	cases := []struct{
+		name   string
+		input  map[string]interface{}
+		output map[string]string
+	}{
+		{
+			"empty_object",
+			map[string]interface{}{},
+			map[string]string{
+				"foo": "abc",
+				"bar": "def",
+			},
+		},
+		{
+			"add_a_key",
+			map[string]interface{}{
+				"baz": "ghi",
+			},
+			map[string]string{
+				"foo": "abc",
+				"bar": "def",
+				"baz": "ghi",
+			},
+		},
+		{
+			"remove_a_key",
+			map[string]interface{}{
+				"foo": nil,
+			},
+			map[string]string{
+				"bar": "def",
+			},
+		},
+		{
+			"replace_a_key",
+			map[string]interface{}{
+				"foo": "ghi",
+			},
+			map[string]string{
+				"foo": "ghi",
+				"bar": "def",
+			},
+		},
+		{
+			"mixed",
+			map[string]interface{}{
+				"foo": "def",
+				"bar": nil,
+				"baz": "ghi",
+			},
+			map[string]string{
+				"foo": "def",
+				"baz": "ghi",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			b, storage := getBackend(t)
+			path := "metadata/" + tc.name
+
+			req := &logical.Request{
+				Operation: logical.CreateOperation,
+				Path:      path,
+				Storage:   storage,
+				Data: map[string]interface{}{
+					"custom_metadata": initialCustomMetadata,
+				},
+			}
+
+			resp, err := b.HandleRequest(context.Background(), req)
+
+			if err != nil || (resp != nil && resp.IsError()) {
+				t.Fatalf("create request failed, err: %#v, resp: %#v", err, resp)
+			}
+
+			req = &logical.Request{
+				Operation: logical.PatchOperation,
+				Path:      path,
+				Storage:   storage,
+				Data:      map[string]interface{}{
+					"custom_metadata": tc.input,
+				},
+			}
+
+			resp, err = b.HandleRequest(context.Background(), req)
+
+			if err != nil || (resp != nil && resp.IsError()) {
+				t.Fatalf("patch request failed, err: %#v, resp: %#v", err, resp)
+			}
+
+			req = &logical.Request{
+				Operation: logical.ReadOperation,
+				Path:      path,
+				Storage:   storage,
+			}
+
+			resp, err = b.HandleRequest(context.Background(), req)
+
+			if err != nil || (resp != nil && resp.IsError()) {
+				t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
+			}
+
+			var ok bool
+			var customMetadata map[string]string
+
+			if customMetadata, ok = resp.Data["custom_metadata"].(map[string]string); !ok {
+				t.Fatalf("custom_metadata not included or incorrect type, resp: %#v", resp)
+			}
+
+			if diff := deep.Equal(tc.output, customMetadata); len(diff) > 0 {
+				t.Fatalf("patched custom metadata does not match, diff: %#v", diff)
+			}
+		})
 	}
 }
 
