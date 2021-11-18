@@ -748,6 +748,30 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 }
 
+func TestVersionedKV_Metadata_Patch_MissingPath(t *testing.T) {
+	b, storage := getBackend(t)
+
+	req := &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"cas_required": true,
+		},
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || resp == nil {
+		t.Fatalf("unexpected patch error, err: %#v, resp: %#v", err, resp)
+	}
+
+	expectedErr := "missing path"
+	if respErr := resp.Error().Error(); !strings.Contains(respErr, expectedErr) {
+		t.Fatalf("expected patch output to contain %s, actual: %s", expectedErr, respErr)
+	}
+}
+
 func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 	t.Parallel()
 
@@ -760,65 +784,107 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 	longValue := strings.Repeat("a", longValueLength)
 
 	cases := []struct {
-		name          string
-		path          string
-		metadata      map[string]interface{}
-		expectedError string
+		name           string
+		metadata       map[string]interface{}
+		expectError    bool
+		expectedOutput string
 	}{
 		{
-			"path_missing",
-			"",
-			map[string]interface{}{},
-			"missing path",
+			"unknown_field_foo",
+			map[string]interface{}{
+				"foo": "does_not_matter",
+			},
+			true,
+			fmt.Sprintf("unknown field: %q", "foo"),
+		},
+		{
+			"unknown_field_created_time",
+			map[string]interface{}{
+				"created_time": "does_not_matter",
+			},
+			true,
+			fmt.Sprintf("unknown field: %q", "created_time"),
+		},
+		{
+			"unknown_field_current_version",
+			map[string]interface{}{
+				"current_version": "does_not_matter",
+			},
+			true,
+			fmt.Sprintf("unknown field: %q", "current_version"),
+		},
+		{
+			"unknown_field_oldest_version",
+			map[string]interface{}{
+				"oldest_version": "does_not_matter",
+			},
+			true,
+			fmt.Sprintf("unknown field: %q", "oldest_version"),
+		},
+		{
+			"unknown_field_updated_time",
+			map[string]interface{}{
+				"updated_time": "does_not_matter",
+			},
+			true,
+			fmt.Sprintf("unknown field: %q", "updated_time"),
+		},
+		{
+			"field_conversion_error",
+			map[string]interface{}{
+				"max_versions": []int{1, 2, 3},
+			},
+			false,
+			"Field validation failed: error converting input",
 		},
 		{
 			"custom_metadata_empty_key",
-			"empty_key",
 			map[string]interface{}{
 				"custom_metadata": map[string]string{
 					"": "foo",
 				},
 			},
+			false,
 			fmt.Sprintf("length of key %q is 0", ""),
 		},
 		{
 			"custom_metadata_unprintable_key",
-			"unprintable_key",
 			map[string]interface{}{
 				"custom_metadata": map[string]string{
 					unprintableString: "foo",
 				},
 			},
+			false,
 			fmt.Sprintf("key %q (%s) contains unprintable characters", unprintableString, unprintableString),
 		},
 		{
 			"custom_metadata_unprintable_value",
-			"unprintable_value",
 			map[string]interface{}{
 				"custom_metadata": map[string]string{
 					"foo": unprintableString,
 				},
 			},
+			false,
 			fmt.Sprintf("value for key %q contains unprintable characters", "foo"),
 		},
 		{
 			"custom_metadata_key_too_long",
-			"key_too_long",
 			map[string]interface{}{
 				"custom_metadata": map[string]string{
 					longKey: "foo",
 				},
 			},
+			false,
 			fmt.Sprintf("length of key %q is %d", longKey, longKeyLength),
 		},
 		{
 			"custom_metadata_value_too_long",
-			"value_too_long",
 			map[string]interface{}{
 				"custom_metadata": map[string]string{
 					"foo": longValue,
 				},
 			},
+			false,
 			fmt.Sprintf("length of value for key %q is %d", "foo", longValueLength),
 		},
 	}
@@ -826,26 +892,54 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			b, storage := getBackend(t)
+			path := "metadata/" + tc.name
 
 			req := &logical.Request{
-				Operation: logical.PatchOperation,
-				Path:      "metadata/" + tc.path,
+				Operation: logical.CreateOperation,
+				Path:      path,
 				Storage:   storage,
-				Data:      tc.metadata,
+				Data: map[string]interface{}{
+					"cas_required": true,
+				},
 			}
 
 			resp, err := b.HandleRequest(context.Background(), req)
 
-			if err != nil {
-				t.Fatalf("unexpected error, err: %#v", err)
+			if err != nil || (resp != nil && resp.IsError()) {
+				t.Fatalf("create request failed, err: %#v, resp: %#v", err, resp)
 			}
 
-			if resp == nil || !resp.IsError() {
-				t.Fatalf("expected error resp, actual: %#v", resp)
+			req = &logical.Request{
+				Operation: logical.PatchOperation,
+				Path:      path,
+				Storage:   storage,
+				Data:      tc.metadata,
 			}
 
-			if respErr := resp.Error().Error(); !strings.Contains(respErr, tc.expectedError) {
-				t.Fatalf("expected response error to contain %s, actual: %s", tc.expectedError, respErr)
+			resp, err = b.HandleRequest(context.Background(), req)
+
+			var output string
+
+			if tc.expectError {
+				if err == nil || resp != nil {
+					t.Fatalf("expected patch error, err: %#v, resp: %#v", err, resp)
+				}
+
+				output = err.Error()
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected patch error, err: %#v", err)
+				}
+
+				if resp == nil || !resp.IsError() {
+					t.Fatalf("expected patch response to be error, actual: %#v", resp)
+				}
+
+				output = resp.Error().Error()
+			}
+
+			if !strings.Contains(output, tc.expectedOutput) {
+				t.Fatalf("expected patch output to contain %s, actual: %s", tc.expectedOutput, output)
 			}
 		})
 	}
