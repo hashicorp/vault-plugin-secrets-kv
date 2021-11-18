@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
+	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"strings"
 	"time"
@@ -48,7 +49,7 @@ A negative duration will cause an error.
 `,
 			},
 			"custom_metadata": {
-				Type: framework.TypeKVPairs,
+				Type: framework.TypeMap,
 				Description: `
 User-provided key-value pairs that are used to describe arbitrary and
 version-agnostic information about a secret.
@@ -216,6 +217,29 @@ func validateCustomMetadata(customMetadata map[string]string) error {
 	return errs.ErrorOrNil()
 }
 
+// parseCustomMetadata is used to effectively convert the TypeMap
+// (map[string]interface{}) into a TypeKVPairs (map[string]string)
+// which is how custom_metadata is stored. Defining custom_metadata
+// as a TypeKVPairs will convert nulls into empty strings. A null,
+// however, is essential for a PATCH operation in that it signals
+// the handler to remove the field. The filterNils flag should
+// only be used during a patch operation.
+func parseCustomMetadata(raw map[string]interface{}, filterNils bool) (map[string]string, error) {
+	customMetadata := map[string]string{}
+	for k, v := range raw {
+		var s string
+		if err := mapstructure.WeakDecode(v, &s); err != nil {
+			return nil, err
+		}
+
+		if !filterNils {
+			customMetadata[k] = s
+		}
+	}
+
+	return customMetadata, nil
+}
+
 func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
@@ -241,7 +265,11 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		customMetadataMap := map[string]string{}
 
 		if cmOk {
-			customMetadataMap = customMetadataRaw.(map[string]string)
+			customMetadataMap, err = parseCustomMetadata(customMetadataRaw.(map[string]interface{}), false)
+			if err != nil {
+				return logical.ErrorResponse(fmt.Sprintf("%s: %s", customMetadataValidationErrorPrefix, err.Error())), nil
+			}
+
 			customMetadataErrs := validateCustomMetadata(customMetadataMap)
 
 			if customMetadataErrs != nil {
@@ -316,7 +344,11 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 		}
 
 		if cmRaw, cmOk := data.GetOk("custom_metadata"); cmOk {
-			customMetadataMap := cmRaw.(map[string]string)
+			customMetadataMap, err := parseCustomMetadata(cmRaw.(map[string]interface{}), true)
+			if err != nil {
+				return logical.ErrorResponse(fmt.Sprintf("%s: %s", customMetadataValidationErrorPrefix, err.Error())), nil
+			}
+
 			customMetadataErrs := validateCustomMetadata(customMetadataMap)
 
 			if customMetadataErrs != nil {
