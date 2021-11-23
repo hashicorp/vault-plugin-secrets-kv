@@ -1301,10 +1301,6 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 
 			for k, v := range patchedMetadata {
-				if k == "custom_metadata" || k == "versions" {
-					continue
-				}
-
 				var expectedVal interface{}
 
 				if inputVal, ok := tc.input[k]; ok && inputVal != nil {
@@ -1313,7 +1309,11 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 					expectedVal = initialMetadata[k]
 				}
 
-				if expectedVal != v {
+				if k == "custom_metadata" || k == "versions" {
+					if diff := deep.Equal(expectedVal, v); len(diff) > 0 {
+						t.Fatalf("patched %q mismatch, diff: %#v", k, diff)
+					}
+				} else if expectedVal != v {
 					t.Fatalf("patched key %s mismatch, expected: %#v, actual %#v", k, expectedVal, v)
 				}
 			}
