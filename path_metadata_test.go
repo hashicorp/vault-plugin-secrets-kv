@@ -468,7 +468,7 @@ func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 	}
 
 	respError = resp.Error().Error()
-	expectedError := "got unconvertible type 'map[string]interface {}', value: 'map[bar:baz]'"
+	expectedError := "got unconvertible type"
 
 	if !strings.Contains(respError, expectedError) {
 		t.Fatalf("expected response error %q to include %q validation errors", respError, expectedError)
@@ -930,7 +930,7 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 				},
 			},
 			false,
-			"got unconvertible type 'map[string]interface {}', value: 'map[bar:baz]'",
+			"got unconvertible type",
 		},
 	}
 
