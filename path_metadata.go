@@ -321,13 +321,17 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 
 func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
 	return func(input map[string]interface{}) (map[string]interface{}, error) {
-		patchableKeys := []string{"max_versions", "cas_required", "delete_versions_after", "custom_metadata"}
+		patchableKeys := []string{"max_versions", "cas_required", "delete_version_after", "custom_metadata"}
 		patchData := map[string]interface{}{}
 
 		for _, k := range patchableKeys {
 			// filter out nils as we do not want to remove fields as part of the patch operation
-			if v, _ := input[k]; v != nil {
-				patchData[k] = input[k]
+			if v := input[k]; v != nil {
+				if k == "delete_version_after" {
+					patchData[k] = ptypes.DurationProto(time.Duration(v.(int)) * time.Second)
+				} else {
+					patchData[k] = v
+				}
 			}
 		}
 
