@@ -1075,7 +1075,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 		"bar": "def",
 	}
 
-	cases := []struct{
+	cases := []struct {
 		name   string
 		input  map[string]interface{}
 		output map[string]string
@@ -1156,7 +1156,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 				Operation: logical.PatchOperation,
 				Path:      path,
 				Storage:   storage,
-				Data:      map[string]interface{}{
+				Data: map[string]interface{}{
 					"custom_metadata": tc.input,
 				},
 			}
