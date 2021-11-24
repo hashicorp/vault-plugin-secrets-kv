@@ -227,14 +227,16 @@ func validateCustomMetadata(customMetadata map[string]string) error {
 func parseCustomMetadata(raw map[string]interface{}, filterNils bool) (map[string]string, error) {
 	customMetadata := map[string]string{}
 	for k, v := range raw {
+		if filterNils && v == nil {
+			continue
+		}
+
 		var s string
 		if err := mapstructure.WeakDecode(v, &s); err != nil {
 			return nil, err
 		}
 
-		if !filterNils {
-			customMetadata[k] = s
-		}
+		customMetadata[k] = s
 	}
 
 	return customMetadata, nil
