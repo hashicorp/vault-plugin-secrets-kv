@@ -817,57 +817,15 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 	longValue := strings.Repeat("a", longValueLength)
 
 	cases := []struct {
-		name           string
-		metadata       map[string]interface{}
-		expectError    bool
-		expectedOutput string
+		name     string
+		metadata map[string]interface{}
+		output   string
 	}{
-		{
-			"unknown_field_foo",
-			map[string]interface{}{
-				"foo": "does_not_matter",
-			},
-			true,
-			fmt.Sprintf("unknown field: %q", "foo"),
-		},
-		{
-			"unknown_field_created_time",
-			map[string]interface{}{
-				"created_time": "does_not_matter",
-			},
-			true,
-			fmt.Sprintf("unknown field: %q", "created_time"),
-		},
-		{
-			"unknown_field_current_version",
-			map[string]interface{}{
-				"current_version": "does_not_matter",
-			},
-			true,
-			fmt.Sprintf("unknown field: %q", "current_version"),
-		},
-		{
-			"unknown_field_oldest_version",
-			map[string]interface{}{
-				"oldest_version": "does_not_matter",
-			},
-			true,
-			fmt.Sprintf("unknown field: %q", "oldest_version"),
-		},
-		{
-			"unknown_field_updated_time",
-			map[string]interface{}{
-				"updated_time": "does_not_matter",
-			},
-			true,
-			fmt.Sprintf("unknown field: %q", "updated_time"),
-		},
 		{
 			"field_conversion_error",
 			map[string]interface{}{
 				"max_versions": []int{1, 2, 3},
 			},
-			false,
 			"Field validation failed: error converting input",
 		},
 		{
@@ -877,7 +835,6 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 					"": "foo",
 				},
 			},
-			false,
 			fmt.Sprintf("length of key %q is 0", ""),
 		},
 		{
@@ -887,7 +844,6 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 					unprintableString: "foo",
 				},
 			},
-			false,
 			fmt.Sprintf("key %q (%s) contains unprintable characters", unprintableString, unprintableString),
 		},
 		{
@@ -897,7 +853,6 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 					"foo": unprintableString,
 				},
 			},
-			false,
 			fmt.Sprintf("value for key %q contains unprintable characters", "foo"),
 		},
 		{
@@ -907,7 +862,6 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 					longKey: "foo",
 				},
 			},
-			false,
 			fmt.Sprintf("length of key %q is %d", longKey, longKeyLength),
 		},
 		{
@@ -917,7 +871,6 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 					"foo": longValue,
 				},
 			},
-			false,
 			fmt.Sprintf("length of value for key %q is %d", "foo", longValueLength),
 		},
 		{
@@ -929,7 +882,6 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 					},
 				},
 			},
-			false,
 			"got unconvertible type",
 		},
 	}
@@ -963,28 +915,18 @@ func TestVersionedKV_Metadata_Patch_Validation(t *testing.T) {
 
 			resp, err = b.HandleRequest(context.Background(), req)
 
-			var output string
-
-			if tc.expectError {
-				if err == nil || resp != nil {
-					t.Fatalf("expected patch error, err: %#v, resp: %#v", err, resp)
-				}
-
-				output = err.Error()
-			} else {
-				if err != nil {
-					t.Fatalf("unexpected patch error, err: %#v", err)
-				}
-
-				if resp == nil || !resp.IsError() {
-					t.Fatalf("expected patch response to be error, actual: %#v", resp)
-				}
-
-				output = resp.Error().Error()
+			if err != nil {
+				t.Fatalf("unexpected patch error, err: %#v", err)
 			}
 
-			if !strings.Contains(output, tc.expectedOutput) {
-				t.Fatalf("expected patch output to contain %s, actual: %s", tc.expectedOutput, output)
+			if resp == nil || !resp.IsError() {
+				t.Fatalf("expected patch response to be error, actual: %#v", resp)
+			}
+
+			respError := resp.Error().Error()
+
+			if !strings.Contains(respError, tc.output) {
+				t.Fatalf("expected patch output to contain %s, actual: %s", tc.output, respError)
 			}
 		})
 	}
@@ -1196,6 +1138,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 	t.Parallel()
 
+	ignoreVal := "ignore_me"
 	cases := []struct {
 		name            string
 		input           map[string]interface{}
@@ -1205,6 +1148,17 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			"top_level_nulls_filtered",
 			map[string]interface{}{
 				"cas_required": nil,
+			},
+			0,
+		},
+		{
+			"ignored_fields",
+			map[string]interface{}{
+				"foo":             ignoreVal,
+				"created_time":    ignoreVal,
+				"current_version": ignoreVal,
+				"oldest_version":  ignoreVal,
+				"updated_time":    ignoreVal,
 			},
 			0,
 		},
@@ -1227,6 +1181,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				"cas_required":         true,
 				"max_versions":         uint32(15),
 				"delete_version_after": nil,
+				"updated_time":         ignoreVal,
 			},
 			2,
 		},
@@ -1303,7 +1258,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			for k, v := range patchedMetadata {
 				var expectedVal interface{}
 
-				if inputVal, ok := tc.input[k]; ok && inputVal != nil {
+				if inputVal, ok := tc.input[k]; ok && inputVal != nil && inputVal != ignoreVal {
 					expectedVal = inputVal
 				} else {
 					expectedVal = initialMetadata[k]
