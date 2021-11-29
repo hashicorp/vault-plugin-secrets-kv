@@ -397,6 +397,10 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return logical.ErrorResponse("no data provided"), logical.ErrInvalidRequest
 		}
 
+		lock := locksutil.LockForKey(b.locks, key)
+		lock.Lock()
+		defer lock.Unlock()
+
 		meta, err := b.getKeyMetadata(ctx, req.Storage, key)
 		if err != nil {
 			return nil, err
@@ -417,10 +421,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		if err != nil {
 			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 		}
-
-		lock := locksutil.LockForKey(b.locks, key)
-		lock.Lock()
-		defer lock.Unlock()
 
 		currentVersion := meta.CurrentVersion
 
