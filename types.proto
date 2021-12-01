@@ -66,6 +66,12 @@ message KeyMetadata {
     // CustomMetadata is a map of string key-value pairs used to store
     // user-provided information about the secret.
 	map<string, string> custom_metadata = 10;
+
+  // ValidFrom is the time after which the secret can be read.
+  google.protobuf.Timestamp valid_from = 11;
+
+  // ValidTo is the time before which the secret can be read.
+  google.protobuf.Timestamp valid_to = 12;
 }
 
 

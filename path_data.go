@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/mitchellh/mapstructure"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // pathConfig returns the path configuration for CRUD operations on the backend
@@ -44,6 +45,10 @@ version matches the version specified in the cas parameter.`,
 			"data": {
 				Type:        framework.TypeMap,
 				Description: "The contents of the data map will be stored and returned on read.",
+			},
+			"valid_from": {
+				Type:        framework.TypeTime,
+				Description: "TODO",
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -96,6 +101,38 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 		}
 		if meta == nil {
 			return nil, nil
+		}
+
+		// Determine if the value can be read according to the validity window
+		// defined in the metadata.
+		if meta.ValidFrom != nil {
+			validFrom, err := ptypes.Timestamp(meta.ValidFrom)
+			if err != nil {
+				return nil, err
+			}
+
+			if validFrom.After(time.Now()) {
+				return logical.RespondWithStatusCode(
+					logical.ErrorResponse("value is not yet accessible"),
+					req,
+					http.StatusForbidden,
+				)
+			}
+		}
+
+		if meta.ValidTo != nil {
+			validTo, err := ptypes.Timestamp(meta.ValidTo)
+			if err != nil {
+				return nil, err
+			}
+
+			if validTo.Before(time.Now()) {
+				return logical.RespondWithStatusCode(
+					logical.ErrorResponse("value is no longer accessible"),
+					req,
+					http.StatusForbidden,
+				)
+			}
 		}
 
 		verNum := meta.CurrentVersion
@@ -257,6 +294,46 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Read the validity window start field if provided.
+		var validFrom time.Time
+		var validFromPB *timestamppb.Timestamp
+		validFromRaw, ok, err := data.GetOkErr("valid_from")
+		if ok {
+			if err != nil {
+				return logical.ErrorResponse("problem parsing valid_from field"), logical.ErrInvalidRequest
+			}
+
+			validFrom, ok = validFromRaw.(time.Time)
+			if !ok {
+				return logical.ErrorResponse("problem parsing valid_from field"), logical.ErrInvalidRequest
+			}
+
+			validFromPB = timestamppb.New(validFrom)
+		}
+
+		// Read the validity window end field if provided.
+		var validTo time.Time
+		var validToPB *timestamppb.Timestamp
+		validToRaw, ok, err := data.GetOkErr("valid_to")
+		if ok {
+			if err != nil {
+				return logical.ErrorResponse("problem parsing valid_to field"), logical.ErrInvalidRequest
+			}
+
+			validTo, ok = validToRaw.(time.Time)
+			if !ok {
+				return logical.ErrorResponse("problem parsing valid_to field"), logical.ErrInvalidRequest
+			}
+
+			if validTo.Before(validFrom) {
+				return logical.ErrorResponse("valid_to cannot occur before valid_from"), logical.ErrInvalidRequest
+			}
+
+			validToPB = timestamppb.New(validTo)
+		}
+
+		b.Logger().Warn("validity window", "from", validFromPB, "to", validToPB)
+
 		// Parse data, this can happen before the lock so we can fail early if
 		// not set.
 		var marshaledData []byte
@@ -281,8 +358,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 		if meta == nil {
 			meta = &KeyMetadata{
-				Key:      key,
-				Versions: map[uint64]*VersionMetadata{},
+				Key:       key,
+				Versions:  map[uint64]*VersionMetadata{},
+				ValidFrom: validFromPB,
+				ValidTo:   validToPB,
 			}
 		}
 

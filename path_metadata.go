@@ -3,10 +3,11 @@ package kv
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-secure-stdlib/strutil"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -145,7 +146,12 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"max_versions":         meta.MaxVersions,
 				"cas_required":         meta.CasRequired,
 				"delete_version_after": deleteVersionAfter.String(),
-				"custom_metadata":      meta.CustomMetadata,
+
+				// TODO: Do a nil check on the validity window values. - schultz
+				"valid_from": ptypesTimestampToString(meta.ValidFrom),
+				"valid_to":   ptypesTimestampToString(meta.ValidTo),
+
+				"custom_metadata": meta.CustomMetadata,
 			},
 		}, nil
 	}
