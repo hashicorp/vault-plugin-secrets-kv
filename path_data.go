@@ -50,6 +50,10 @@ version matches the version specified in the cas parameter.`,
 				Type:        framework.TypeTime,
 				Description: "TODO",
 			},
+			"valid_to": {
+				Type:        framework.TypeTime,
+				Description: "TODO",
+			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: b.upgradeCheck(b.pathDataWrite()),
