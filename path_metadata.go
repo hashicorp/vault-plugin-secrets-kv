@@ -321,6 +321,11 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 	}
 }
 
+// metadataPatchPreprocessor returns a framework.PatchPreprocessorFunc meant to
+// be provided to framework.HandlePatchOperation. The returned
+// framework.PatchPreprocessorFunc handles filtering out Vault-managed fields,
+// filtering out nulls, and ensuring appropriate handling of data types not
+// supported directly by FieldType.
 func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
 	return func(input map[string]interface{}) (map[string]interface{}, error) {
 		patchableKeys := []string{"max_versions", "cas_required", "delete_version_after", "custom_metadata"}
@@ -341,6 +346,8 @@ func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
 	}
 }
 
+// pathMetadataPatch handles a PatchOperation request for a secret's key metadata
+// The key metadata entry must exist to apply the provided patch data.
 func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
