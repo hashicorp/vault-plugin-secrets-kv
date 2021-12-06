@@ -1007,6 +1007,22 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 		!strings.Contains(resp.Warnings[0], "\"cas_required\" set to false, but is mandated by backend config") {
 		t.Fatalf("expected cas_required warning, resp warnings: %#v", resp.Warnings)
 	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "metadata/foo",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("metadata create request failed, err:%s resp:%#v\n", err, resp)
+	}
+
+	if resp.Data["cas_required"] != false {
+		t.Fatalf("expected cas_required to be set to false despite warning")
+	}
 }
 
 func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
