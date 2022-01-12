@@ -1161,13 +1161,6 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 		expectedChanges int
 	}{
 		{
-			"top_level_nulls_filtered",
-			map[string]interface{}{
-				"cas_required": nil,
-			},
-			0,
-		},
-		{
 			"ignored_fields",
 			map[string]interface{}{
 				"foo":             ignoreVal,
@@ -1289,5 +1282,72 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
+	b, storage := getBackend(t)
+	path := "metadata/nils_unset"
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      path,
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"max_versions": uint32(10),
+		},
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("create request failed, err: %#v, resp: %#v", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      path,
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
+	}
+
+	if maxVersions := resp.Data["max_versions"].(uint32); maxVersions != 10 {
+		t.Fatalf("expected max_versions to be 10")
+	}
+
+	req = &logical.Request{
+		Operation: logical.PatchOperation,
+		Path:      path,
+		Storage:   storage,
+		Data:      map[string]interface{}{
+			"max_versions": nil,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("patch request failed, err: %#v, resp: %#v", err, resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      path,
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
+	}
+
+	if maxVersions := resp.Data["max_versions"].(uint32); maxVersions != 0 {
+		t.Fatalf("expected max_versions to be unset to zero value")
 	}
 }
