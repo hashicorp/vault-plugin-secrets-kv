@@ -324,16 +324,14 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 // metadataPatchPreprocessor returns a framework.PatchPreprocessorFunc meant to
 // be provided to framework.HandlePatchOperation. The returned
 // framework.PatchPreprocessorFunc handles filtering out Vault-managed fields,
-// filtering out nulls, and ensuring appropriate handling of data types not
-// supported directly by FieldType.
+// and ensuring appropriate handling of data types not supported directly by FieldType.
 func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
 	return func(input map[string]interface{}) (map[string]interface{}, error) {
 		patchableKeys := []string{"max_versions", "cas_required", "delete_version_after", "custom_metadata"}
 		patchData := map[string]interface{}{}
 
 		for _, k := range patchableKeys {
-			// filter out nils as we do not want to remove fields as part of the patch operation
-			if v := input[k]; v != nil {
+			if v, ok := input[k]; ok {
 				if k == "delete_version_after" {
 					patchData[k] = ptypes.DurationProto(time.Duration(v.(int)) * time.Second)
 				} else {
