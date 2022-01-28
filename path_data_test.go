@@ -246,7 +246,7 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 	}
 
 	respMetadata := resp.Data["metadata"].(map[string]interface{})
-	
+
 	if diff := deep.Equal(getKeySet(respMetadata), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v\n", diff)
 	}
