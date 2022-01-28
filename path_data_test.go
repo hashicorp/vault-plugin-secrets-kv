@@ -34,28 +34,6 @@ func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 	return b, config.StorageView
 }
 
-func keys(m map[string]interface{}) map[string]struct{} {
-	set := make(map[string]struct{})
-
-	for k := range m {
-		set[k] = struct{}{}
-	}
-
-	return set
-}
-
-// expectedMetadataKeys produces a deterministic set of expected
-// metadata fields to ensure consistent shape across all endpoints
-func expectedMetadataKeys() map[string]struct{} {
-	return map[string]struct{}{
-		"version":         {},
-		"created_time":    {},
-		"deletion_time":   {},
-		"destroyed":       {},
-		"custom_metadata": {},
-	}
-}
-
 func TestVersionedKV_Data_Put(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -98,9 +76,7 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err, resp)
 	}
 
-	actualKeys := keys(resp.Data)
-
-	if diff := deep.Equal(actualKeys, expectedMetadataKeys()); len(diff) > 0 {
+	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
 	}
 
@@ -133,9 +109,7 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err, resp)
 	}
 
-	actualKeys = keys(resp.Data)
-
-	if diff := deep.Equal(actualKeys, expectedMetadataKeys()); len(diff) > 0 {
+	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
 	}
 
@@ -272,9 +246,8 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 	}
 
 	respMetadata := resp.Data["metadata"].(map[string]interface{})
-	actualMetadataKeys := keys(respMetadata)
-
-	if diff := deep.Equal(actualMetadataKeys, expectedMetadataKeys()); len(diff) > 0 {
+	
+	if diff := deep.Equal(getKeySet(respMetadata), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v\n", diff)
 	}
 
@@ -847,9 +820,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 		t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
-	actualKeys := keys(resp.Data)
-
-	if diff := deep.Equal(actualKeys, expectedMetadataKeys()); len(diff) > 0 {
+	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
 	}
 
@@ -883,9 +854,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 		t.Fatalf("data PatchOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
-	actualKeys = keys(resp.Data)
-
-	if diff := deep.Equal(actualKeys, expectedMetadataKeys()); len(diff) > 0 {
+	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
 	}
 
