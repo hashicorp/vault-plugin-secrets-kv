@@ -115,7 +115,7 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 		Operation: logical.CreateOperation,
 		Path:      "data/foo",
 		Storage:   storage,
-		Data:      map[string]interface{}{
+		Data: map[string]interface{}{
 			"data": map[string]interface{}{},
 		},
 	}
@@ -150,7 +150,7 @@ func TestVersionedKV_Subkeys_MaxDepth(t *testing.T) {
 		Operation: logical.CreateOperation,
 		Path:      "data/foo",
 		Storage:   storage,
-		Data:      map[string]interface{}{
+		Data: map[string]interface{}{
 			"data": map[string]interface{}{
 				"foo": map[string]interface{}{
 					"bar": map[string]interface{}{
@@ -197,5 +197,3 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 	// TODO
 }
-
-
