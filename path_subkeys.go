@@ -37,13 +37,14 @@ func pathSubkeys(b *versionedKVBackend) *framework.Path {
 	}
 }
 
-const maxDepth = 100
+// This is not a const so it can be overridden in tests
+var maxSubkeysDepth = 100
 
 // removeValues recursively walks the provided secret data represented as a
-// map. All leaf nodes (i.e. non-map values) will be replaced with nil in an
-// effort to remove all values. The resulting structure will provide all
-// subkeys with nesting fully intact. The modifications are made to the
-// input in-place.
+// map. All leaf nodes (i.e. empty maps and non-map values) will be replaced
+// with nil in an effort to remove all values. The resulting structure will
+// provide all subkeys with nesting fully intact. The modifications are made
+// to the input in-place.
 func removeValues(input map[string]interface{}) {
 	var walk func(interface{}, int)
 
@@ -51,23 +52,31 @@ func removeValues(input map[string]interface{}) {
 		val := reflect.ValueOf(in)
 
 		if val.Kind() == reflect.Map {
-			for _, e := range val.MapKeys() {
-				v := val.MapIndex(e)
+			for _, k := range val.MapKeys() {
+				v := val.MapIndex(k)
+				m := in.(map[string]interface{})
 
 				switch t := v.Interface().(type) {
 				case map[string]interface{}:
-					if currentDepth := depth + 1; currentDepth < maxDepth {
-						walk(t, depth)
+					// Only continue walking if we have not reached max depth
+					// and the underlying map has at least 1 key. The key is
+					// otherwise treated as a leaf node and thus set to nil.
+					// Setting to nil if the max depth is reached is crucial in
+					// that it prevents leaking secret data as the input map is
+					// being modified in-place
+					if currentDepth := depth + 1; currentDepth <= maxSubkeysDepth && len(t) > 0 {
+						walk(t, currentDepth)
+					} else {
+						m[k.String()] = nil
 					}
 				default:
-					m := in.(map[string]interface{})
-					m[e.String()] = nil
+					m[k.String()] = nil
 				}
 			}
 		}
 	}
 
-	walk(input, 0)
+	walk(input, 1)
 }
 
 // pathSubkeysRead handles ReadOperation requests for a specified path. Subkeys
