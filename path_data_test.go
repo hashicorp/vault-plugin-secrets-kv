@@ -15,25 +15,6 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
-	config := &logical.BackendConfig{
-		Logger:      logging.NewVaultLogger(log.Trace),
-		System:      &logical.StaticSystemView{},
-		StorageView: &logical.InmemStorage{},
-		BackendUUID: "test",
-	}
-
-	b, err := VersionedKVFactory(context.Background(), config)
-	if err != nil {
-		t.Fatalf("unable to create backend: %v", err)
-	}
-
-	// Wait for the upgrade to finish
-	time.Sleep(time.Second)
-
-	return b, config.StorageView
-}
-
 func TestVersionedKV_Data_Put(t *testing.T) {
 	b, storage := getBackend(t)
 
