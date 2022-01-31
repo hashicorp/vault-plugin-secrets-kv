@@ -138,7 +138,7 @@ func (b *versionedKVBackend) pathSubkeysRead() framework.OperationFunc {
 		}
 
 		if versionMetadata.Destroyed {
-			return logical.RespondWithStatusCode(nil, req, http.StatusNotFound)
+			return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
 
 		}
 
