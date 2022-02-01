@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
+// TestVersionedKV_Subkeys_NotFound verifies that a nil logical.Response is
+// returned when an entry that does not exist is requested
 func TestVersionedKV_Subkeys_NotFound(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -25,6 +27,8 @@ func TestVersionedKV_Subkeys_NotFound(t *testing.T) {
 	}
 }
 
+// TestVersionedKV_Subkeys_CurrentVersion verifies that the current
+// version of an entry is read if the version param is not provided
 func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -110,6 +114,8 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	}
 }
 
+// TestVersionedKV_Subkeys_VersionParam verifies that the correct
+// version is read when the version flag is provided
 func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -150,7 +156,7 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 		Operation: logical.ReadOperation,
 		Path:      "subkeys/foo",
 		Storage:   storage,
-		Data:      map[string]interface{}{
+		Data: map[string]interface{}{
 			"version": 1,
 		},
 	}
@@ -168,6 +174,173 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 	}
 }
 
+// TestVersionedKV_Subkeys_VersionParamDoesNotExist verifies that a nil
+// logical.Response is returned if the requested version does not exist
+func TestVersionedKV_Subkeys_VersionParamDoesNotExist(t *testing.T) {
+	b, storage := getBackend(t)
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{
+				"foo": "abc",
+			},
+		},
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{
+				"foo": "abc",
+				"bar": "def",
+			},
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+	}
+
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "subkeys/foo",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"version": 10,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp != nil {
+		t.Fatalf("unxpected subkeys ReadOperation response, err: %s, resp %#v", err.Error(), resp)
+	}
+}
+
+// TestVersionedKV_Subkeys_DepthParam verifies that the depth param
+// handling is correct. Failure to parse the value will result in an
+// error response. No limit will be imposed if the param is not
+// provided or its value is 0.
+func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
+	cases := []struct {
+		name      string
+		depth     interface{}
+		expected  map[string]interface{}
+		expectErr bool
+	}{
+		{
+			name:      "invalid",
+			depth:     "not-an-integer",
+			expected:  nil,
+			expectErr: true,
+		},
+		{
+			name:  "not_provided",
+			depth: nil,
+			expected: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": map[string]interface{}{
+						"baz": nil,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:  "zero",
+			depth: 0,
+			expected: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": map[string]interface{}{
+						"baz": nil,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:  "non_zero",
+			depth: 2,
+			expected: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": nil,
+				},
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+
+			t.Parallel()
+
+			b, storage := getBackend(t)
+
+			req := &logical.Request{
+				Operation: logical.CreateOperation,
+				Path:      "data/foo",
+				Storage:   storage,
+				Data: map[string]interface{}{
+					"data": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": map[string]interface{}{
+								"baz": 123,
+							},
+						},
+					},
+				},
+			}
+
+			resp, err := b.HandleRequest(context.Background(), req)
+			if err != nil || (resp != nil && resp.IsError()) {
+				t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+			}
+
+			subkeysData := map[string]interface{}{}
+
+			if tc.depth != nil {
+				subkeysData["depth"] = tc.depth
+			}
+
+			req = &logical.Request{
+				Operation: logical.ReadOperation,
+				Path:      "subkeys/foo",
+				Storage:   storage,
+				Data:      subkeysData,
+			}
+
+			resp, err = b.HandleRequest(context.Background(), req)
+			if err != nil || resp == nil {
+				t.Fatalf("subkeys ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+			}
+
+			if tc.expectErr != resp.IsError() {
+				t.Fatalf("unexpected ReadOperation request response, expected err: %t, is error: %t, resp %#v", tc.expectErr, resp.IsError(), resp)
+			}
+
+			if tc.expected != nil {
+				if diff := deep.Equal(resp.Data["subkeys"], tc.expected); len(diff) > 0 {
+					t.Fatalf("resp and expected data mismatch, diff: %#v", diff)
+				}
+			}
+		})
+	}
+}
+
+// TestVersionedKV_Subkeys_EmptyData verifies that an empty map is
+// returned if the underlying data is also empty
 func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -201,55 +374,8 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 	}
 }
 
-func TestVersionedKV_Subkeys_MaxDepth(t *testing.T) {
-	b, storage := getBackend(t)
-
-	maxSubkeysDepth = 3
-
-	req := &logical.Request{
-		Operation: logical.CreateOperation,
-		Path:      "data/foo",
-		Storage:   storage,
-		Data: map[string]interface{}{
-			"data": map[string]interface{}{
-				"foo": map[string]interface{}{
-					"bar": map[string]interface{}{
-						"baz": 123,
-					},
-				},
-			},
-		},
-	}
-
-	resp, err := b.HandleRequest(context.Background(), req)
-	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
-	}
-
-	req = &logical.Request{
-		Operation: logical.ReadOperation,
-		Path:      "subkeys/foo",
-		Storage:   storage,
-	}
-
-	resp, err = b.HandleRequest(context.Background(), req)
-	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
-	}
-
-	expectedSubKeys := map[string]interface{}{
-		"foo": map[string]interface{}{
-			"bar": map[string]interface{}{
-				"baz": nil,
-			},
-		},
-	}
-
-	if diff := deep.Equal(resp.Data["subkeys"], expectedSubKeys); len(diff) > 0 {
-		t.Fatalf("resp and expected data mismatch, diff: %#v", diff)
-	}
-}
-
+// TestVersionedKV_Subkeys_VersionDeleted verifies that a 404 HTTP response
+// is returned if the requested entry has been deleted
 func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -340,6 +466,8 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 	}
 }
 
+// TestVersionedKV_Subkeys_VersionDestroyed verifies that a 404 HTTP response
+// is returned if the requested entry has been destroyed
 func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 	b, storage := getBackend(t)
 
@@ -381,7 +509,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 		Operation: logical.CreateOperation,
 		Path:      "destroy/foo",
 		Storage:   storage,
-		Data:      map[string]interface{}{
+		Data: map[string]interface{}{
 			"versions": []int{1},
 		},
 	}

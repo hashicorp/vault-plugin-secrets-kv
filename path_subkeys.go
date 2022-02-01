@@ -23,6 +23,10 @@ func pathSubkeys(b *versionedKVBackend) *framework.Path {
 				Type:        framework.TypeString,
 				Description: "Location of the secret.",
 			},
+			"depth": {
+				Type:        framework.TypeInt,
+				Description: "The maximum depth to traverse. No limit will be imposed if not provided or if 0.",
+			},
 			"version": {
 				Type:        framework.TypeInt,
 				Description: "Specifies which version to retrieve. If not provided, the current version will be used.",
@@ -37,15 +41,13 @@ func pathSubkeys(b *versionedKVBackend) *framework.Path {
 	}
 }
 
-// This is not a const so it can be overridden in tests
-var maxSubkeysDepth = 100
-
 // removeValues recursively walks the provided secret data represented as a
 // map. All leaf nodes (i.e. empty maps and non-map values) will be replaced
 // with nil in an effort to remove all values. The resulting structure will
 // provide all subkeys with nesting fully intact. The modifications are made
-// to the input in-place.
-func removeValues(input map[string]interface{}) {
+// to the input in-place. maxDepth will denote how deep to traverse. A maxDepth
+// of 0 is the equivalent of no limit.
+func removeValues(input map[string]interface{}, maxDepth int) {
 	var walk func(interface{}, int)
 
 	walk = func(in interface{}, depth int) {
@@ -64,7 +66,7 @@ func removeValues(input map[string]interface{}) {
 					// Setting to nil if the max depth is reached is crucial in
 					// that it prevents leaking secret data as the input map is
 					// being modified in-place
-					if currentDepth := depth + 1; currentDepth <= maxSubkeysDepth && len(t) > 0 {
+					if currentDepth := depth + 1; (maxDepth == 0 || currentDepth <= maxDepth) && len(t) > 0 {
 						walk(t, currentDepth)
 					} else {
 						m[k.String()] = nil
@@ -87,6 +89,7 @@ func removeValues(input map[string]interface{}) {
 func (b *versionedKVBackend) pathSubkeysRead() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)
+		depth := data.Get("depth").(int)
 
 		lock := locksutil.LockForKey(b.locks, key)
 		lock.RLock()
@@ -165,7 +168,7 @@ func (b *versionedKVBackend) pathSubkeysRead() framework.OperationFunc {
 			return nil, err
 		}
 
-		removeValues(versionData)
+		removeValues(versionData, depth)
 		resp.Data["subkeys"] = versionData
 
 		return resp, nil
