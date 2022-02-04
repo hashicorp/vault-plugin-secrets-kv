@@ -83,9 +83,8 @@ func removeValues(input map[string]interface{}, maxDepth int) {
 
 // pathSubkeysRead handles ReadOperation requests for a specified path. Subkeys
 // that exist within the entry specified by the provided path will be retrieved.
-// This is done by stripping the secret data by replacing all underlying non-map
-// values with null. The version parameter is used to specify which version of the
-// specified secret entry to read. If not provided, the current version will be used.
+// This is done by stripping the secret data by replacing all underlying values of
+// leaf keys with null.
 func (b *versionedKVBackend) pathSubkeysRead() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		key := data.Get("path").(string)

@@ -29,7 +29,7 @@ func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 	return b, config.StorageView
 }
 
-// getKeySet will produce a set of that of keys that exist in m
+// getKeySet will produce a set of the keys that exist in m
 func getKeySet(m map[string]interface{}) map[string]struct{} {
 	set := make(map[string]struct{})
 
