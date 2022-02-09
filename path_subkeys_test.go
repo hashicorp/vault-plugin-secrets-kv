@@ -80,7 +80,7 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	}
 
 	if diff := deep.Equal(getKeySet(resp.Data), expectedRespKeys); len(diff) > 0 {
-		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
+		t.Fatalf("expected top-level resp keys mismatch, diff: %#v", diff)
 	}
 
 	metadata, ok := resp.Data["metadata"].(map[string]interface{})
