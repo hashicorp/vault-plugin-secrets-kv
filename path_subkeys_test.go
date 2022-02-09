@@ -23,7 +23,7 @@ func TestVersionedKV_Subkeys_NotFound(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || resp != nil {
-		t.Fatalf("unexpected ReadOperation response, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("unexpected ReadOperation response, err: %v, resp %#v", err, resp)
 	}
 }
 
@@ -60,7 +60,7 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -71,7 +71,7 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	expectedRespKeys := map[string]struct{}{
@@ -132,7 +132,7 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("data CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -149,7 +149,7 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("data CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -163,7 +163,7 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("subkeys ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	expectedSubkeys := map[string]interface{}{
@@ -192,7 +192,7 @@ func TestVersionedKV_Subkeys_VersionParamDoesNotExist(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("data CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -209,7 +209,7 @@ func TestVersionedKV_Subkeys_VersionParamDoesNotExist(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("data CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -223,7 +223,7 @@ func TestVersionedKV_Subkeys_VersionParamDoesNotExist(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || resp != nil {
-		t.Fatalf("unxpected subkeys ReadOperation response, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("unxpected subkeys ReadOperation response, err: %v, resp %#v", err, resp)
 	}
 }
 
@@ -305,7 +305,7 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 
 			resp, err := b.HandleRequest(context.Background(), req)
 			if err != nil || (resp != nil && resp.IsError()) {
-				t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+				t.Fatalf("data CreateOperation request failed, err: %v, resp %#v", err, resp)
 			}
 
 			subkeysData := map[string]interface{}{}
@@ -323,7 +323,7 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 
 			resp, err = b.HandleRequest(context.Background(), req)
 			if err != nil || resp == nil {
-				t.Fatalf("subkeys ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+				t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 			}
 
 			if tc.expectErr != resp.IsError() {
@@ -355,7 +355,7 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -366,7 +366,7 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	if diff := deep.Equal(resp.Data["subkeys"], map[string]interface{}{}); len(diff) > 0 {
@@ -392,7 +392,7 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("data CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -403,7 +403,7 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("subkeys ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	expectedSubkeys := map[string]interface{}{
@@ -421,7 +421,7 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("metadata DeleteOperation request failed - err: %s resp: %#v\n", err.Error(), resp)
+		t.Fatalf("metadata DeleteOperation request failed - err: %v, resp: %#v\n", err, resp)
 	}
 
 	req = &logical.Request{
@@ -432,7 +432,7 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("subkeys ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	// Use of logical.RespondWithStatusCode in handler will
@@ -484,7 +484,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("data CreateOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	req = &logical.Request{
@@ -495,7 +495,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("subkeys ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	expectedSubkeys := map[string]interface{}{
@@ -516,7 +516,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("destroy CreateOperation request failed - err: %s resp:%#v\n", err.Error(), resp)
+		t.Fatalf("destroy CreateOperation request failed - err: %v resp:%#v\n", err, resp)
 	}
 
 	req = &logical.Request{
@@ -527,7 +527,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("subkeys ReadOperation request failed, err: %s, resp %#v", err.Error(), resp)
+		t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
 
 	// Use of logical.RespondWithStatusCode in handler will
