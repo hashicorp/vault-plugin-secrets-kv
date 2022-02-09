@@ -53,26 +53,29 @@ func removeValues(input map[string]interface{}, maxDepth int) {
 	walk = func(in interface{}, depth int) {
 		val := reflect.ValueOf(in)
 
-		if val.Kind() == reflect.Map {
+		if val.IsValid() && val.Kind() == reflect.Map {
 			for _, k := range val.MapKeys() {
 				v := val.MapIndex(k)
-				m := in.(map[string]interface{})
 
-				switch t := v.Interface().(type) {
-				case map[string]interface{}:
-					// Only continue walking if we have not reached max depth
-					// and the underlying map has at least 1 key. The key is
-					// otherwise treated as a leaf node and thus set to nil.
-					// Setting to nil if the max depth is reached is crucial in
-					// that it prevents leaking secret data as the input map is
-					// being modified in-place
-					if currentDepth := depth + 1; (maxDepth == 0 || currentDepth <= maxDepth) && len(t) > 0 {
-						walk(t, currentDepth)
-					} else {
+				if v.IsValid() {
+					m := in.(map[string]interface{})
+
+					switch t := v.Interface().(type) {
+					case map[string]interface{}:
+						// Only continue walking if we have not reached max depth
+						// and the underlying map has at least 1 key. The key is
+						// otherwise treated as a leaf node and thus set to nil.
+						// Setting to nil if the max depth is reached is crucial in
+						// that it prevents leaking secret data as the input map is
+						// being modified in-place
+						if currentDepth := depth + 1; (maxDepth == 0 || currentDepth <= maxDepth) && len(t) > 0 {
+							walk(t, currentDepth)
+						} else {
+							m[k.String()] = nil
+						}
+					default:
 						m[k.String()] = nil
 					}
-				default:
-					m[k.String()] = nil
 				}
 			}
 		}
