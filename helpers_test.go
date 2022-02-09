@@ -2,6 +2,7 @@ package kv
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,9 +25,35 @@ func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 	}
 
 	// Wait for the upgrade to finish
-	time.Sleep(time.Second)
+	timeout := time.After(20 * time.Second)
+	ticker := time.Tick(time.Second)
 
-	return b, config.StorageView
+	for {
+		select {
+		case <-timeout:
+			t.Fatal("timeout expired waiting for upgrade")
+		case <-ticker:
+			req := &logical.Request{
+				Operation: logical.ReadOperation,
+				Path:      "config",
+				Storage:   config.StorageView,
+			}
+
+			resp, err := b.HandleRequest(context.Background(), req)
+			if err != nil {
+				t.Fatalf("unable to read config: %s", err.Error())
+				return nil, nil
+			}
+
+			if resp != nil && !resp.IsError() {
+				return b, config.StorageView
+			}
+
+			if resp == nil || (resp.IsError() && strings.Contains(resp.Error().Error(), "Upgrading from non-versioned to versioned")) {
+				t.Log("waiting for upgrade to complete")
+			}
+		}
+	}
 }
 
 // getKeySet will produce a set of the keys that exist in m
