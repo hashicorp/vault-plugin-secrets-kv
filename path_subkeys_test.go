@@ -223,7 +223,7 @@ func TestVersionedKV_Subkeys_VersionParamDoesNotExist(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || resp != nil {
-		t.Fatalf("unxpected subkeys ReadOperation response, err: %v, resp %#v", err, resp)
+		t.Fatalf("unexpected subkeys ReadOperation response, err: %v, resp %#v", err, resp)
 	}
 }
 
