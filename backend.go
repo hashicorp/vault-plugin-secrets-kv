@@ -1,12 +1,15 @@
 package kv
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"path"
 	"sync"
+
+	"github.com/hashicorp/go-secure-stdlib/strutil"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -186,7 +189,7 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 	}
 
 	return []*framework.Path{
-		&framework.Path{
+		{
 			Pattern: ".*",
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
@@ -374,7 +377,6 @@ func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, vers
 // getKeyMetadata returns the metadata object for the provided key, if no object
 // exits it will return nil.
 func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Storage, key string) (*KeyMetadata, error) {
-
 	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return nil, err
@@ -471,3 +473,33 @@ you may or may not be able to access certain paths.
     ^subkeys/.*$
         Read the subkeys within the data from the KV store without their associated values
 `
+
+func (b *versionedKVBackend) ExpandPolicy(ctx context.Context, mountPath string, rules []*logical.MountRule) (string, error) {
+	var buf bytes.Buffer
+	for _, r := range rules {
+		if r.TypeFlavour != "key" {
+			continue
+		}
+		keyPath := "*"
+		if kp, ok := r.Allow["key_path"]; ok && len(kp) > 0 {
+			keyPath = kp[0]
+		}
+		caps := r.Capabilities
+		if strutil.StrListContains(caps, "list") {
+			caps = strutil.StrListDelete(caps, "list")
+			buf.WriteString(fmt.Sprintf(`path "%s/metadata/%s" {`+"\n", mountPath, keyPath))
+			buf.WriteString(`  capabilities = ["list"]` + "\n}\n")
+		}
+		if len(caps) > 0 {
+			buf.WriteString(fmt.Sprintf(`path "%s/data/%s" {`+"\n", mountPath, keyPath))
+			buf.WriteString(`  capabilities = [`)
+			for _, c := range caps {
+				buf.WriteString(fmt.Sprintf(`"%s", `, c))
+			}
+			buf.Truncate(buf.Len() - 2)
+			buf.WriteString("]\n")
+			buf.WriteString("}\n\n")
+		}
+	}
+	return buf.String(), nil
+}

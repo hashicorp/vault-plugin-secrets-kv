@@ -2,6 +2,8 @@ module github.com/hashicorp/vault-plugin-secrets-kv
 
 go 1.16
 
+replace github.com/hashicorp/vault/sdk => ../vault/sdk
+
 require (
 	github.com/go-test/deep v1.0.7
 	github.com/golang/protobuf v1.5.2

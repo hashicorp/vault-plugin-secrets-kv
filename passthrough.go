@@ -1,6 +1,7 @@
 package kv
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -51,7 +52,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 		},
 
 		Paths: []*framework.Path{
-			&framework.Path{
+			{
 				Pattern: framework.MatchAllRegex("path"),
 
 				Fields: map[string]*framework.FieldSchema{
@@ -76,7 +77,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 			},
 		},
 		Secrets: []*framework.Secret{
-			&framework.Secret{
+			{
 				Type: "kv",
 
 				Renew: b.handleRead(),
@@ -281,3 +282,29 @@ that the consumer should re-read the value before the TTL has expired.
 However, any revocation must be handled by the user of this backend; the lease
 duration does not affect the provided data in any way.
 `
+
+func (b *PassthroughBackend) ExpandPolicy(ctx context.Context, mountPath string, rules []*logical.MountRule) (string, error) {
+	var buf bytes.Buffer
+	for _, r := range rules {
+		if r.TypeFlavour != "key" {
+			continue
+		}
+		keyPath := "*"
+		if kp, ok := r.Allow["key_path"]; ok && len(kp) > 0 {
+			keyPath = kp[0]
+		}
+		buf.WriteString(fmt.Sprintf(`path "%s/%s" {`+"\n", mountPath, keyPath))
+		buf.WriteString(`  capabilities = [`)
+		for _, c := range r.Capabilities {
+			buf.WriteString(fmt.Sprintf(`"%s", `, c))
+		}
+		if len(r.Capabilities) > 0 {
+			buf.Truncate(buf.Len() - 2)
+		}
+		buf.WriteString("]\n")
+		buf.WriteString("}\n\n")
+	}
+	return buf.String(), nil
+}
+
+var _ logical.BackendWithMountPolicies = &PassthroughBackend{}
