@@ -52,6 +52,7 @@ version matches the version specified in the cas parameter.`,
 			logical.ReadOperation:   b.upgradeCheck(b.pathDataRead()),
 			logical.DeleteOperation: b.upgradeCheck(b.pathDataDelete()),
 			logical.PatchOperation:  b.upgradeCheck(b.pathDataPatch()),
+			logical.ListOperation:   b.upgradeCheck(b.pathDataList()),
 		},
 
 		ExistenceCheck: b.dataExistenceCheck(),
@@ -132,14 +133,12 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 
 			if deletionTime.Before(time.Now()) {
 				return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
-
 			}
 		}
 
 		// If the version has been destroyed return metadata with a 404
 		if vm.Destroyed {
 			return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
-
 		}
 
 		versionKey, err := b.getVersionKey(ctx, key, verNum, req.Storage)
@@ -600,6 +599,43 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 	}
 }
 
+func (b *versionedKVBackend) pathDataList() framework.OperationFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		path := data.Get("path").(string)
+
+		// Get an encrypted key storage object
+		wrapper, err := b.getKeyEncryptor(ctx, req.Storage)
+		if err != nil {
+			return nil, err
+		}
+
+		es := wrapper.Wrap(req.Storage)
+
+		// Use encrypted key storage to list the keys
+		keys, err := es.List(ctx, path)
+
+		var validKeys []string
+		if !strings.HasSuffix(path, "/") {
+			path += "/"
+		}
+		for _, key := range keys {
+			meta, err := b.getKeyMetadata(ctx, req.Storage, path+key)
+			if err != nil {
+				return nil, err
+			}
+			if len(meta.Versions) == 0 {
+				continue
+			}
+			lv := meta.Versions[meta.CurrentVersion]
+			if lv == nil || lv.Destroyed {
+				continue
+			}
+			validKeys = append(validKeys, key)
+		}
+		return logical.ListResponse(validKeys), err
+	}
+}
+
 // AddVersion adds a version to the key metadata and moves the sliding window of
 // max versions. It returns the newly added version and the version to delete
 // from storage.
@@ -652,8 +688,9 @@ func max(a, b uint32) uint32 {
 	return a
 }
 
-const dataHelpSyn = `Write, Patch, Read, and Delete data in the Key-Value Store.`
-const dataHelpDesc = `
+const (
+	dataHelpSyn  = `Write, Patch, Read, and Delete data in the Key-Value Store.`
+	dataHelpDesc = `
 This path takes a key name and based on the operation stores, retrieves or
 deletes versions of data.
 
@@ -676,3 +713,4 @@ Delete operations are a soft delete. They will mark the latest version as
 deleted, but the underlying data will not be fully removed. Delete operations
 can be undone.
 `
+)
