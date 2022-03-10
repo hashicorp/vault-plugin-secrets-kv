@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-secure-stdlib/strutil"
-	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-secure-stdlib/strutil"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -56,13 +57,26 @@ version-agnostic information about a secret.
 `,
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.CreateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.ReadOperation:   b.upgradeCheck(b.pathMetadataRead()),
-			logical.DeleteOperation: b.upgradeCheck(b.pathMetadataDelete()),
-			logical.ListOperation:   b.upgradeCheck(b.pathMetadataList()),
-			logical.PatchOperation:  b.upgradeCheck(b.pathMetadataPatch()),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+			},
+			logical.CreateOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+			},
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataRead()),
+			},
+			logical.DeleteOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataDelete()),
+			},
+			logical.ListOperation: &framework.PathOperation{
+				Callback:    b.upgradeCheck(b.pathMetadataList()),
+				ActionAlias: "list-keys",
+			},
+			logical.PatchOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataPatch()),
+			},
 		},
 
 		ExistenceCheck: b.metadataExistenceCheck(),
@@ -155,10 +169,12 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 	}
 }
 
-const maxCustomMetadataKeys = 64
-const maxCustomMetadataKeyLength = 128
-const maxCustomMetadataValueLength = 512
-const customMetadataValidationErrorPrefix = "custom_metadata validation failed"
+const (
+	maxCustomMetadataKeys               = 64
+	maxCustomMetadataKeyLength          = 128
+	maxCustomMetadataValueLength        = 512
+	customMetadataValidationErrorPrefix = "custom_metadata validation failed"
+)
 
 // Perform input validation on custom_metadata field. If the key count
 // exceeds maxCustomMetadataKeys, the validation will be short-circuited
@@ -440,7 +456,7 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 		}
 
 		// Delete each version.
-		for id, _ := range meta.Versions {
+		for id := range meta.Versions {
 			versionKey, err := b.getVersionKey(ctx, key, id, req.Storage)
 			if err != nil {
 				return nil, err
@@ -466,8 +482,10 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 	}
 }
 
-const metadataHelpSyn = `Allows interaction with key metadata and settings in the KV store.`
-const metadataHelpDesc = `
+const (
+	metadataHelpSyn  = `Allows interaction with key metadata and settings in the KV store.`
+	metadataHelpDesc = `
 This endpoint allows for reading, information about a key in the key-value
 store, writing key settings, and permanently deleting a key and all versions. 
 `
+)
