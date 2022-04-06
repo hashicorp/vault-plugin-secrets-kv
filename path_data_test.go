@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-test/deep"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-test/deep"
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/helper/logging"
@@ -688,7 +689,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	}
 
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "config",
 		Storage:   storage,
 		Data:      config,
@@ -1072,7 +1073,7 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "destroy/foo",
 		Storage:   storage,
 		Data:      versionsToDestroy,

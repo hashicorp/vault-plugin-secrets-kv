@@ -506,7 +506,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "destroy/foo",
 		Storage:   storage,
 		Data: map[string]interface{}{
