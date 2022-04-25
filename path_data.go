@@ -252,6 +252,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return logical.ErrorResponse("missing path"), nil
 		}
 
+		if req.Operation == logical.CreateOperation {
+			key = strings.TrimSpace(key)
+		}
+
 		config, err := b.config(ctx, req.Storage)
 		if err != nil {
 			return nil, err
