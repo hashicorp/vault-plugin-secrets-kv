@@ -252,8 +252,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return logical.ErrorResponse("missing path"), nil
 		}
 
-		if req.Operation == logical.CreateOperation {
+		isTrimmed := false
+		if req.Operation == logical.CreateOperation && strings.HasSuffix(key, " ") {
 			key = strings.TrimSpace(key)
+			isTrimmed = true
 		}
 
 		config, err := b.config(ctx, req.Storage)
@@ -351,6 +353,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 				"destroyed":       vm.Destroyed,
 				"custom_metadata": meta.CustomMetadata,
 			},
+		}
+
+		if isTrimmed {
+			resp.AddWarning("Path contains a trailing whitespace that has been trimmed")
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
