@@ -333,7 +333,17 @@ func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
 		for _, k := range patchableKeys {
 			if v, ok := input[k]; ok {
 				if k == "delete_version_after" {
-					patchData[k] = ptypes.DurationProto(time.Duration(v.(int)) * time.Second)
+					d := ptypes.DurationProto(time.Duration(v.(int)) * time.Second)
+
+					// underlying Seconds and Nanos fields in durationpb.Duration
+					// use omitempty json tags. Providing "0s" will result in an
+					// empty map after JSON marshaling which will act as a noop
+					// come JSON merge patch time. Instead, we pass in a
+					// map-representation of the data to enable patching with "0s"
+					patchData[k] = map[string]interface{}{
+						"seconds": d.Seconds,
+						"nanos": d.Nanos,
+					}
 				} else {
 					patchData[k] = v
 				}

@@ -1189,10 +1189,10 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			map[string]interface{}{
 				"cas_required":         true,
 				"max_versions":         uint32(15),
-				"delete_version_after": nil,
+				"delete_version_after": "0s",
 				"updated_time":         ignoreVal,
 			},
-			2,
+			3,
 		},
 	}
 
@@ -1207,6 +1207,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				Storage:   storage,
 				Data: map[string]interface{}{
 					"max_versions": uint32(10),
+					"delete_version_after": "10s",
 				},
 			}
 
