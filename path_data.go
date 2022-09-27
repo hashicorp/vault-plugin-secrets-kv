@@ -18,11 +18,15 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func matchAllNoTrailingSlashRegex(name string) string {
+	return fmt.Sprintf(`(?P<%s>.*?[^/])`, name)
+}
+
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
 func pathData(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
-		Pattern: "data/" + framework.MatchAllRegex("path"),
+		Pattern: "data/" + matchAllNoTrailingSlashRegex("path"),
 		Fields: map[string]*framework.FieldSchema{
 			"path": {
 				Type:        framework.TypeString,
