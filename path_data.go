@@ -19,7 +19,7 @@ import (
 )
 
 func matchAllNoTrailingSlashRegex(name string) string {
-	return fmt.Sprintf(`(?P<%s>.*?[^/])`, name)
+	return fmt.Sprintf(`(?P<%s>.*?[^/]$)`, name)
 }
 
 // pathConfig returns the path configuration for CRUD operations on the backend
