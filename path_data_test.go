@@ -1168,10 +1168,14 @@ func TestRegex_AllNoTrailingSlash(t *testing.T) {
 		input string
 		want  bool
 	}{
-		"single-part-no-trailing-slash": {input: "data/foo", want: true},
-		"single-part-trailing-slash":    {input: "data/foo/", want: false},
-		"multi-part-no-trailing-slash":  {input: "data/foo/bar", want: true},
-		"multi-part-trailing-slash":     {input: "data/foo/bar/", want: false},
+		"single-part-no-trailing-slash":         {input: "data/foo", want: true},
+		"single-part-trailing-slash":            {input: "data/foo/", want: false},
+		"multi-part-no-trailing-slash":          {input: "data/foo/bar", want: true},
+		"multi-part-trailing-slash":             {input: "data/foo/bar/", want: false},
+		"no-data-single-part-no-trailing-slash": {input: "foo", want: false},
+		"no-data-single-part-trailing-slash":    {input: "foo/", want: false},
+		"no-data-multi-part-no-trailing-slash":  {input: "foo/bar", want: false},
+		"no-data-multi-part-trailing-slash":     {input: "foo/bar/", want: false},
 	}
 
 	p := "data/" + matchAllNoTrailingSlashRegex("path")
