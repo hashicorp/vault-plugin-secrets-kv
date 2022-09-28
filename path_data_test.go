@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-test/deep"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-test/deep"
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/helper/logging"
@@ -1158,5 +1160,31 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 		respData["version"] != float64(1) ||
 		(respData["destroyed"] == nil || !respData["destroyed"].(bool)) {
 		t.Fatalf("Expected 404 status code for destroyed version: resp:%#v\n", resp)
+	}
+}
+
+func TestRegex_AllNoTrailingSlash(t *testing.T) {
+	tests := map[string]struct {
+		input string
+		want  bool
+	}{
+		"single-part-no-trailing-slash":         {input: "data/foo", want: true},
+		"single-part-trailing-slash":            {input: "data/foo/", want: false},
+		"multi-part-no-trailing-slash":          {input: "data/foo/bar", want: true},
+		"multi-part-trailing-slash":             {input: "data/foo/bar/", want: false},
+		"no-data-single-part-no-trailing-slash": {input: "foo", want: false},
+		"no-data-single-part-trailing-slash":    {input: "foo/", want: false},
+		"no-data-multi-part-no-trailing-slash":  {input: "foo/bar", want: false},
+		"no-data-multi-part-trailing-slash":     {input: "foo/bar/", want: false},
+	}
+
+	p := "data/" + matchAllNoTrailingSlashRegex("path")
+	r, _ := regexp.Compile(p)
+
+	for name, tc := range tests {
+		got := r.MatchString(tc.input)
+		if tc.want != got {
+			t.Errorf("%s: expected: %v, got: %v", name, tc.want, got)
+		}
 	}
 }
