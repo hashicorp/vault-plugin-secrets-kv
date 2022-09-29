@@ -30,36 +30,23 @@ func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 		t.Fatalf("unable to create backend: %v", err)
 	}
 
-	// Wait for the upgrade to finish
-	timeout := time.After(20 * time.Second)
-	ticker := time.Tick(time.Second)
-
-	for {
-		select {
-		case <-timeout:
-			t.Fatal("timeout expired waiting for upgrade")
-		case <-ticker:
-			req := &logical.Request{
-				Operation: logical.ReadOperation,
-				Path:      "config",
-				Storage:   config.StorageView,
-			}
-
-			resp, err := b.HandleRequest(context.Background(), req)
-			if err != nil {
-				t.Fatalf("unable to read config: %s", err.Error())
-				return nil, nil
-			}
-
-			if resp != nil && !resp.IsError() {
-				return b, config.StorageView
-			}
-
-			if resp == nil || (resp.IsError() && strings.Contains(resp.Error().Error(), "Upgrading from non-versioned to versioned")) {
-				t.Log("waiting for upgrade to complete")
-			}
-		}
+	req := &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "config",
+		Storage:   config.StorageView,
 	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unable to read config: %s", err.Error())
+		return nil, nil
+	}
+
+	if resp == nil || resp.IsError() {
+		t.Fatalf("Error during mount creation: %x", resp.Error().Error())
+	}
+
+	return b, config.StorageView
 }
 
 // getKeySet will produce a set of the keys that exist in m
