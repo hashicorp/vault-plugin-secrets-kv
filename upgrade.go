@@ -118,6 +118,18 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return nil
 	}
 
+	// If we have 0 keys, it's either a new mount or one that's trivial to upgrade,
+	// so we should do the upgrade synchronously
+	upgradeSynchronously := false
+	keys, err := logical.CollectKeys(ctx, s)
+	if err != nil {
+		b.Logger().Error("upgrading resulted in error", "error", err)
+		return err
+	}
+	if len(keys) == 0 {
+		upgradeSynchronously = true
+	}
+
 	upgradeInfo := &UpgradeInfo{
 		StartedTime: ptypes.TimestampNow(),
 	}
@@ -128,7 +140,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return err
 	}
 
-	// Because this is a long running process we need a new context.
+	// Because this is a long-running process we need a new context.
 	ctx = context.Background()
 
 	upgradeKey := func(key string) error {
@@ -189,10 +201,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return nil
 	}
 
-	// Run the actual upgrade in a go routine so we don't block the client on a
-	// potentially long process.
-	go func() {
-
+	upgradeFunc := func() {
 		// Write the canary value and if we are read only wait until the setup
 		// process has finished.
 	READONLY_LOOP:
@@ -257,7 +266,15 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		}
 
 		atomic.StoreUint32(b.upgrading, 0)
-	}()
+	}
+
+	if upgradeSynchronously {
+		upgradeFunc()
+	} else {
+		// We run the actual upgrade in a go routine, so we don't block the client on a
+		// potentially long process.
+		go upgradeFunc()
+	}
 
 	return nil
 }
