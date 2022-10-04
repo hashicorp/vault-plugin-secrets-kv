@@ -1206,7 +1206,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				Path:      path,
 				Storage:   storage,
 				Data: map[string]interface{}{
-					"max_versions": uint32(10),
+					"max_versions":         uint32(10),
 					"delete_version_after": "10s",
 				},
 			}
