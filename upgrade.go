@@ -223,7 +223,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			case err.Error() == logical.ErrSetupReadOnly.Error():
 				time.Sleep(10 * time.Millisecond)
 			default:
-				b.Logger().Error("writing upgrade info resulted in an error", "error", err)
+				b.Logger().Error("writing upgrade info resulted in an error, but all keys were successfully upgraded", "error", err)
 				return
 			}
 		}
