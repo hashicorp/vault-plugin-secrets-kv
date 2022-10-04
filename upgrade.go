@@ -201,8 +201,35 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return nil
 	}
 
+	markUpgradeDoneFunc := func() {
+		upgradeInfo.Done = true
+		info, err := proto.Marshal(upgradeInfo)
+		if err != nil {
+			b.Logger().Error("encoding upgrade info resulted in an error", "error", err)
+		}
+
+	READONLY_LOOP:
+		for {
+			err = s.Put(ctx, &logical.StorageEntry{
+				Key:   path.Join(b.storagePrefix, "upgrading"),
+				Value: info,
+			})
+			switch {
+			case err == nil:
+				break READONLY_LOOP
+			case err.Error() == logical.ErrSetupReadOnly.Error():
+				time.Sleep(10 * time.Millisecond)
+			default:
+				b.Logger().Error("writing upgrade info resulted in an error", "error", err)
+				return
+			}
+		}
+
+		atomic.StoreUint32(b.upgrading, 0)
+	}
+
 	upgradeFunc := func() {
-		// Write the canary value and if we are read only wait until the setup
+		// If were async, write the canary value and if we are read only wait until the setup
 		// process has finished.
 	READONLY_LOOP:
 		for {
@@ -250,26 +277,15 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		}
 		b.l.Unlock()
 
-		// Write upgrade done value
-		upgradeInfo.Done = true
-		info, err := proto.Marshal(upgradeInfo)
-		if err != nil {
-			b.Logger().Error("encoding upgrade info resulted in an error", "error", err)
-		}
-
-		err = s.Put(ctx, &logical.StorageEntry{
-			Key:   path.Join(b.storagePrefix, "upgrading"),
-			Value: info,
-		})
-		if err != nil {
-			b.Logger().Error("writing upgrade done resulted in an error", "error", err)
-		}
-
-		atomic.StoreUint32(b.upgrading, 0)
+		markUpgradeDoneFunc()
 	}
 
 	if upgradeSynchronously {
-		upgradeFunc()
+		// Set us to having 'upgraded' before we insert the upgrade value, as the mount is ready to use now
+		atomic.StoreUint32(b.upgrading, 0)
+		// We save the upgrade done info in storage in a goroutine, as a Vault mount is set to read only
+		// during the mount process, so we cannot do it now
+		go markUpgradeDoneFunc()
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
 		// potentially long process.
