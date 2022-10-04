@@ -342,7 +342,7 @@ func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
 					// map-representation of the data to enable patching with "0s"
 					patchData[k] = map[string]interface{}{
 						"seconds": d.Seconds,
-						"nanos": d.Nanos,
+						"nanos":   d.Nanos,
 					}
 				} else {
 					patchData[k] = v
