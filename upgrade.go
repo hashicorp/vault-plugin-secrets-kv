@@ -229,7 +229,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	}
 
 	upgradeFunc := func() {
-		// If were async, write the canary value and if we are read only wait until the setup
+		// Write the canary value and if we are read only wait until the setup
 		// process has finished.
 	READONLY_LOOP:
 		for {
