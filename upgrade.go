@@ -201,13 +201,17 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return nil
 	}
 
-	writeUpgradeInfoDoneFunc := func() {
+	prepareUpgradeInfoDoneFunc := func() ([]byte, error) {
 		upgradeInfo.Done = true
 		info, err := proto.Marshal(upgradeInfo)
 		if err != nil {
 			b.Logger().Error("encoding upgrade info resulted in an error", "error", err)
+			return nil, err
 		}
+		return info, nil
+	}
 
+	writeUpgradeInfoDoneFunc := func(info []byte) {
 	READONLY_LOOP:
 		for {
 			err = s.Put(ctx, &logical.StorageEntry{
@@ -220,7 +224,6 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			case err.Error() == logical.ErrSetupReadOnly.Error():
 				time.Sleep(10 * time.Millisecond)
 			default:
-				b.Logger().Error("writing upgrade info resulted in an error", "error", err)
 				return
 			}
 		}
@@ -275,16 +278,25 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		}
 		b.l.Unlock()
 
-		writeUpgradeInfoDoneFunc()
+		info, err := prepareUpgradeInfoDoneFunc()
+		if err != nil {
+			b.Logger().Error("error marshalling upgrade info after upgrade", "error", err)
+			return
+		}
+		writeUpgradeInfoDoneFunc(info)
 		atomic.StoreUint32(b.upgrading, 0)
 	}
 
 	if upgradeSynchronously {
 		// Set us to having 'upgraded' before we insert the upgrade value, as the mount is ready to use now
 		atomic.StoreUint32(b.upgrading, 0)
+		info, err := prepareUpgradeInfoDoneFunc()
+		if err != nil {
+			return err
+		}
 		// We write the upgrade done info into storage in a goroutine, as a Vault mount is set to read only
 		// during the mount process, so we cannot do it now
-		go writeUpgradeInfoDoneFunc()
+		go writeUpgradeInfoDoneFunc(info)
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
 		// potentially long process.
