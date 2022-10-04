@@ -201,7 +201,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		return nil
 	}
 
-	markUpgradeDoneFunc := func() {
+	markUpgradeInfoDoneFunc := func() {
 		upgradeInfo.Done = true
 		info, err := proto.Marshal(upgradeInfo)
 		if err != nil {
@@ -224,8 +224,6 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 				return
 			}
 		}
-
-		atomic.StoreUint32(b.upgrading, 0)
 	}
 
 	upgradeFunc := func() {
@@ -277,7 +275,8 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		}
 		b.l.Unlock()
 
-		markUpgradeDoneFunc()
+		markUpgradeInfoDoneFunc()
+		atomic.StoreUint32(b.upgrading, 0)
 	}
 
 	if upgradeSynchronously {
@@ -285,7 +284,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		atomic.StoreUint32(b.upgrading, 0)
 		// We save the upgrade done info in storage in a goroutine, as a Vault mount is set to read only
 		// during the mount process, so we cannot do it now
-		go markUpgradeDoneFunc()
+		go markUpgradeInfoDoneFunc()
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
 		// potentially long process.
