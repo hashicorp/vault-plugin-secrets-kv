@@ -212,7 +212,6 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	}
 
 	writeUpgradeInfoDoneFunc := func(info []byte) {
-	READONLY_LOOP:
 		for {
 			err = s.Put(ctx, &logical.StorageEntry{
 				Key:   path.Join(b.storagePrefix, "upgrading"),
@@ -220,10 +219,11 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			})
 			switch {
 			case err == nil:
-				break READONLY_LOOP
+				return
 			case err.Error() == logical.ErrSetupReadOnly.Error():
 				time.Sleep(10 * time.Millisecond)
 			default:
+				b.Logger().Error("writing upgrade info resulted in an error", "error", err)
 				return
 			}
 		}
