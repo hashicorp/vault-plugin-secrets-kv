@@ -27,7 +27,6 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
 				logical.UpdateOperation: b.upgradeCheck(b.pathDeleteWrite()),
-				logical.CreateOperation: b.upgradeCheck(b.pathDeleteWrite()),
 			},
 
 			HelpSynopsis:    deleteHelpSyn,
@@ -47,7 +46,6 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
 				logical.UpdateOperation: b.upgradeCheck(b.pathUndeleteWrite()),
-				logical.CreateOperation: b.upgradeCheck(b.pathUndeleteWrite()),
 			},
 
 			HelpSynopsis:    undeleteHelpSyn,

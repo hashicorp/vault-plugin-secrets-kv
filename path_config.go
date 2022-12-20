@@ -38,9 +38,6 @@ clears the current setting. Accepts a Go duration format string.`,
 				Callback: b.upgradeCheck(b.pathConfigWrite()),
 				Summary:  "Configure backend level settings that are applied to every key in the key-value store.",
 			},
-			logical.CreateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathConfigWrite()),
-			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigRead()),
 				Summary:  "Read the backend level settings.",
