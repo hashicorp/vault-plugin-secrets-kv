@@ -677,7 +677,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	}
 
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "config",
 		Storage:   storage,
 		Data:      config,
@@ -685,7 +685,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("CreateOperation request for config failed - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("UpdateOperation request for config failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	data := map[string]interface{}{
@@ -1045,7 +1045,7 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	}
 
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "data/foo",
 		Storage:   storage,
 		Data:      data,
@@ -1053,7 +1053,7 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("UpdateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	versionsToDestroy := map[string]interface{}{
@@ -1061,7 +1061,7 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "destroy/foo",
 		Storage:   storage,
 		Data:      versionsToDestroy,

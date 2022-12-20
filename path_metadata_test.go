@@ -3,11 +3,12 @@ package kv
 import (
 	"context"
 	"fmt"
-	"github.com/go-test/deep"
-	"github.com/hashicorp/vault/sdk/logical"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-test/deep"
+	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Metadata_Put(t *testing.T) {
@@ -959,7 +960,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	b, storage := getBackend(t)
 
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "config",
 		Storage:   storage,
 		Data: map[string]interface{}{
