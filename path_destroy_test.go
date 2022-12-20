@@ -17,7 +17,7 @@ func TestVersionedKV_Destroy_Put(t *testing.T) {
 	}
 
 	req := &logical.Request{
-		Operation: logical.UpdateOperation,
+		Operation: logical.CreateOperation,
 		Path:      "data/foo",
 		Storage:   storage,
 		Data:      data,

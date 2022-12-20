@@ -1045,7 +1045,7 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	}
 
 	req := &logical.Request{
-		Operation: logical.UpdateOperation,
+		Operation: logical.CreateOperation,
 		Path:      "data/foo",
 		Storage:   storage,
 		Data:      data,
@@ -1053,7 +1053,7 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("UpdateOperation request failed - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	versionsToDestroy := map[string]interface{}{
