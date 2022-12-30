@@ -4,17 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-secure-stdlib/strutil"
-	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/mitchellh/mapstructure"
 )
 
 // pathMetadata returns the path configuration for CRUD operations on the
@@ -56,13 +56,25 @@ version-agnostic information about a secret.
 `,
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.CreateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.ReadOperation:   b.upgradeCheck(b.pathMetadataRead()),
-			logical.DeleteOperation: b.upgradeCheck(b.pathMetadataDelete()),
-			logical.ListOperation:   b.upgradeCheck(b.pathMetadataList()),
-			logical.PatchOperation:  b.upgradeCheck(b.pathMetadataPatch()),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+			},
+			logical.CreateOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+			},
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataRead()),
+			},
+			logical.DeleteOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataDelete()),
+			},
+			logical.ListOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataList()),
+			},
+			logical.PatchOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataPatch()),
+			},
 		},
 
 		ExistenceCheck: b.metadataExistenceCheck(),
