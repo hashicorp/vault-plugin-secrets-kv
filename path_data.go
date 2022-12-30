@@ -25,6 +25,34 @@ func matchAllNoTrailingSlashRegex(name string) string {
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
 func pathData(b *versionedKVBackend) *framework.Path {
+	updateCreatePatchResposneSchema := map[int][]framework.Response{
+		http.StatusOK: {{
+			Description: "OK",
+			Fields: map[string]*framework.FieldSchema{
+				"version": {
+					Type:     framework.TypeInt,
+					Required: true,
+				},
+				"created_time": {
+					Type:     framework.TypeTime,
+					Required: true,
+				},
+				"deletion_time": {
+					Type:     framework.TypeTime,
+					Required: true,
+				},
+				"destroyed": {
+					Type:     framework.TypeBool,
+					Required: true,
+				},
+				"custom_metadata": {
+					Type:     framework.TypeMap,
+					Required: true,
+				},
+			},
+		}},
+	}
+
 	return &framework.Path{
 		Pattern: "data/" + matchAllNoTrailingSlashRegex("path"),
 		Fields: map[string]*framework.FieldSchema{
@@ -52,66 +80,12 @@ version matches the version specified in the cas parameter.`,
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathDataWrite()),
-				Responses: map[int][]framework.Response{
-					http.StatusOK: {{
-						Description: "OK",
-						Fields: map[string]*framework.FieldSchema{
-							"version": {
-								Type:        framework.TypeInt,
-								Description: "If provided during a read, the value at the version number will be returned",
-								Required:    true,
-							},
-							"created_time": {
-								Type:     framework.TypeTime,
-								Required: true,
-							},
-							"deletion_time": {
-								Type:     framework.TypeTime,
-								Required: true,
-							},
-							"destroyed": {
-								Type:     framework.TypeBool,
-								Required: true,
-							},
-							"custom_metadata": {
-								Type:     framework.TypeMap,
-								Required: true,
-							},
-						},
-					}},
-				},
+				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Responses: updateCreatePatchResposneSchema,
 			},
 			logical.CreateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathDataWrite()),
-				Responses: map[int][]framework.Response{
-					http.StatusOK: {{
-						Description: "OK",
-						Fields: map[string]*framework.FieldSchema{
-							"version": {
-								Type:        framework.TypeInt,
-								Description: "If provided during a read, the value at the version number will be returned",
-								Required:    true,
-							},
-							"created_time": {
-								Type:     framework.TypeTime,
-								Required: true,
-							},
-							"deletion_time": {
-								Type:     framework.TypeTime,
-								Required: true,
-							},
-							"destroyed": {
-								Type:     framework.TypeBool,
-								Required: true,
-							},
-							"custom_metadata": {
-								Type:     framework.TypeMap,
-								Required: true,
-							},
-						},
-					}},
-				},
+				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Responses: updateCreatePatchResposneSchema,
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDataRead()),
@@ -136,11 +110,12 @@ version matches the version specified in the cas parameter.`,
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: "No Content",
-						}},
+					}},
 				},
 			},
 			logical.PatchOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathDataPatch()),
+				Callback:  b.upgradeCheck(b.pathDataPatch()),
+				Responses: updateCreatePatchResposneSchema,
 			},
 		},
 
