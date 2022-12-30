@@ -2,6 +2,7 @@ package kv
 
 import (
 	"context"
+	"net/http"
 	"path"
 	"time"
 
@@ -37,13 +38,45 @@ clears the current setting. Accepts a Go duration format string.`,
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigWrite()),
 				Summary:  "Configure backend level settings that are applied to every key in the key-value store.",
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: "No Content",
+					}},
+				},
 			},
 			logical.CreateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: "No Content",
+					}},
+				},
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigRead()),
 				Summary:  "Read the backend level settings.",
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: "OK",
+						Fields: map[string]*framework.FieldSchema{
+							"max_versions": {
+								Type:        framework.TypeInt,
+								Description: "The number of versions to keep for each key. Defaults to 10",
+								Required:    true,
+							},
+							"cas_required": {
+								Type:        framework.TypeBool,
+								Description: "If true, the backend will require the cas parameter to be set for each write",
+								Required:    true,
+							},
+							"delete_version_after": {
+								Type:        framework.TypeSignedDurationSecond,
+								Description: "If set, the length of time before a version is deleted.",
+								Required:    true,
+							},
+						},
+					}},
+				},
 			},
 		},
 
