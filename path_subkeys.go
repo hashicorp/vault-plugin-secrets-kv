@@ -35,6 +35,21 @@ func pathSubkeys(b *versionedKVBackend) *framework.Path {
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathSubkeysRead()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: "OK",
+						Fields: map[string]*framework.FieldSchema{
+							"subkeys": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+							"metadata": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+						},
+					}},
+				},
 			},
 		},
 
