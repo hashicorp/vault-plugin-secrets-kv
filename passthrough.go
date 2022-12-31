@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
@@ -64,9 +65,20 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.ReadOperation: &framework.PathOperation{
 						Callback: b.handleRead(),
+						Responses: map[int][]framework.Response{
+							http.StatusOK: {{
+								Description: "OK",
+								Fields:      map[string]*framework.FieldSchema{}, // dynamic fields
+							}},
+						},
 					},
 					logical.CreateOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
+						Responses: map[int][]framework.Response{
+							http.StatusNoContent: {{
+								Description: "No Content",
+							}},
+						},
 					},
 					logical.UpdateOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
