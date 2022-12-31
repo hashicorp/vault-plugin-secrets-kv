@@ -82,12 +82,33 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 					},
 					logical.UpdateOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
+						Responses: map[int][]framework.Response{
+							http.StatusNoContent: {{
+								Description: "No Content",
+							}},
+						},
 					},
 					logical.DeleteOperation: &framework.PathOperation{
 						Callback: b.handleDelete(),
+						Responses: map[int][]framework.Response{
+							http.StatusNoContent: {{
+								Description: "No Content",
+							}},
+						},
 					},
 					logical.ListOperation: &framework.PathOperation{
 						Callback: b.handleList(),
+						Responses: map[int][]framework.Response{
+							http.StatusOK: {{
+								Description: "OK",
+								Fields: map[string]*framework.FieldSchema{
+									"keys": {
+										Type:     framework.TypeStringSlice,
+										Required: true,
+									},
+								},
+							}},
+						},
 					},
 				},
 
