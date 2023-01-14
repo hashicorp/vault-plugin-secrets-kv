@@ -25,7 +25,7 @@ func matchAllNoTrailingSlashRegex(name string) string {
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
 func pathData(b *versionedKVBackend) *framework.Path {
-	updateCreatePatchResposneSchema := map[int][]framework.Response{
+	updateCreatePatchResponseSchema := map[int][]framework.Response{
 		http.StatusOK: {{
 			Description: "OK",
 			Fields: map[string]*framework.FieldSchema{
@@ -81,11 +81,11 @@ version matches the version specified in the cas parameter.`,
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback:  b.upgradeCheck(b.pathDataWrite()),
-				Responses: updateCreatePatchResposneSchema,
+				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.CreateOperation: &framework.PathOperation{
 				Callback:  b.upgradeCheck(b.pathDataWrite()),
-				Responses: updateCreatePatchResposneSchema,
+				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDataRead()),
@@ -115,7 +115,7 @@ version matches the version specified in the cas parameter.`,
 			},
 			logical.PatchOperation: &framework.PathOperation{
 				Callback:  b.upgradeCheck(b.pathDataPatch()),
-				Responses: updateCreatePatchResposneSchema,
+				Responses: updateCreatePatchResponseSchema,
 			},
 		},
 
