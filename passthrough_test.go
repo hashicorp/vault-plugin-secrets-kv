@@ -41,11 +41,6 @@ func TestPassthroughBackend_RootPaths(t *testing.T) {
 
 func TestPassthroughBackend_Write(t *testing.T) {
 	test := func(b logical.Backend) {
-		backend, ok := b.(*PassthroughBackend)
-		if !ok {
-			t.Fatalf("unexpected backend type %T", b)
-		}
-
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 
@@ -58,7 +53,7 @@ func TestPassthroughBackend_Write(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, backend.Paths, 0, logical.UpdateOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.UpdateOperation),
 			resp,
 			true,
 		)
@@ -79,11 +74,6 @@ func TestPassthroughBackend_Write(t *testing.T) {
 
 func TestPassthroughBackend_Read(t *testing.T) {
 	test := func(b logical.Backend, ttlType string, ttl interface{}, leased bool) {
-		backend, ok := b.(*PassthroughBackend)
-		if !ok {
-			t.Fatalf("unexpected backend type %T", b)
-		}
-
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 		var reqTTL interface{}
@@ -111,7 +101,7 @@ func TestPassthroughBackend_Read(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, backend.Paths, 0, logical.ReadOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ReadOperation),
 			resp,
 			true,
 		)
@@ -125,7 +115,7 @@ func TestPassthroughBackend_Read(t *testing.T) {
 		// actually aliased as a string so to make the deep equal happy if it's
 		// actually a number we set it to an int64
 		var respTTL interface{} = resp.Data[ttlType]
-		_, ok = respTTL.(json.Number)
+		_, ok := respTTL.(json.Number)
 		if ok {
 			respTTL, err = respTTL.(json.Number).Int64()
 			if err != nil {
@@ -166,11 +156,6 @@ func TestPassthroughBackend_Read(t *testing.T) {
 
 func TestPassthroughBackend_Delete(t *testing.T) {
 	test := func(b logical.Backend) {
-		backend, ok := b.(*PassthroughBackend)
-		if !ok {
-			t.Fatalf("unexpected backend type %T", b)
-		}
-
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 		storage := req.Storage
@@ -190,7 +175,7 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, backend.Paths, 0, logical.DeleteOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.DeleteOperation),
 			resp,
 			true,
 		)
@@ -206,7 +191,7 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, backend.Paths, 0, logical.ReadOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ReadOperation),
 			resp,
 			true,
 		)
@@ -219,11 +204,6 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 
 func TestPassthroughBackend_List(t *testing.T) {
 	test := func(b logical.Backend) {
-		backend, ok := b.(*PassthroughBackend)
-		if !ok {
-			t.Fatalf("unexpected backend type %T", b)
-		}
-
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 		storage := req.Storage
@@ -240,7 +220,7 @@ func TestPassthroughBackend_List(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, backend.Paths, 0, logical.ListOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ListOperation),
 			resp,
 			true,
 		)
