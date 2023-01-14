@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -40,6 +41,11 @@ func TestPassthroughBackend_RootPaths(t *testing.T) {
 
 func TestPassthroughBackend_Write(t *testing.T) {
 	test := func(b logical.Backend) {
+		backend, ok := b.(*PassthroughBackend)
+		if !ok {
+			t.Fatalf("unexpected backend type %T", b)
+		}
+
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 
@@ -50,6 +56,12 @@ func TestPassthroughBackend_Write(t *testing.T) {
 		if resp != nil {
 			t.Fatalf("bad: %v", resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, backend.Paths, 0, logical.UpdateOperation),
+			resp,
+			true,
+		)
 
 		out, err := req.Storage.Get(context.Background(), "foo")
 		if err != nil {
@@ -67,6 +79,11 @@ func TestPassthroughBackend_Write(t *testing.T) {
 
 func TestPassthroughBackend_Read(t *testing.T) {
 	test := func(b logical.Backend, ttlType string, ttl interface{}, leased bool) {
+		backend, ok := b.(*PassthroughBackend)
+		if !ok {
+			t.Fatalf("unexpected backend type %T", b)
+		}
+
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 		var reqTTL interface{}
@@ -92,6 +109,12 @@ func TestPassthroughBackend_Read(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, backend.Paths, 0, logical.ReadOperation),
+			resp,
+			true,
+		)
 
 		expectedTTL, err := parseutil.ParseDurationSecond(ttl)
 		if err != nil {
@@ -102,7 +125,7 @@ func TestPassthroughBackend_Read(t *testing.T) {
 		// actually aliased as a string so to make the deep equal happy if it's
 		// actually a number we set it to an int64
 		var respTTL interface{} = resp.Data[ttlType]
-		_, ok := respTTL.(json.Number)
+		_, ok = respTTL.(json.Number)
 		if ok {
 			respTTL, err = respTTL.(json.Number).Int64()
 			if err != nil {
@@ -143,6 +166,11 @@ func TestPassthroughBackend_Read(t *testing.T) {
 
 func TestPassthroughBackend_Delete(t *testing.T) {
 	test := func(b logical.Backend) {
+		backend, ok := b.(*PassthroughBackend)
+		if !ok {
+			t.Fatalf("unexpected backend type %T", b)
+		}
+
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 		storage := req.Storage
@@ -160,6 +188,12 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		if resp != nil {
 			t.Fatalf("bad: %v", resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, backend.Paths, 0, logical.DeleteOperation),
+			resp,
+			true,
+		)
 
 		req = logical.TestRequest(t, logical.ReadOperation, "foo")
 		req.Storage = storage
@@ -170,6 +204,12 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		if resp != nil {
 			t.Fatalf("bad: %v", resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, backend.Paths, 0, logical.ReadOperation),
+			resp,
+			true,
+		)
 	}
 	b := testPassthroughBackend()
 	test(b)
@@ -179,6 +219,11 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 
 func TestPassthroughBackend_List(t *testing.T) {
 	test := func(b logical.Backend) {
+		backend, ok := b.(*PassthroughBackend)
+		if !ok {
+			t.Fatalf("unexpected backend type %T", b)
+		}
+
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
 		req.Data["raw"] = "test"
 		storage := req.Storage
@@ -193,6 +238,12 @@ func TestPassthroughBackend_List(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, backend.Paths, 0, logical.ListOperation),
+			resp,
+			true,
+		)
 
 		expected := &logical.Response{
 			Data: map[string]interface{}{

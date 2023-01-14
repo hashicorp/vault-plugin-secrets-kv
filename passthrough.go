@@ -68,7 +68,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 						Responses: map[int][]framework.Response{
 							http.StatusOK: {{
 								Description: "OK",
-								Fields:      map[string]*framework.FieldSchema{}, // dynamic fields
+								Fields:      nil, // dynamic fields
 							}},
 						},
 					},
