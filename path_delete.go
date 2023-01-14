@@ -63,9 +63,19 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{
 					Callback: b.upgradeCheck(b.pathUndeleteWrite()),
+					Responses: map[int][]framework.Response{
+						http.StatusNoContent: {{
+							Description: "No Content",
+						}},
+					},
 				},
 				logical.CreateOperation: &framework.PathOperation{
 					Callback: b.upgradeCheck(b.pathUndeleteWrite()),
+					Responses: map[int][]framework.Response{
+						http.StatusNoContent: {{
+							Description: "No Content",
+						}},
+					},
 				},
 			},
 
