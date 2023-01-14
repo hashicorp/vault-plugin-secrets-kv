@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -31,6 +33,8 @@ func TestVersionedKV_Subkeys_NotFound(t *testing.T) {
 // version of an entry is read if the version param is not provided
 func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
 
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
@@ -73,6 +77,12 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		resp,
+		true,
+	)
 
 	expectedRespKeys := map[string]struct{}{
 		"subkeys":  {},
@@ -118,6 +128,8 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 // version is read when the version flag is provided
 func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
 
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
@@ -165,6 +177,12 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		resp,
+		true,
+	)
 
 	expectedSubkeys := map[string]interface{}{
 		"foo": nil,
@@ -288,6 +306,8 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 
 			b, storage := getBackend(t)
 
+			paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
+
 			req := &logical.Request{
 				Operation: logical.CreateOperation,
 				Path:      "data/foo",
@@ -331,6 +351,12 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 			}
 
 			if tc.expected != nil {
+				schema.ValidateResponse(
+					t,
+					schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+					resp,
+					true,
+				)
 				if diff := deep.Equal(resp.Data["subkeys"], tc.expected); len(diff) > 0 {
 					t.Fatalf("resp and expected data mismatch, diff: %#v", diff)
 				}
@@ -343,6 +369,8 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 // returned if the underlying data is also empty
 func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
 
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
@@ -368,6 +396,12 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		resp,
+		true,
+	)
 
 	if diff := deep.Equal(resp.Data["subkeys"], map[string]interface{}{}); len(diff) > 0 {
 		t.Fatalf("resp and expected data mismatch, diff: %#v", diff)
@@ -378,6 +412,8 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 // is returned if the requested entry has been deleted
 func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
 
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
@@ -405,6 +441,12 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("subkeys ReadOperation request failed, err: %v, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		resp,
+		true,
+	)
 
 	expectedSubkeys := map[string]interface{}{
 		"foo": nil,
