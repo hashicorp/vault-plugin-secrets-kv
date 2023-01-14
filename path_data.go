@@ -30,7 +30,7 @@ func pathData(b *versionedKVBackend) *framework.Path {
 			Description: "OK",
 			Fields: map[string]*framework.FieldSchema{
 				"version": {
-					Type:     framework.TypeInt,
+					Type:     framework.TypeInt64,
 					Required: true,
 				},
 				"created_time": {
