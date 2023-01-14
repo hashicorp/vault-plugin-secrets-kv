@@ -109,7 +109,7 @@ version-agnostic information about a secret.
 								Required: true,
 							},
 							"delete_version_after": {
-								Type:        framework.TypeTime,
+								Type:        framework.TypeDurationSecond,
 								Description: "The length of time before a version is deleted.",
 								Required:    true,
 							},
