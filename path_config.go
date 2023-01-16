@@ -40,7 +40,7 @@ clears the current setting. Accepts a Go duration format string.`,
 				Summary:  "Configure backend level settings that are applied to every key in the key-value store.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
@@ -48,7 +48,7 @@ clears the current setting. Accepts a Go duration format string.`,
 				Callback: b.upgradeCheck(b.pathConfigWrite()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
@@ -57,7 +57,7 @@ clears the current setting. Accepts a Go duration format string.`,
 				Summary:  "Read the backend level settings.",
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
-						Description: "OK",
+						Description: http.StatusText(http.StatusOK),
 						Fields: map[string]*framework.FieldSchema{
 							"max_versions": {
 								Type:        framework.TypeInt,
