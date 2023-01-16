@@ -27,7 +27,7 @@ func matchAllNoTrailingSlashRegex(name string) string {
 func pathData(b *versionedKVBackend) *framework.Path {
 	updateCreatePatchResponseSchema := map[int][]framework.Response{
 		http.StatusOK: {{
-			Description: "OK",
+			Description: http.StatusText(http.StatusOK),
 			Fields: map[string]*framework.FieldSchema{
 				"version": {
 					Type:     framework.TypeInt64,
@@ -91,7 +91,7 @@ version matches the version specified in the cas parameter.`,
 				Callback: b.upgradeCheck(b.pathDataRead()),
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
-						Description: "OK",
+						Description: http.StatusText(http.StatusOK),
 						Fields: map[string]*framework.FieldSchema{
 							"data": {
 								Type:     framework.TypeMap,
@@ -109,7 +109,7 @@ version matches the version specified in the cas parameter.`,
 				Callback: b.upgradeCheck(b.pathDataDelete()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
