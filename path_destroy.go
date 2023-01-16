@@ -28,7 +28,7 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 				Callback: b.upgradeCheck(b.pathDestroyWrite()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
@@ -36,7 +36,7 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 				Callback: b.upgradeCheck(b.pathDestroyWrite()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
