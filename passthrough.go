@@ -67,7 +67,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 						Callback: b.handleRead(),
 						Responses: map[int][]framework.Response{
 							http.StatusOK: {{
-								Description: "OK",
+								Description: http.StatusText(http.StatusOK),
 								Fields:      nil, // dynamic fields
 							}},
 						},
@@ -76,7 +76,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 						Callback: b.handleWrite(),
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
-								Description: "No Content",
+								Description: http.StatusText(http.StatusNoContent),
 							}},
 						},
 					},
@@ -84,7 +84,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 						Callback: b.handleWrite(),
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
-								Description: "No Content",
+								Description: http.StatusText(http.StatusNoContent),
 							}},
 						},
 					},
@@ -92,7 +92,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 						Callback: b.handleDelete(),
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
-								Description: "No Content",
+								Description: http.StatusText(http.StatusNoContent),
 							}},
 						},
 					},
@@ -100,7 +100,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 						Callback: b.handleList(),
 						Responses: map[int][]framework.Response{
 							http.StatusOK: {{
-								Description: "OK",
+								Description: http.StatusText(http.StatusOK),
 								Fields: map[string]*framework.FieldSchema{
 									"keys": {
 										Type:     framework.TypeStringSlice,
