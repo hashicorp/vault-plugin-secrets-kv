@@ -37,7 +37,7 @@ func pathSubkeys(b *versionedKVBackend) *framework.Path {
 				Callback: b.upgradeCheck(b.pathSubkeysRead()),
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
-						Description: "OK",
+						Description: http.StatusText(http.StatusOK),
 						Fields: map[string]*framework.FieldSchema{
 							"subkeys": {
 								Type:     framework.TypeMap,
