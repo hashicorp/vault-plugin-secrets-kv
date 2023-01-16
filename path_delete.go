@@ -2,8 +2,8 @@ package kv
 
 import (
 	"context"
-	"time"
 	"net/http"
+	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -31,7 +31,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Callback: b.upgradeCheck(b.pathDeleteWrite()),
 					Responses: map[int][]framework.Response{
 						http.StatusNoContent: {{
-							Description: "No Content",
+							Description: http.StatusText(http.StatusNoContent),
 						}},
 					},
 				},
@@ -39,7 +39,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Callback: b.upgradeCheck(b.pathDeleteWrite()),
 					Responses: map[int][]framework.Response{
 						http.StatusNoContent: {{
-							Description: "No Content",
+							Description: http.StatusText(http.StatusNoContent),
 						}},
 					},
 				},
@@ -65,7 +65,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Callback: b.upgradeCheck(b.pathUndeleteWrite()),
 					Responses: map[int][]framework.Response{
 						http.StatusNoContent: {{
-							Description: "No Content",
+							Description: http.StatusText(http.StatusNoContent),
 						}},
 					},
 				},
@@ -73,7 +73,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Callback: b.upgradeCheck(b.pathUndeleteWrite()),
 					Responses: map[int][]framework.Response{
 						http.StatusNoContent: {{
-							Description: "No Content",
+							Description: http.StatusText(http.StatusNoContent),
 						}},
 					},
 				},
