@@ -61,7 +61,7 @@ version-agnostic information about a secret.
 				Callback: b.upgradeCheck(b.pathMetadataWrite()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
@@ -69,7 +69,7 @@ version-agnostic information about a secret.
 				Callback: b.upgradeCheck(b.pathMetadataWrite()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
@@ -77,7 +77,7 @@ version-agnostic information about a secret.
 				Callback: b.upgradeCheck(b.pathMetadataRead()),
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
-						Description: "OK",
+						Description: http.StatusText(http.StatusOK),
 						Fields: map[string]*framework.FieldSchema{
 							"versions": {
 								Type:     framework.TypeMap,
@@ -126,7 +126,7 @@ version-agnostic information about a secret.
 				Callback: b.upgradeCheck(b.pathMetadataDelete()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
@@ -134,7 +134,7 @@ version-agnostic information about a secret.
 				Callback: b.upgradeCheck(b.pathMetadataList()),
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
-						Description: "OK",
+						Description: http.StatusText(http.StatusOK),
 						Fields: map[string]*framework.FieldSchema{
 							"keys": {
 								Type:     framework.TypeStringSlice,
@@ -148,7 +148,7 @@ version-agnostic information about a secret.
 				Callback: b.upgradeCheck(b.pathMetadataPatch()),
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
-						Description: "No Content",
+						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
 			},
