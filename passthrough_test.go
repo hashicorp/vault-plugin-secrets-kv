@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -50,6 +51,12 @@ func TestPassthroughBackend_Write(t *testing.T) {
 		if resp != nil {
 			t.Fatalf("bad: %v", resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.UpdateOperation),
+			resp,
+			true,
+		)
 
 		out, err := req.Storage.Get(context.Background(), "foo")
 		if err != nil {
@@ -92,6 +99,12 @@ func TestPassthroughBackend_Read(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ReadOperation),
+			resp,
+			true,
+		)
 
 		expectedTTL, err := parseutil.ParseDurationSecond(ttl)
 		if err != nil {
@@ -160,6 +173,12 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		if resp != nil {
 			t.Fatalf("bad: %v", resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.DeleteOperation),
+			resp,
+			true,
+		)
 
 		req = logical.TestRequest(t, logical.ReadOperation, "foo")
 		req.Storage = storage
@@ -170,6 +189,12 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		if resp != nil {
 			t.Fatalf("bad: %v", resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ReadOperation),
+			resp,
+			true,
+		)
 	}
 	b := testPassthroughBackend()
 	test(b)
@@ -193,6 +218,12 @@ func TestPassthroughBackend_List(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ListOperation),
+			resp,
+			true,
+		)
 
 		expected := &logical.Response{
 			Data: map[string]interface{}{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
@@ -64,18 +65,50 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.ReadOperation: &framework.PathOperation{
 						Callback: b.handleRead(),
+						Responses: map[int][]framework.Response{
+							http.StatusOK: {{
+								Description: http.StatusText(http.StatusOK),
+								Fields:      nil, // dynamic fields
+							}},
+						},
 					},
 					logical.CreateOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
+						Responses: map[int][]framework.Response{
+							http.StatusNoContent: {{
+								Description: http.StatusText(http.StatusNoContent),
+							}},
+						},
 					},
 					logical.UpdateOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
+						Responses: map[int][]framework.Response{
+							http.StatusNoContent: {{
+								Description: http.StatusText(http.StatusNoContent),
+							}},
+						},
 					},
 					logical.DeleteOperation: &framework.PathOperation{
 						Callback: b.handleDelete(),
+						Responses: map[int][]framework.Response{
+							http.StatusNoContent: {{
+								Description: http.StatusText(http.StatusNoContent),
+							}},
+						},
 					},
 					logical.ListOperation: &framework.PathOperation{
 						Callback: b.handleList(),
+						Responses: map[int][]framework.Response{
+							http.StatusOK: {{
+								Description: http.StatusText(http.StatusOK),
+								Fields: map[string]*framework.FieldSchema{
+									"keys": {
+										Type:     framework.TypeStringSlice,
+										Required: true,
+									},
+								},
+							}},
+						},
 					},
 				},
 
