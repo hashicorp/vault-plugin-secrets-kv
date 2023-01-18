@@ -2,6 +2,7 @@ package kv
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
@@ -25,9 +26,19 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDestroyWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 			logical.CreateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDestroyWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 		},
 
