@@ -59,21 +59,98 @@ version-agnostic information about a secret.
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 			logical.CreateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataRead()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"versions": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+							"current_version": {
+								Type:     framework.TypeInt64, // uint64
+								Required: true,
+							},
+							"oldest_version": {
+								Type:     framework.TypeInt64, // uint64
+								Required: true,
+							},
+							"created_time": {
+								Type:     framework.TypeTime,
+								Required: true,
+							},
+							"updated_time": {
+								Type:     framework.TypeTime,
+								Required: true,
+							},
+							"max_versions": {
+								Type:        framework.TypeInt64, // uint32
+								Description: "The number of versions to keep",
+								Required:    true,
+							},
+							"cas_required": {
+								Type:     framework.TypeBool,
+								Required: true,
+							},
+							"delete_version_after": {
+								Type:        framework.TypeDurationSecond,
+								Description: "The length of time before a version is deleted.",
+								Required:    true,
+							},
+							"custom_metadata": {
+								Type:        framework.TypeMap,
+								Description: "User-provided key-value pairs that are used to describe arbitrary and version-agnostic information about a secret.",
+								Required:    true,
+							},
+						},
+					}},
+				},
 			},
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataDelete()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 			logical.ListOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataList()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"keys": {
+								Type:     framework.TypeStringSlice,
+								Required: true,
+							},
+						},
+					}},
+				},
 			},
 			logical.PatchOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataPatch()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 		},
 

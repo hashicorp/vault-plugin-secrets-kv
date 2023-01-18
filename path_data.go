@@ -25,6 +25,34 @@ func matchAllNoTrailingSlashRegex(name string) string {
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
 func pathData(b *versionedKVBackend) *framework.Path {
+	updateCreatePatchResponseSchema := map[int][]framework.Response{
+		http.StatusOK: {{
+			Description: http.StatusText(http.StatusOK),
+			Fields: map[string]*framework.FieldSchema{
+				"version": {
+					Type:     framework.TypeInt64,
+					Required: true,
+				},
+				"created_time": {
+					Type:     framework.TypeTime,
+					Required: true,
+				},
+				"deletion_time": {
+					Type:     framework.TypeString,
+					Required: true,
+				},
+				"destroyed": {
+					Type:     framework.TypeBool,
+					Required: true,
+				},
+				"custom_metadata": {
+					Type:     framework.TypeMap,
+					Required: true,
+				},
+			},
+		}},
+	}
+
 	return &framework.Path{
 		Pattern: "data/" + matchAllNoTrailingSlashRegex("path"),
 		Fields: map[string]*framework.FieldSchema{
@@ -52,19 +80,42 @@ version matches the version specified in the cas parameter.`,
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathDataWrite()),
+				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.CreateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathDataWrite()),
+				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDataRead()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"data": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+							"metadata": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+						},
+					}},
+				},
 			},
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDataDelete()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 			logical.PatchOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathDataPatch()),
+				Callback:  b.upgradeCheck(b.pathDataPatch()),
+				Responses: updateCreatePatchResponseSchema,
 			},
 		},
 
