@@ -356,7 +356,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 
 		if isTrimmed {
-			resp.AddWarning("Path contains a trailing whitespace that has been trimmed")
+			resp.AddWarning("Path contains a leading or trailing whitespace that has been trimmed")
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
