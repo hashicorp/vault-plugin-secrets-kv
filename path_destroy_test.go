@@ -78,7 +78,7 @@ func TestVersionedKV_Destroy_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)

@@ -119,7 +119,7 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -158,7 +158,7 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -203,7 +203,7 @@ func TestVersionedKV_Data_Put_ZeroCas(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -287,7 +287,7 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -308,7 +308,7 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -369,7 +369,7 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -390,7 +390,7 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.DeleteOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -453,7 +453,7 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -501,7 +501,7 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -555,7 +555,7 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -603,7 +603,7 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.PatchOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -658,7 +658,7 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -690,7 +690,7 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -806,7 +806,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -894,7 +894,7 @@ func TestVersionedKV_Patch_NoData(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -971,7 +971,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1011,7 +1011,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.PatchOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1037,7 +1037,7 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1080,7 +1080,7 @@ func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1098,7 +1098,7 @@ func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.DeleteOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1203,7 +1203,7 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
