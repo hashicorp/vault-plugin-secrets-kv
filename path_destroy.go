@@ -22,8 +22,10 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 				Description: "The versions to destroy. Their data will be permanently deleted.",
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.upgradeCheck(b.pathDestroyWrite()),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathDestroyWrite()),
+			},
 		},
 
 		HelpSynopsis:    destroyHelpSyn,
