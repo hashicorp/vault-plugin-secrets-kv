@@ -71,7 +71,7 @@ clears the current setting. Accepts a Go duration format string.`,
 							},
 							"delete_version_after": {
 								Type:        framework.TypeSignedDurationSecond,
-								Description: "If set, the length of time before a version is deleted.",
+								Description: "The length of time before a version is deleted.",
 								Required:    true,
 							},
 						},
