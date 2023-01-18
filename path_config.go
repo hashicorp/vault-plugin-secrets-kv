@@ -61,7 +61,7 @@ clears the current setting. Accepts a Go duration format string.`,
 						Fields: map[string]*framework.FieldSchema{
 							"max_versions": {
 								Type:        framework.TypeInt,
-								Description: "The number of versions to keep for each key. Defaults to 10",
+								Description: "The number of versions to keep for each key.",
 								Required:    true,
 							},
 							"cas_required": {
