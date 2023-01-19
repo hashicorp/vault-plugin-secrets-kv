@@ -45,7 +45,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -62,7 +62,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -189,7 +189,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -230,7 +230,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -270,7 +270,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -334,7 +334,7 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.DeleteOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -608,7 +608,7 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -626,7 +626,7 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -665,7 +665,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -683,7 +683,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -732,7 +732,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -750,7 +750,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -798,7 +798,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -817,7 +817,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -860,7 +860,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -878,7 +878,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1084,7 +1084,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1105,7 +1105,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1126,7 +1126,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.PatchOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1149,7 +1149,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.PatchOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1248,7 +1248,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -1269,7 +1269,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.PatchOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -1287,7 +1287,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -1376,7 +1376,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -1394,7 +1394,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -1415,7 +1415,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.PatchOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -1433,7 +1433,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -1491,7 +1491,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1509,7 +1509,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1534,7 +1534,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.PatchOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -1552,7 +1552,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)

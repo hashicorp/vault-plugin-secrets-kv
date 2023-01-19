@@ -79,7 +79,7 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -179,7 +179,7 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -353,7 +353,7 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 			if tc.expected != nil {
 				schema.ValidateResponse(
 					t,
-					schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+					schema.FindResponseSchema(t, paths, 0, req.Operation),
 					resp,
 					true,
 				)
@@ -398,7 +398,7 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -443,7 +443,7 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)

@@ -36,7 +36,7 @@ func TestVersionedKV_Config(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -53,7 +53,7 @@ func TestVersionedKV_Config(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
 		resp,
 		true,
 	)
@@ -116,7 +116,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -141,7 +141,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantNoResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -155,7 +155,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -181,7 +181,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantNoResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.CreateOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)
@@ -195,7 +195,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, logical.ReadOperation),
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
 				resp,
 				true,
 			)

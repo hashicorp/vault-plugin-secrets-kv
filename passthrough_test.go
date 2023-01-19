@@ -53,7 +53,7 @@ func TestPassthroughBackend_Write(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.UpdateOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -101,7 +101,7 @@ func TestPassthroughBackend_Read(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ReadOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -175,7 +175,7 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.DeleteOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -191,7 +191,7 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ReadOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
 			resp,
 			true,
 		)
@@ -220,7 +220,7 @@ func TestPassthroughBackend_List(t *testing.T) {
 		}
 		schema.ValidateResponse(
 			t,
-			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, logical.ListOperation),
+			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
 			resp,
 			true,
 		)
