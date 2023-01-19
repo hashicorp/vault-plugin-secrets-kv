@@ -35,14 +35,6 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 						}},
 					},
 				},
-				logical.CreateOperation: &framework.PathOperation{
-					Callback: b.upgradeCheck(b.pathDeleteWrite()),
-					Responses: map[int][]framework.Response{
-						http.StatusNoContent: {{
-							Description: http.StatusText(http.StatusNoContent),
-						}},
-					},
-				},
 			},
 
 			HelpSynopsis:    deleteHelpSyn,
@@ -62,14 +54,6 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 			},
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.upgradeCheck(b.pathUndeleteWrite()),
-					Responses: map[int][]framework.Response{
-						http.StatusNoContent: {{
-							Description: http.StatusText(http.StatusNoContent),
-						}},
-					},
-				},
-				logical.CreateOperation: &framework.PathOperation{
 					Callback: b.upgradeCheck(b.pathUndeleteWrite()),
 					Responses: map[int][]framework.Response{
 						http.StatusNoContent: {{

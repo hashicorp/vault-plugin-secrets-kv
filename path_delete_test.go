@@ -66,7 +66,7 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "delete/foo",
 		Storage:   storage,
 		Data:      data,
@@ -172,7 +172,7 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "delete/foo",
 		Storage:   storage,
 		Data:      data,
@@ -194,7 +194,7 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "undelete/foo",
 		Storage:   storage,
 		Data:      data,

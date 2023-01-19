@@ -1069,7 +1069,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "config",
 		Storage:   storage,
 		Data: map[string]interface{}{

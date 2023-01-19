@@ -32,14 +32,6 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 					}},
 				},
 			},
-			logical.CreateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathDestroyWrite()),
-				Responses: map[int][]framework.Response{
-					http.StatusNoContent: {{
-						Description: http.StatusText(http.StatusNoContent),
-					}},
-				},
-			},
 		},
 
 		HelpSynopsis:    destroyHelpSyn,

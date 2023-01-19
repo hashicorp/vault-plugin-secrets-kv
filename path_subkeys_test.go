@@ -548,7 +548,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "destroy/foo",
 		Storage:   storage,
 		Data: map[string]interface{}{
@@ -558,7 +558,7 @@ func TestVersionedKV_Subkeys_VersionDestroyed(t *testing.T) {
 
 	resp, err = b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("destroy CreateOperation request failed - err: %v resp:%#v\n", err, resp)
+		t.Fatalf("destroy UpdateOperation request failed - err: %v resp:%#v\n", err, resp)
 	}
 
 	req = &logical.Request{

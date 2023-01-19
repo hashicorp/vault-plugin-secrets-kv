@@ -44,14 +44,6 @@ clears the current setting. Accepts a Go duration format string.`,
 					}},
 				},
 			},
-			logical.CreateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathConfigWrite()),
-				Responses: map[int][]framework.Response{
-					http.StatusNoContent: {{
-						Description: http.StatusText(http.StatusNoContent),
-					}},
-				},
-			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigRead()),
 				Summary:  "Read the backend level settings.",
