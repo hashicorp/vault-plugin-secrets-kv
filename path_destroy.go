@@ -2,6 +2,7 @@ package kv
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
@@ -82,7 +83,11 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 				return nil, err
 			}
 		}
-
+		b.kvEvent(ctx, "destroy",
+			"path", key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, nil
 	}
 }

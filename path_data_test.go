@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-test/deep"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-test/deep"
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/helper/logging"

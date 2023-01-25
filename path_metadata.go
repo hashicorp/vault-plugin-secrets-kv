@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-secure-stdlib/strutil"
-	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-secure-stdlib/strutil"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -317,6 +318,11 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		b.kvEvent(ctx, "metadataWrite",
+			"path", key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return resp, err
 	}
 }
@@ -342,7 +348,7 @@ func metadataPatchPreprocessor() framework.PatchPreprocessorFunc {
 					// map-representation of the data to enable patching with "0s"
 					patchData[k] = map[string]interface{}{
 						"seconds": d.Seconds,
-						"nanos": d.Nanos,
+						"nanos":   d.Nanos,
 					}
 				} else {
 					patchData[k] = v
@@ -429,6 +435,11 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
+		b.kvEvent(ctx, "metadataPatch",
+			"path", key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return resp, nil
 	}
 }
@@ -472,6 +483,11 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 
 		// Use encrypted key storage to delete the key
 		err = es.Delete(ctx, key)
+		b.kvEvent(ctx, "metadataDelete",
+			"path", key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, err
 	}
 }

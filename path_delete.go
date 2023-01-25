@@ -2,6 +2,7 @@ package kv
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -105,7 +106,11 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-
+		b.kvEvent(ctx, "undelete_write",
+			"path", key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, nil
 	}
 }
@@ -158,7 +163,11 @@ func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-
+		b.kvEvent(ctx, "delete_write",
+			"path", key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, nil
 	}
 }
