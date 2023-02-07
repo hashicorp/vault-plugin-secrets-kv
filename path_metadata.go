@@ -1,20 +1,23 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-secure-stdlib/strutil"
-	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-secure-stdlib/strutil"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/mitchellh/mapstructure"
 )
 
 // pathMetadata returns the path configuration for CRUD operations on the
@@ -56,13 +59,102 @@ version-agnostic information about a secret.
 `,
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.CreateOperation: b.upgradeCheck(b.pathMetadataWrite()),
-			logical.ReadOperation:   b.upgradeCheck(b.pathMetadataRead()),
-			logical.DeleteOperation: b.upgradeCheck(b.pathMetadataDelete()),
-			logical.ListOperation:   b.upgradeCheck(b.pathMetadataList()),
-			logical.PatchOperation:  b.upgradeCheck(b.pathMetadataPatch()),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
+			},
+			logical.CreateOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
+			},
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataRead()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"versions": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+							"current_version": {
+								Type:     framework.TypeInt64, // uint64
+								Required: true,
+							},
+							"oldest_version": {
+								Type:     framework.TypeInt64, // uint64
+								Required: true,
+							},
+							"created_time": {
+								Type:     framework.TypeTime,
+								Required: true,
+							},
+							"updated_time": {
+								Type:     framework.TypeTime,
+								Required: true,
+							},
+							"max_versions": {
+								Type:        framework.TypeInt64, // uint32
+								Description: "The number of versions to keep",
+								Required:    true,
+							},
+							"cas_required": {
+								Type:     framework.TypeBool,
+								Required: true,
+							},
+							"delete_version_after": {
+								Type:        framework.TypeDurationSecond,
+								Description: "The length of time before a version is deleted.",
+								Required:    true,
+							},
+							"custom_metadata": {
+								Type:        framework.TypeMap,
+								Description: "User-provided key-value pairs that are used to describe arbitrary and version-agnostic information about a secret.",
+								Required:    true,
+							},
+						},
+					}},
+				},
+			},
+			logical.DeleteOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataDelete()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
+			},
+			logical.ListOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataList()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"keys": {
+								Type:     framework.TypeStringSlice,
+								Required: true,
+							},
+						},
+					}},
+				},
+			},
+			logical.PatchOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathMetadataPatch()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
+			},
 		},
 
 		ExistenceCheck: b.metadataExistenceCheck(),

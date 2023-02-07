@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -13,7 +17,7 @@ import (
 // pathsDelete returns the path configuration for the delete and undelete paths
 func pathsDelete(b *versionedKVBackend) []*framework.Path {
 	return []*framework.Path{
-		&framework.Path{
+		{
 			Pattern: "delete/" + framework.MatchAllRegex("path"),
 			Fields: map[string]*framework.FieldSchema{
 				"path": {
@@ -25,15 +29,21 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Description: "The versions to be archived. The versioned data will not be deleted, but it will no longer be returned in normal get requests.",
 				},
 			},
-			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: b.upgradeCheck(b.pathDeleteWrite()),
-				logical.CreateOperation: b.upgradeCheck(b.pathDeleteWrite()),
+			Operations: map[logical.Operation]framework.OperationHandler{
+				logical.UpdateOperation: &framework.PathOperation{
+					Callback: b.upgradeCheck(b.pathDeleteWrite()),
+					Responses: map[int][]framework.Response{
+						http.StatusNoContent: {{
+							Description: http.StatusText(http.StatusNoContent),
+						}},
+					},
+				},
 			},
 
 			HelpSynopsis:    deleteHelpSyn,
 			HelpDescription: deleteHelpDesc,
 		},
-		&framework.Path{
+		{
 			Pattern: "undelete/" + framework.MatchAllRegex("path"),
 			Fields: map[string]*framework.FieldSchema{
 				"path": {
@@ -45,9 +55,15 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Description: "The versions to unarchive. The versions will be restored and their data will be returned on normal get requests.",
 				},
 			},
-			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: b.upgradeCheck(b.pathUndeleteWrite()),
-				logical.CreateOperation: b.upgradeCheck(b.pathUndeleteWrite()),
+			Operations: map[logical.Operation]framework.OperationHandler{
+				logical.UpdateOperation: &framework.PathOperation{
+					Callback: b.upgradeCheck(b.pathUndeleteWrite()),
+					Responses: map[int][]framework.Response{
+						http.StatusNoContent: {{
+							Description: http.StatusText(http.StatusNoContent),
+						}},
+					},
+				},
 			},
 
 			HelpSynopsis:    undeleteHelpSyn,

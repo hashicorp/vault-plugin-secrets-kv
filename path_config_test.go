@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -6,11 +9,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Config(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathConfig(b.(*versionedKVBackend))}
 
 	d := 5 * time.Minute
 	data := map[string]interface{}{
@@ -20,7 +27,7 @@ func TestVersionedKV_Config(t *testing.T) {
 	}
 
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "config",
 		Storage:   storage,
 		Data:      data,
@@ -30,6 +37,12 @@ func TestVersionedKV_Config(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -41,6 +54,12 @@ func TestVersionedKV_Config(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["max_versions"] != uint32(4) {
 		t.Fatalf("Bad response: %#v", resp)
@@ -88,6 +107,8 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 
 			b, storage := getBackend(t)
 
+			paths := []*framework.Path{pathConfig(b.(*versionedKVBackend))}
+
 			// default value should be 0
 			req := &logical.Request{
 				Operation: logical.ReadOperation,
@@ -96,6 +117,13 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			}
 			resp, err := b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
+
 			got := resp.Data["delete_version_after"]
 			if got == nil {
 				t.Logf("resp: %#v", resp)
@@ -107,13 +135,19 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 				"delete_version_after": tt.ds1,
 			}
 			req = &logical.Request{
-				Operation: logical.CreateOperation,
+				Operation: logical.UpdateOperation,
 				Path:      "config",
 				Storage:   storage,
 				Data:      data,
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantNoResponse(t, resp, err)
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			req = &logical.Request{
 				Operation: logical.ReadOperation,
@@ -122,6 +156,12 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			d1 := getDuration(t, tt.ds1)
 			want, got := d1.String(), resp.Data["delete_version_after"]
@@ -135,13 +175,19 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 				"delete_version_after": tt.ds2,
 			}
 			req = &logical.Request{
-				Operation: logical.CreateOperation,
+				Operation: logical.UpdateOperation,
 				Path:      "config",
 				Storage:   storage,
 				Data:      data,
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantNoResponse(t, resp, err)
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			req = &logical.Request{
 				Operation: logical.ReadOperation,
@@ -150,6 +196,13 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			}
 			resp, err = b.HandleRequest(context.Background(), req)
 			wantResponse(t, resp, err)
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
+
 			want, got = tt.want.String(), resp.Data["delete_version_after"]
 			if want != got {
 				t.Logf("resp: %#v", resp)

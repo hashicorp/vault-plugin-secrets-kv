@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -190,7 +193,6 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 			Pattern: ".*",
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
-				logical.CreateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.PatchOperation:  &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.ReadOperation:   &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.DeleteOperation: &framework.PathOperation{Callback: handler, Unpublished: true},

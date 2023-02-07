@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -13,7 +16,9 @@ import (
 	"github.com/go-test/deep"
 
 	log "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/logging"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -75,6 +80,8 @@ func expectedMetadataKeys() map[string]struct{} {
 func TestVersionedKV_Data_Put(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	customMetadata := map[string]string{
 		"foo": "abc",
 		"bar": "def",
@@ -113,6 +120,12 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
@@ -146,6 +159,12 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
@@ -162,6 +181,8 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 
 func TestVersionedKV_Data_Put_ZeroCas(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
 
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
@@ -183,6 +204,12 @@ func TestVersionedKV_Data_Put_ZeroCas(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.CreateOperation,
@@ -205,6 +232,8 @@ func TestVersionedKV_Data_Put_ZeroCas(t *testing.T) {
 
 func TestVersionedKV_Data_Get(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
 
 	req := &logical.Request{
 		Operation: logical.ReadOperation,
@@ -259,6 +288,12 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data CreateOperation request failed, err: %s, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["version"] != uint64(1) {
 		t.Fatalf("epxected version to be 1, resp: %#v", resp)
@@ -274,6 +309,12 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if !reflect.DeepEqual(resp.Data["data"], data["data"]) {
 		t.Fatalf("Bad response: %#v", resp)
@@ -310,6 +351,8 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 func TestVersionedKV_Data_Delete(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -327,6 +370,12 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["version"] != uint64(1) {
 		t.Fatalf("Bad response: %#v", resp)
@@ -342,6 +391,12 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -378,6 +433,8 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	// Write 10 versions
 	for i := 0; i < 10; i++ {
 		data := map[string]interface{}{
@@ -397,6 +454,12 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 		if err != nil || (resp != nil && resp.IsError()) {
 			t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
+			resp,
+			true,
+		)
 
 		expectedVersion := uint64(i + 1)
 		if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
@@ -439,6 +502,12 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	expectedVersion := uint64(11)
 	if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
@@ -466,6 +535,8 @@ func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
 func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	// Write 10 versions
 	for i := 0; i < 10; i++ {
 		data := map[string]interface{}{
@@ -485,6 +556,12 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 		if err != nil || (resp != nil && resp.IsError()) {
 			t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
+			resp,
+			true,
+		)
 
 		expectedVersion := uint64(i + 1)
 		if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
@@ -527,6 +604,12 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data PatchOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	expectedVersion := uint64(11)
 	if actualVersion := resp.Data["version"]; actualVersion != expectedVersion {
@@ -554,6 +637,8 @@ func TestVersionedKV_Data_Patch_CleanupOldVersions(t *testing.T) {
 func TestVersionedKV_Reload_Policy(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -574,6 +659,12 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 		if err != nil || (resp != nil && resp.IsError()) {
 			t.Fatalf("err:%s resp:%#v\n", err, resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
+			resp,
+			true,
+		)
 	}
 
 	config := &logical.BackendConfig{
@@ -600,6 +691,12 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 		if err != nil || (resp != nil && resp.IsError()) {
 			t.Fatalf("err:%s resp:%#v\n", err, resp)
 		}
+		schema.ValidateResponse(
+			t,
+			schema.FindResponseSchema(t, paths, 0, req.Operation),
+			resp,
+			true,
+		)
 
 		if !reflect.DeepEqual(resp.Data["data"], data["data"]) {
 			t.Fatalf("Bad response: %#v", resp)
@@ -672,12 +769,14 @@ func TestVersionedKV_Patch_NotFound(t *testing.T) {
 func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	config := map[string]interface{}{
 		"cas_required": true,
 	}
 
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "config",
 		Storage:   storage,
 		Data:      config,
@@ -685,7 +784,7 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("CreateOperation request for config failed - err:%s resp:%#v\n", err, resp)
+		t.Fatalf("UpdateOperation request for config failed - err:%s resp:%#v\n", err, resp)
 	}
 
 	data := map[string]interface{}{
@@ -708,6 +807,12 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("CreateOperation request for data failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["version"] != uint64(1) {
 		t.Fatalf("Version 1 was not created - err:%s resp:%#v\n", err, resp)
@@ -771,6 +876,8 @@ func TestVersionedKV_Patch_CASValidation(t *testing.T) {
 
 func TestVersionedKV_Patch_NoData(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -788,6 +895,12 @@ func TestVersionedKV_Patch_NoData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.PatchOperation,
@@ -815,6 +928,8 @@ func TestVersionedKV_Patch_NoData(t *testing.T) {
 
 func TestVersionedKV_Patch_Success(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
 
 	customMetadata := map[string]string{
 		"foo": "abc",
@@ -857,6 +972,12 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
@@ -891,6 +1012,12 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data PatchOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if diff := deep.Equal(getKeySet(resp.Data), expectedMetadataKeys()); len(diff) > 0 {
 		t.Fatalf("metadata map keys mismatch, diff: %#v", diff)
@@ -911,6 +1038,12 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("data ReadOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	expectedData := map[string]interface{}{
 		"bar": "baz",
@@ -929,6 +1062,8 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -946,6 +1081,12 @@ func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.DeleteOperation,
@@ -958,6 +1099,12 @@ func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("DeleteOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -1038,6 +1185,8 @@ func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {
 func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
+
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -1055,13 +1204,19 @@ func TestVersionedKV_Patch_CurrentVersionDestroyed(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("CreateOperation request failed - err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	versionsToDestroy := map[string]interface{}{
 		"versions": []int{1},
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "destroy/foo",
 		Storage:   storage,
 		Data:      versionsToDestroy,
