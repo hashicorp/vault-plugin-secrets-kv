@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -116,7 +119,7 @@ func TestDeleteVersionAfter(t *testing.T) {
 				"delete_version_after": tt.mount.String(),
 			}
 			req := &logical.Request{
-				Operation: logical.CreateOperation,
+				Operation: logical.UpdateOperation,
 				Path:      "config",
 				Storage:   storage,
 				Data:      data,
@@ -210,7 +213,7 @@ func TestDeleteVersionAfter(t *testing.T) {
 				"versions": "1",
 			}
 			req = &logical.Request{
-				Operation: logical.CreateOperation,
+				Operation: logical.UpdateOperation,
 				Path:      "delete/foo",
 				Storage:   storage,
 				Data:      data,
@@ -222,7 +225,7 @@ func TestDeleteVersionAfter(t *testing.T) {
 				"versions": "1",
 			}
 			req = &logical.Request{
-				Operation: logical.CreateOperation,
+				Operation: logical.UpdateOperation,
 				Path:      "undelete/foo",
 				Storage:   storage,
 				Data:      data,

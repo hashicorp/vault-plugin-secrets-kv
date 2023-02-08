@@ -62,7 +62,16 @@ $ make
 $ make dev
 ```
 
-Put the plugin binary into a location of your choice. This directory
+Once you've done that, there are two approaches to testing your new plugin version
+in Vault. You can add a temporary `replace` declaration in your local Vault checkout's
+go.mod (above the `require` declarations), such as:
+
+```
+replace github.com/hashicorp/vault-plugin-secrets-kv => /path/to/your/project/vault-plugin-secrets-kv
+```
+
+Alternatively, you could go through the plugin process. To do this,
+put the plugin binary into a location of your choice. This directory
 will be specified as the [`plugin_directory`](https://www.vaultproject.io/docs/configuration/index.html#plugin_directory)
 in the Vault config used to start the server.
 

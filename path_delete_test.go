@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -5,11 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Delete_Put(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := pathsDelete(b.(*versionedKVBackend))
 
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
@@ -63,7 +69,7 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "delete/foo",
 		Storage:   storage,
 		Data:      data,
@@ -73,6 +79,12 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -109,6 +121,8 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 func TestVersionedKV_Undelete_Put(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := pathsDelete(b.(*versionedKVBackend))
+
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -161,7 +175,7 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "delete/foo",
 		Storage:   storage,
 		Data:      data,
@@ -171,13 +185,19 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	data = map[string]interface{}{
 		"versions": "1,2",
 	}
 
 	req = &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "undelete/foo",
 		Storage:   storage,
 		Data:      data,
@@ -187,6 +207,12 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 1, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,

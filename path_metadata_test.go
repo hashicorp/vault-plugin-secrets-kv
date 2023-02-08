@@ -1,17 +1,25 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
 	"context"
 	"fmt"
-	"github.com/go-test/deep"
-	"github.com/hashicorp/vault/sdk/logical"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-test/deep"
+	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
+	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Metadata_Put(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
 	d := 5 * time.Minute
 
@@ -38,6 +46,12 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -49,6 +63,12 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["max_versions"] != uint32(2) {
 		t.Fatalf("Bad response: %#v", resp)
@@ -170,6 +190,12 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["current_version"] != uint64(3) {
 		t.Fatalf("Bad response: %#v", resp)
@@ -205,6 +231,12 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	data = map[string]interface{}{
 		"data": map[string]interface{}{
@@ -239,6 +271,12 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["current_version"] != uint64(4) {
 		t.Fatalf("Bad response: %#v", resp)
@@ -259,6 +297,8 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 
 func TestVersionedKV_Metadata_Delete(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
 	// Create a few versions
 	for i := 0; i <= 5; i++ {
@@ -295,6 +335,12 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	// Read the data path
 	req = &logical.Request{
@@ -348,6 +394,7 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 
 func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
 	b, storage := getBackend(t)
+
 	metadataPath := "metadata/foo"
 
 	stringToRepeat := "a"
@@ -542,6 +589,8 @@ func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
 func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
+
 	metadataPath := "metadata/foo"
 
 	data := map[string]interface{}{
@@ -560,6 +609,12 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("Write err: %s, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -572,6 +627,12 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("Read err: %s, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	// writing custom_metadata as {} should result in nil
 	if diff := deep.Equal(resp.Data["custom_metadata"], map[string]string(nil)); len(diff) > 0 {
@@ -581,6 +642,8 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 
 func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
 	metadataPath := "metadata/foo"
 	expectedMaxVersions := uint32(5)
@@ -603,6 +666,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("Write err: %s, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -615,6 +684,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("Read err: %s, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["max_versions"] != expectedMaxVersions {
 		t.Fatalf("max_versions mismatch, expected: %d, actual: %d, resp: %#v",
@@ -658,6 +733,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("Write err: %s, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -670,6 +751,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("Read err: %s, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	// max_versions not provided, should not have changed
 	if resp.Data["max_versions"] != expectedMaxVersions {
@@ -712,6 +799,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("Write err: %s, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -725,6 +818,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t.Fatalf("Read err: %s, resp %#v", err, resp)
 	}
 
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 	// max_versions not provided, should not have changed
 	if resp.Data["max_versions"] != expectedMaxVersions {
 		t.Fatalf("max_versions mismatch, expected: %d, actual: %d",
@@ -762,6 +861,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("Write err: %s, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -774,6 +879,12 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("Read err: %s, resp %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	// custom_metadata not provided, should not have changed
 	if diff := deep.Equal(resp.Data["custom_metadata"], expectedCustomMetadata); len(diff) > 0 {
@@ -958,8 +1069,10 @@ func TestVersionedKV_Metadata_Patch_NotFound(t *testing.T) {
 func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	b, storage := getBackend(t)
 
+	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
+
 	req := &logical.Request{
-		Operation: logical.CreateOperation,
+		Operation: logical.UpdateOperation,
 		Path:      "config",
 		Storage:   storage,
 		Data: map[string]interface{}{
@@ -972,6 +1085,12 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("config request failed, err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.CreateOperation,
@@ -987,6 +1106,12 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("metadata create request failed, err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.PatchOperation,
@@ -1002,6 +1127,12 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	if err != nil || resp == nil || resp.IsError() {
 		t.Fatalf("metadata patch request failed, err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if len(resp.Warnings) != 1 ||
 		!strings.Contains(resp.Warnings[0], "\"cas_required\" set to false, but is mandated by backend config") {
@@ -1019,6 +1150,12 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("metadata create request failed, err:%s resp:%#v\n", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if resp.Data["cas_required"] != false {
 		t.Fatalf("expected cas_required to be set to false despite warning")
@@ -1093,6 +1230,9 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			b, storage := getBackend(t)
+
+			paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
+
 			path := "metadata/" + tc.name
 
 			req := &logical.Request{
@@ -1109,6 +1249,12 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			if err != nil || (resp != nil && resp.IsError()) {
 				t.Fatalf("create request failed, err: %#v, resp: %#v", err, resp)
 			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			req = &logical.Request{
 				Operation: logical.PatchOperation,
@@ -1124,6 +1270,12 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			if err != nil || (resp != nil && resp.IsError()) {
 				t.Fatalf("patch request failed, err: %#v, resp: %#v", err, resp)
 			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			req = &logical.Request{
 				Operation: logical.ReadOperation,
@@ -1136,6 +1288,12 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			if err != nil || (resp != nil && resp.IsError()) {
 				t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
 			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			var ok bool
 			var customMetadata map[string]string
@@ -1199,6 +1357,9 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			b, storage := getBackend(t)
+
+			paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
+
 			path := "metadata/" + tc.name
 
 			req := &logical.Request{
@@ -1216,6 +1377,12 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			if err != nil || (resp != nil && resp.IsError()) {
 				t.Fatalf("create request failed, err: %#v, resp: %#v", err, resp)
 			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			req = &logical.Request{
 				Operation: logical.ReadOperation,
@@ -1228,6 +1395,12 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			if err != nil || (resp != nil && resp.IsError()) {
 				t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
 			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			initialMetadata := resp.Data
 
@@ -1243,6 +1416,12 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			if err != nil || (resp != nil && resp.IsError()) {
 				t.Fatalf("patch request failed, err: %#v, resp: %#v", err, resp)
 			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			req = &logical.Request{
 				Operation: logical.ReadOperation,
@@ -1255,6 +1434,12 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			if err != nil || (resp != nil && resp.IsError()) {
 				t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
 			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
 			patchedMetadata := resp.Data
 
@@ -1288,6 +1473,9 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 
 func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	b, storage := getBackend(t)
+
+	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
+
 	path := "metadata/nils_unset"
 
 	req := &logical.Request{
@@ -1304,6 +1492,12 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("create request failed, err: %#v, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -1316,6 +1510,12 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if maxVersions := resp.Data["max_versions"].(uint32); maxVersions != 10 {
 		t.Fatalf("expected max_versions to be 10")
@@ -1335,6 +1535,12 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("patch request failed, err: %#v, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	req = &logical.Request{
 		Operation: logical.ReadOperation,
@@ -1347,6 +1553,12 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("read request failed, err: %#v, resp: %#v", err, resp)
 	}
+	schema.ValidateResponse(
+		t,
+		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		resp,
+		true,
+	)
 
 	if maxVersions := resp.Data["max_versions"].(uint32); maxVersions != 0 {
 		t.Fatalf("expected max_versions to be unset to zero value")

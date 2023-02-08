@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -18,11 +21,43 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func matchAllNoTrailingSlashRegex(name string) string {
+	return fmt.Sprintf(`(?P<%s>.*?[^/]$)`, name)
+}
+
 // pathConfig returns the path configuration for CRUD operations on the backend
 // configuration.
 func pathData(b *versionedKVBackend) *framework.Path {
+	updateCreatePatchResponseSchema := map[int][]framework.Response{
+		http.StatusOK: {{
+			Description: http.StatusText(http.StatusOK),
+			Fields: map[string]*framework.FieldSchema{
+				"version": {
+					Type:     framework.TypeInt64,
+					Required: true,
+				},
+				"created_time": {
+					Type:     framework.TypeTime,
+					Required: true,
+				},
+				"deletion_time": {
+					Type:     framework.TypeString,
+					Required: true,
+				},
+				"destroyed": {
+					Type:     framework.TypeBool,
+					Required: true,
+				},
+				"custom_metadata": {
+					Type:     framework.TypeMap,
+					Required: true,
+				},
+			},
+		}},
+	}
+
 	return &framework.Path{
-		Pattern: "data/" + framework.MatchAllRegex("path"),
+		Pattern: "data/" + matchAllNoTrailingSlashRegex("path"),
 		Fields: map[string]*framework.FieldSchema{
 			"path": {
 				Type:        framework.TypeString,
@@ -46,12 +81,45 @@ version matches the version specified in the cas parameter.`,
 				Description: "The contents of the data map will be stored and returned on read.",
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.UpdateOperation: b.upgradeCheck(b.pathDataWrite()),
-			logical.CreateOperation: b.upgradeCheck(b.pathDataWrite()),
-			logical.ReadOperation:   b.upgradeCheck(b.pathDataRead()),
-			logical.DeleteOperation: b.upgradeCheck(b.pathDataDelete()),
-			logical.PatchOperation:  b.upgradeCheck(b.pathDataPatch()),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Responses: updateCreatePatchResponseSchema,
+			},
+			logical.CreateOperation: &framework.PathOperation{
+				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Responses: updateCreatePatchResponseSchema,
+			},
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathDataRead()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"data": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+							"metadata": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+						},
+					}},
+				},
+			},
+			logical.DeleteOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathDataDelete()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
+			},
+			logical.PatchOperation: &framework.PathOperation{
+				Callback:  b.upgradeCheck(b.pathDataPatch()),
+				Responses: updateCreatePatchResponseSchema,
+			},
 		},
 
 		ExistenceCheck: b.dataExistenceCheck(),

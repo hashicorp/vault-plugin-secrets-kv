@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"path"
 	"time"
 
@@ -38,13 +42,37 @@ clears the current setting. Accepts a Go duration format string.`,
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigWrite()),
 				Summary:  "Configure backend level settings that are applied to every key in the key-value store.",
-			},
-			logical.CreateOperation: &framework.PathOperation{
-				Callback: b.upgradeCheck(b.pathConfigWrite()),
+				Responses: map[int][]framework.Response{
+					http.StatusNoContent: {{
+						Description: http.StatusText(http.StatusNoContent),
+					}},
+				},
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigRead()),
 				Summary:  "Read the backend level settings.",
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"max_versions": {
+								Type:        framework.TypeInt,
+								Description: "The number of versions to keep for each key.",
+								Required:    true,
+							},
+							"cas_required": {
+								Type:        framework.TypeBool,
+								Description: "If true, the backend will require the cas parameter to be set for each write",
+								Required:    true,
+							},
+							"delete_version_after": {
+								Type:        framework.TypeSignedDurationSecond,
+								Description: "The length of time before a version is deleted.",
+								Required:    true,
+							},
+						},
+					}},
+				},
 			},
 		},
 
@@ -142,10 +170,11 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 	}
 }
 
-const confHelpSyn = `Configures settings for the KV store`
-const confHelpDesc = `
+const (
+	confHelpSyn  = `Configures settings for the KV store`
+	confHelpDesc = `
 This path configures backend level settings that are applied to every key in the
-key-value store. This parameter accetps:
+key-value store. This parameter accepts:
 
 	* max_versions (int) - The number of versions to keep for each key. Defaults
 	  to 10
@@ -158,3 +187,4 @@ key-value store. This parameter accetps:
 	  delete_version_after on all keys. A zero duration clears the current
 	  setting. Accepts a Go duration format string.
 `
+)

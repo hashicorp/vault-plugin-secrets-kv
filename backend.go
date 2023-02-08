@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -91,7 +94,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	return b, nil
 }
 
-// Factory returns a new backend as logical.Backend.
+// VersionedKVFactory returns a new KVV2 backend as logical.Backend.
 func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	upgradeCtx, upgradeCancelFunc := context.WithCancel(ctx)
 
@@ -191,7 +194,6 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 			Pattern: ".*",
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
-				logical.CreateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.PatchOperation:  &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.ReadOperation:   &framework.PathOperation{Callback: handler, Unpublished: true},
 				logical.DeleteOperation: &framework.PathOperation{Callback: handler, Unpublished: true},

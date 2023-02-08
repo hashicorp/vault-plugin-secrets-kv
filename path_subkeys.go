@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kv
 
 import (
@@ -32,8 +35,25 @@ func pathSubkeys(b *versionedKVBackend) *framework.Path {
 				Description: "Specifies which version to retrieve. If not provided, the current version will be used.",
 			},
 		},
-		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.ReadOperation: b.upgradeCheck(b.pathSubkeysRead()),
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.ReadOperation: &framework.PathOperation{
+				Callback: b.upgradeCheck(b.pathSubkeysRead()),
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"subkeys": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+							"metadata": {
+								Type:     framework.TypeMap,
+								Required: true,
+							},
+						},
+					}},
+				},
+			},
 		},
 
 		HelpSynopsis:    subkeysHelpSyn,
