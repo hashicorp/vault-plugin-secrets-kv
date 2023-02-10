@@ -427,7 +427,7 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 	return nil
 }
 
-func (b *versionedKVBackend) kvEvent(ctx context.Context, eventType string, metadataPairs ...string) {
+func kvEvent(ctx context.Context, b *framework.Backend, kvVersion int, eventType string, metadataPairs ...string) {
 	ev, err := logical.NewEvent()
 	if err != nil {
 		b.Logger().Warn("Error creating event", "error", err)
@@ -447,7 +447,7 @@ func (b *versionedKVBackend) kvEvent(ctx context.Context, eventType string, meta
 		return
 	}
 	ev.Metadata = metadataBytes
-	err = b.SendEvent(ctx, logical.EventType("kv/"+eventType), ev)
+	err = b.SendEvent(ctx, logical.EventType(fmt.Sprintf("kv-v%d/%s", kvVersion, eventType)), ev)
 	// ignore events are disabled error
 	if err == framework.ErrNoEvents {
 		return

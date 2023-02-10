@@ -5,7 +5,6 @@ package kv
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"path"
 	"time"
@@ -162,10 +161,8 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 		defer b.globalConfigLock.Unlock()
 
 		b.globalConfig = config
-		b.kvEvent(ctx, "config_write",
-			"cas_required", fmt.Sprintf("%v", config.CasRequired),
-			"max_versions", fmt.Sprintf("%v", config.MaxVersions),
-		)
+		kvEvent(ctx, b.Backend, 2, "config-write",
+			"path", "config")
 		return nil, nil
 	}
 }

@@ -11,10 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-secure-stdlib/strutil"
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
@@ -413,10 +409,8 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
-		b.kvEvent(ctx, "metadataWrite",
-			"path", key,
-			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
-			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		kvEvent(ctx, b.Backend, 2, "metadata-write",
+			"path", "metadata/"+key,
 		)
 		return resp, err
 	}
@@ -530,10 +524,8 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		b.kvEvent(ctx, "metadataPatch",
-			"path", key,
-			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
-			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		kvEvent(ctx, b.Backend, 2, "metadata-patch",
+			"path", "metadata/"+key,
 		)
 		return resp, nil
 	}
@@ -578,10 +570,8 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 
 		// Use encrypted key storage to delete the key
 		err = es.Delete(ctx, key)
-		b.kvEvent(ctx, "metadataDelete",
-			"path", key,
-			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
-			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		kvEvent(ctx, b.Backend, 2, "metadata-delete",
+			"path", "metadata/"+key,
 		)
 		return nil, err
 	}
