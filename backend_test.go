@@ -2,7 +2,6 @@ package kv
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/logical"
@@ -29,21 +28,19 @@ func (m *mockEventsSender) Send(ctx context.Context, eventType logical.EventType
 	return nil
 }
 
-func (m *mockEventsSender) expectEvents(t *testing.T, expected []expectedEvent) {
+func (m *mockEventsSender) expectEvents(t *testing.T, expectedEvents []expectedEvent) {
 	t.Helper()
-	if len(m.eventsProcessed) != len(expected) {
-		t.Fatalf("Expected events: %v\nEvents processed: %v", expected, m.eventsProcessed)
+	if len(m.eventsProcessed) != len(expectedEvents) {
+		t.Fatalf("Expected events: %v\nEvents processed: %v", expectedEvents, m.eventsProcessed)
 	}
-	for i, e := range expected {
-		if e.eventType != m.eventsProcessed[i].EventType {
-			t.Fatalf("Mismatched event type at index %d. Expected %s, got %s\n%v", i, e.eventType, m.eventsProcessed[i].EventType, m.eventsProcessed)
+	for i, expected := range expectedEvents {
+		actual := m.eventsProcessed[i]
+		if expected.eventType != actual.EventType {
+			t.Fatalf("Mismatched event type at index %d. Expected %s, got %s\n%v", i, expected.eventType, actual.EventType, m.eventsProcessed)
 		}
-		metadata := make(map[string]interface{})
-		if err := json.Unmarshal(m.eventsProcessed[i].Event.Metadata, &metadata); err != nil {
-			t.Fatal(err)
-		}
-		if e.path != metadata["path"].(string) {
-			t.Fatalf("Mismatched path at index %d. Expected %s, got %s\n%v", i, e.path, metadata["path"].(string), m.eventsProcessed)
+		actualPath := actual.Event.Metadata.Fields["path"].GetStringValue()
+		if expected.path != actualPath {
+			t.Fatalf("Mismatched path at index %d. Expected %s, got %s\n%v", i, expected.path, actualPath, m.eventsProcessed)
 		}
 	}
 }

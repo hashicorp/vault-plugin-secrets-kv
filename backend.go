@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/helper/salt"
 	"github.com/hashicorp/vault/sdk/logical"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -446,7 +447,11 @@ func kvEvent(ctx context.Context, b *framework.Backend, kvVersion int, eventType
 		b.Logger().Warn("Error marshaling metadata", "error", err)
 		return
 	}
-	ev.Metadata = metadataBytes
+	ev.Metadata = &structpb.Struct{}
+	if err := ev.Metadata.UnmarshalJSON(metadataBytes); err != nil {
+		b.Logger().Warn("Error unmarshaling metadata into proto", "error", err)
+		return
+	}
 	err = b.SendEvent(ctx, logical.EventType(fmt.Sprintf("kv-v%d/%s", kvVersion, eventType)), ev)
 	// ignore events are disabled error
 	if err == framework.ErrNoEvents {
