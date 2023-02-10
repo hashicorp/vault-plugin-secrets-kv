@@ -15,7 +15,7 @@ import (
 )
 
 func TestVersionedKV_Config(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := []*framework.Path{pathConfig(b.(*versionedKVBackend))}
 
@@ -72,6 +72,10 @@ func TestVersionedKV_Config(t *testing.T) {
 	if resp.Data["delete_version_after"] != d.String() {
 		t.Fatalf("Bad response: %#v", resp)
 	}
+
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/config-write", "config"},
+	})
 }
 
 func getDuration(t *testing.T, in string) time.Duration {

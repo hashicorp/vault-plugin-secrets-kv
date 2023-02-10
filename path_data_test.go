@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/go-test/deep"
-
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/logging"
@@ -23,11 +22,18 @@ import (
 )
 
 func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
+	b, storage, _ := getBackendWithEvents(t)
+	return b, storage
+}
+
+func getBackendWithEvents(t *testing.T) (logical.Backend, logical.Storage, *mockEventsSender) {
+	events := &mockEventsSender{}
 	config := &logical.BackendConfig{
-		Logger:      logging.NewVaultLogger(log.Trace),
-		System:      &logical.StaticSystemView{},
-		StorageView: &logical.InmemStorage{},
-		BackendUUID: "test",
+		Logger:       logging.NewVaultLogger(log.Trace),
+		System:       &logical.StaticSystemView{},
+		StorageView:  &logical.InmemStorage{},
+		BackendUUID:  "test",
+		EventsSender: events,
 	}
 
 	b, err := VersionedKVFactory(context.Background(), config)
@@ -44,14 +50,14 @@ func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
 	resp, err := b.HandleRequest(context.Background(), req)
 	if err != nil {
 		t.Fatalf("unable to read config: %s", err.Error())
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if resp == nil || resp.IsError() {
 		t.Fatalf("Error during mount creation: %x", resp.Error().Error())
 	}
 
-	return b, config.StorageView
+	return b, config.StorageView, events
 }
 
 // getKeySet will produce a set of the keys that exist in m
@@ -78,7 +84,7 @@ func expectedMetadataKeys() map[string]struct{} {
 }
 
 func TestVersionedKV_Data_Put(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
 
@@ -177,6 +183,12 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 	if diff := deep.Equal(resp.Data["custom_metadata"], customMetadata); len(diff) > 0 {
 		t.Fatalf("custom_metadata map mismatch, diff: %#v", diff)
 	}
+
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/metadata-write", "metadata/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+	})
 }
 
 func TestVersionedKV_Data_Put_ZeroCas(t *testing.T) {
@@ -349,7 +361,7 @@ func TestVersionedKV_Data_Get(t *testing.T) {
 }
 
 func TestVersionedKV_Data_Delete(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
 
@@ -428,6 +440,10 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-delete", "data/foo"},
+	})
 }
 
 func TestVersionedKV_Data_Put_CleanupOldVersions(t *testing.T) {
@@ -927,7 +943,7 @@ func TestVersionedKV_Patch_NoData(t *testing.T) {
 }
 
 func TestVersionedKV_Patch_Success(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := []*framework.Path{pathData(b.(*versionedKVBackend))}
 
@@ -1057,6 +1073,12 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	if diff := deep.Equal(resp.Data["data"], expectedData); len(diff) > 0 {
 		t.Fatalf("secret data mismatch, diff: %#v\n", diff)
 	}
+
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/metadata-write", "metadata/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-patch", "data/foo"},
+	})
 }
 
 func TestVersionedKV_Patch_CurrentVersionDeleted(t *testing.T) {

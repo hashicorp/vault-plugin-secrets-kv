@@ -158,51 +158,58 @@ func TestPassthroughBackend_Read(t *testing.T) {
 }
 
 func TestPassthroughBackend_Delete(t *testing.T) {
-	test := func(b logical.Backend) {
-		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
-		req.Data["raw"] = "test"
-		storage := req.Storage
+	for name, f := range map[string]func(*mockEventsSender) logical.Backend{
+		"no lease": testPassthroughBackendWithEvents,
+		"leased":   testPassthroughLeasedBackendWithEvents,
+	} {
+		t.Run(name, func(t *testing.T) {
+			events := &mockEventsSender{}
+			b := f(events)
+			req := logical.TestRequest(t, logical.UpdateOperation, "foo")
+			req.Data["raw"] = "test"
+			storage := req.Storage
 
-		if _, err := b.HandleRequest(context.Background(), req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+			if _, err := b.HandleRequest(context.Background(), req); err != nil {
+				t.Fatalf("err: %v", err)
+			}
 
-		req = logical.TestRequest(t, logical.DeleteOperation, "foo")
-		req.Storage = storage
-		resp, err := b.HandleRequest(context.Background(), req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp != nil {
-			t.Fatalf("bad: %v", resp)
-		}
-		schema.ValidateResponse(
-			t,
-			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
-			resp,
-			true,
-		)
+			req = logical.TestRequest(t, logical.DeleteOperation, "foo")
+			req.Storage = storage
+			resp, err := b.HandleRequest(context.Background(), req)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if resp != nil {
+				t.Fatalf("bad: %v", resp)
+			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
+				resp,
+				true,
+			)
 
-		req = logical.TestRequest(t, logical.ReadOperation, "foo")
-		req.Storage = storage
-		resp, err = b.HandleRequest(context.Background(), req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if resp != nil {
-			t.Fatalf("bad: %v", resp)
-		}
-		schema.ValidateResponse(
-			t,
-			schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
-			resp,
-			true,
-		)
+			req = logical.TestRequest(t, logical.ReadOperation, "foo")
+			req.Storage = storage
+			resp, err = b.HandleRequest(context.Background(), req)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if resp != nil {
+				t.Fatalf("bad: %v", resp)
+			}
+			schema.ValidateResponse(
+				t,
+				schema.FindResponseSchema(t, b.(*PassthroughBackend).Paths, 0, req.Operation),
+				resp,
+				true,
+			)
+			events.expectEvents(t, []expectedEvent{
+				{"kv-v1/write", "foo"},
+				{"kv-v1/delete", "foo"},
+			})
+		})
 	}
-	b := testPassthroughBackend()
-	test(b)
-	b = testPassthroughLeasedBackend()
-	test(b)
 }
 
 func TestPassthroughBackend_List(t *testing.T) {
@@ -264,23 +271,33 @@ func TestPassthroughBackend_Revoke(t *testing.T) {
 }
 
 func testPassthroughBackend() logical.Backend {
+	return testPassthroughBackendWithEvents(nil)
+}
+
+func testPassthroughLeasedBackend() logical.Backend {
+	return testPassthroughLeasedBackendWithEvents(nil)
+}
+
+func testPassthroughBackendWithEvents(events *mockEventsSender) logical.Backend {
 	b, _ := PassthroughBackendFactory(context.Background(), &logical.BackendConfig{
 		Logger: nil,
 		System: logical.StaticSystemView{
 			DefaultLeaseTTLVal: time.Hour * 24,
 			MaxLeaseTTLVal:     time.Hour * 24 * 32,
 		},
+		EventsSender: events,
 	})
 	return b
 }
 
-func testPassthroughLeasedBackend() logical.Backend {
+func testPassthroughLeasedBackendWithEvents(events *mockEventsSender) logical.Backend {
 	b, _ := LeasedPassthroughBackendFactory(context.Background(), &logical.BackendConfig{
 		Logger: nil,
 		System: logical.StaticSystemView{
 			DefaultLeaseTTLVal: time.Hour * 24,
 			MaxLeaseTTLVal:     time.Hour * 24 * 32,
 		},
+		EventsSender: events,
 	})
 	return b
 }

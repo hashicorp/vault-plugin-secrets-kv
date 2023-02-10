@@ -424,6 +424,11 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			resp.AddWarning(warning)
 		}
 
+		kvEvent(ctx, b.Backend, 2, "data-write",
+			"path", "data/"+key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return resp, nil
 	}
 }
@@ -619,6 +624,11 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			resp.AddWarning(warning)
 		}
 
+		kvEvent(ctx, b.Backend, 2, "data-patch",
+			"path", "data/"+key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return resp, nil
 	}
 }
@@ -664,6 +674,11 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 			return nil, err
 		}
 
+		kvEvent(ctx, b.Backend, 2, "data-delete",
+			"path", "data/"+key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, nil
 	}
 }

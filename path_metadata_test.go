@@ -296,7 +296,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 }
 
 func TestVersionedKV_Metadata_Delete(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
@@ -387,9 +387,17 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 		if v != nil {
 			t.Fatal("Version wasn't deleted")
 		}
-
 	}
 
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/metadata-delete", "metadata/foo"},
+	})
 }
 
 func TestVersionedKV_Metadata_Put_Bad_CustomMetadata(t *testing.T) {
@@ -1356,7 +1364,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			b, storage := getBackend(t)
+			b, storage, events := getBackendWithEvents(t)
 
 			paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
@@ -1467,6 +1475,11 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 					t.Fatalf("patched key %s mismatch, expected: %#v, actual %#v", k, expectedVal, v)
 				}
 			}
+
+			events.expectEvents(t, []expectedEvent{
+				{"kv-v2/metadata-write", path},
+				{"kv-v2/metadata-patch", path},
+			})
 		})
 	}
 }

@@ -161,7 +161,8 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 		defer b.globalConfigLock.Unlock()
 
 		b.globalConfig = config
-
+		kvEvent(ctx, b.Backend, 2, "config-write",
+			"path", "config")
 		return nil, nil
 	}
 }
