@@ -13,7 +13,7 @@ import (
 )
 
 func TestVersionedKV_Delete_Put(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := pathsDelete(b.(*versionedKVBackend))
 
@@ -116,10 +116,15 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 		t.Fatalf("Bad response: %#v", resp)
 	}
 
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/delete", "delete/foo"},
+	})
 }
 
 func TestVersionedKV_Undelete_Put(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := pathsDelete(b.(*versionedKVBackend))
 
@@ -232,4 +237,11 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	if resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["deletion_time"].(string) != "" {
 		t.Fatalf("Bad response: %#v", resp)
 	}
+
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/delete", "delete/foo"},
+		{"kv-v2/undelete", "undelete/foo"},
+	})
 }

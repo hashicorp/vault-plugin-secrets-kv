@@ -5,6 +5,7 @@ package kv
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/hashicorp/vault/sdk/framework"
@@ -92,7 +93,11 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 				return nil, err
 			}
 		}
-
+		kvEvent(ctx, b.Backend, 2, "destroy",
+			"path", "destroy/"+key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, nil
 	}
 }

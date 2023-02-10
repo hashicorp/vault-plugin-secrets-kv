@@ -13,7 +13,7 @@ import (
 )
 
 func TestVersionedKV_Destroy_Put(t *testing.T) {
-	b, storage := getBackend(t)
+	b, storage, events := getBackendWithEvents(t)
 
 	paths := []*framework.Path{pathDestroy(b.(*versionedKVBackend))}
 
@@ -104,4 +104,10 @@ func TestVersionedKV_Destroy_Put(t *testing.T) {
 	if resp.Data["versions"].(map[string]interface{})["2"].(map[string]interface{})["destroyed"].(bool) != true {
 		t.Fatalf("Bad response: %#v", resp)
 	}
+
+	events.expectEvents(t, []expectedEvent{
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/destroy", "destroy/foo"},
+	})
 }

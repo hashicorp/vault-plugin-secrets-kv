@@ -5,6 +5,7 @@ package kv
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -121,7 +122,11 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-
+		kvEvent(ctx, b.Backend, 2, "undelete",
+			"path", "undelete/"+key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, nil
 	}
 }
@@ -174,7 +179,11 @@ func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-
+		kvEvent(ctx, b.Backend, 2, "delete",
+			"path", "delete/"+key,
+			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
+			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+		)
 		return nil, nil
 	}
 }

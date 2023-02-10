@@ -262,6 +262,10 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 			return nil, fmt.Errorf("failed to write: %v", err)
 		}
 
+		kvEvent(ctx, b.Backend, 1, "write",
+			"path", key,
+		)
+
 		return nil, nil
 	}
 }
@@ -274,6 +278,10 @@ func (b *PassthroughBackend) handleDelete() framework.OperationFunc {
 		if err := req.Storage.Delete(ctx, key); err != nil {
 			return nil, err
 		}
+
+		kvEvent(ctx, b.Backend, 1, "delete",
+			"path", key,
+		)
 
 		return nil, nil
 	}
