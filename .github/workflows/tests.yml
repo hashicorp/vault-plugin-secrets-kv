@@ -1,0 +1,13 @@
+name: hashicorp/vault-plugin-secrets-kv/tests
+on:
+  push:
+jobs:
+  go-test:
+    runs-on: ubuntu-latest
+    container:
+      image: docker.mirror.hashicorp.services/cimg/go:1.17.2
+      env:
+        GO111MODULE: 'on'
+    steps:
+    - uses: actions/checkout@v3.3.0
+    - run: go test
