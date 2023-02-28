@@ -92,6 +92,7 @@ Once the server is started, register the plugin in the Vault server's [plugin ca
 ```sh
 $ vault plugin register \
         -sha256=<expected SHA256 Hex value of the plugin binary> \
+        -command="vault-plugin-secrets-kv"
         secret \
         kv
 ```
