@@ -1,6 +1,8 @@
 name: tests
 on:
   push:
+permissions:
+  contents: none
 jobs:
   go-test:
     runs-on: ubuntu-latest
