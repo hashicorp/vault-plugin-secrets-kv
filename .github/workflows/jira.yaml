@@ -48,7 +48,7 @@ jobs:
     - name: Search
       if: github.event.action != 'opened'
       id: search
-      uses: tomhjp/gh-action-jira-search@d07899d5231e645b2c40bb247daeb5c3d26c6232 # pin@v0.2.1
+      uses: tomhjp/gh-action-jira-search@04700b457f317c3e341ce90da5a3ff4ce058f2fa # pin@v0.2.2
       with:
         # cf[10089] is Issue Link custom field
         jql: 'project = "VAULT" and cf[10089]="${{ github.event.issue.html_url || github.event.pull_request.html_url }}"'
