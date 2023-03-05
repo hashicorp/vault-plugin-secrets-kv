@@ -7,15 +7,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Destroy_Put(t *testing.T) {
 	b, storage, events := getBackendWithEvents(t)
-
-	paths := []*framework.Path{pathDestroy(b.(*versionedKVBackend))}
 
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
@@ -81,7 +78,7 @@ func TestVersionedKV_Destroy_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)

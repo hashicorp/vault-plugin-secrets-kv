@@ -11,15 +11,12 @@ import (
 	"time"
 
 	"github.com/go-test/deep"
-	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Metadata_Put(t *testing.T) {
 	b, storage := getBackend(t)
-
-	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
 	d := 5 * time.Minute
 
@@ -48,7 +45,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -65,7 +62,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -192,7 +189,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -233,7 +230,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -273,7 +270,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -297,8 +294,6 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 
 func TestVersionedKV_Metadata_Delete(t *testing.T) {
 	b, storage, events := getBackendWithEvents(t)
-
-	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
 	// Create a few versions
 	for i := 0; i <= 5; i++ {
@@ -337,7 +332,7 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -597,8 +592,6 @@ func TestVersionedKv_Metadata_Put_Too_Many_CustomMetadata_Keys(t *testing.T) {
 func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	b, storage := getBackend(t)
 
-	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
-
 	metadataPath := "metadata/foo"
 
 	data := map[string]interface{}{
@@ -619,7 +612,7 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -637,7 +630,7 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -650,8 +643,6 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 
 func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	b, storage := getBackend(t)
-
-	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
 
 	metadataPath := "metadata/foo"
 	expectedMaxVersions := uint32(5)
@@ -676,7 +667,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -694,7 +685,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -743,7 +734,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -761,7 +752,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -809,7 +800,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -828,7 +819,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -871,7 +862,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -889,7 +880,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1077,8 +1068,6 @@ func TestVersionedKV_Metadata_Patch_NotFound(t *testing.T) {
 func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	b, storage := getBackend(t)
 
-	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
-
 	req := &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "config",
@@ -1095,7 +1084,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1116,7 +1105,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1137,7 +1126,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1160,7 +1149,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1239,8 +1228,6 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			b, storage := getBackend(t)
 
-			paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
-
 			path := "metadata/" + tc.name
 
 			req := &logical.Request{
@@ -1259,7 +1246,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -1280,7 +1267,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -1298,7 +1285,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -1366,8 +1353,6 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			b, storage, events := getBackendWithEvents(t)
 
-			paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
-
 			path := "metadata/" + tc.name
 
 			req := &logical.Request{
@@ -1387,7 +1372,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -1405,7 +1390,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -1426,7 +1411,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -1444,7 +1429,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 			}
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -1487,8 +1472,6 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	b, storage := getBackend(t)
 
-	paths := []*framework.Path{pathMetadata(b.(*versionedKVBackend))}
-
 	path := "metadata/nils_unset"
 
 	req := &logical.Request{
@@ -1507,7 +1490,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1525,7 +1508,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1550,7 +1533,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -1568,7 +1551,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -36,8 +35,6 @@ func TestVersionedKV_Subkeys_NotFound(t *testing.T) {
 // version of an entry is read if the version param is not provided
 func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	b, storage := getBackend(t)
-
-	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
 
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
@@ -82,7 +79,7 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -132,8 +129,6 @@ func TestVersionedKV_Subkeys_CurrentVersion(t *testing.T) {
 func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 	b, storage := getBackend(t)
 
-	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
-
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      "data/foo",
@@ -182,7 +177,7 @@ func TestVersionedKV_Subkeys_VersionParam(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -309,8 +304,6 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 
 			b, storage := getBackend(t)
 
-			paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
-
 			req := &logical.Request{
 				Operation: logical.CreateOperation,
 				Path:      "data/foo",
@@ -356,7 +349,7 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 			if tc.expected != nil {
 				schema.ValidateResponse(
 					t,
-					schema.FindResponseSchema(t, paths, 0, req.Operation),
+					schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 					resp,
 					true,
 				)
@@ -372,8 +365,6 @@ func TestVersionedKV_Subkeys_DepthParam(t *testing.T) {
 // returned if the underlying data is also empty
 func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 	b, storage := getBackend(t)
-
-	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
 
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
@@ -401,7 +392,7 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -415,8 +406,6 @@ func TestVersionedKV_Subkeys_EmptyData(t *testing.T) {
 // is returned if the requested entry has been deleted
 func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 	b, storage := getBackend(t)
-
-	paths := []*framework.Path{pathSubkeys(b.(*versionedKVBackend))}
 
 	req := &logical.Request{
 		Operation: logical.CreateOperation,
@@ -446,7 +435,7 @@ func TestVersionedKV_Subkeys_VersionDeleted(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
