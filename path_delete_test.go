@@ -15,8 +15,6 @@ import (
 func TestVersionedKV_Delete_Put(t *testing.T) {
 	b, storage, events := getBackendWithEvents(t)
 
-	paths := pathsDelete(b.(*versionedKVBackend))
-
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -81,7 +79,7 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -126,8 +124,6 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 func TestVersionedKV_Undelete_Put(t *testing.T) {
 	b, storage, events := getBackendWithEvents(t)
 
-	paths := pathsDelete(b.(*versionedKVBackend))
-
 	data := map[string]interface{}{
 		"data": map[string]interface{}{
 			"bar": "baz",
@@ -192,7 +188,7 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -214,7 +210,7 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 1, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
