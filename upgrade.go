@@ -190,7 +190,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 
 		// Store the metadata
 		meta.AddVersion(version.CreatedTime, nil, 1)
-		err = b.writeKeyMetadata(ctx, s, meta)
+		err = b.writeKeyMetadata(ctx, s, meta, nil)
 		if err != nil {
 			return err
 		}

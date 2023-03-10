@@ -408,7 +408,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 			meta.CustomMetadata = customMetadataMap
 		}
 
-		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta, req.BatchHandle)
 		kvEvent(ctx, b.Backend, 2, "metadata-write",
 			"path", "metadata/"+key,
 		)
@@ -520,7 +520,7 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		if err = b.writeKeyMetadata(ctx, req.Storage, patchedMetadata); err != nil {
+		if err = b.writeKeyMetadata(ctx, req.Storage, patchedMetadata, req.BatchHandle); err != nil {
 			return nil, err
 		}
 

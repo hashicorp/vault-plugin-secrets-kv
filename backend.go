@@ -231,7 +231,7 @@ func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 	}
 }
 
-// Salt will load a the salt, or if one has not been created yet it will
+// Salt will load the salt, or if one has not been created yet, it will
 // generate and store a new salt.
 func (b *versionedKVBackend) Salt(ctx context.Context, s logical.Storage) (*salt.Salt, error) {
 	b.l.RLock()
@@ -256,7 +256,7 @@ func (b *versionedKVBackend) Salt(ctx context.Context, s logical.Storage) (*salt
 	return salt, nil
 }
 
-// policy loads the key policy for this backend, if one has not been created yet
+// policy loads the key policy for this backend, if one has not been created yet,
 // it will generate and store a new policy. The caller must have the backend lock.
 func (b *versionedKVBackend) policy(ctx context.Context, s logical.Storage) (*keysutil.Policy, error) {
 	// Try loading policy
@@ -378,7 +378,6 @@ func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, vers
 // getKeyMetadata returns the metadata object for the provided key, if no object
 // exits it will return nil.
 func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Storage, key string) (*KeyMetadata, error) {
-
 	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return nil, err
@@ -404,7 +403,7 @@ func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Stora
 }
 
 // writeKeyMetadata writes a metadata object to storage.
-func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) error {
+func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata, handle *logical.StorageBatchHandle) error {
 	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return err
@@ -417,15 +416,51 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 		return err
 	}
 
-	err = es.Put(ctx, &logical.StorageEntry{
-		Key:   meta.Key,
-		Value: bytes,
+	batchInput := logical.NewStorageBatchInput()
+	batchInput.AddOperation(&logical.StorageBatchOp{
+		OpType: logical.BatchPutOperation,
+		Entry: &logical.StorageEntry{
+			Key:   meta.Key,
+			Value: bytes,
+		},
 	})
+	_, err = es.Batch(ctx, batchInput, handle)
+
+	// err = es.Put(ctx, &logical.StorageEntry{
+	// 	Key:   meta.Key,
+	// 	Value: bytes,
+	// })
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (b *versionedKVBackend) entryForKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) (*logical.StorageEntry, error) {
+	wrapper, err := b.getKeyEncryptor(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	es := wrapper.Wrap(s)
+
+	bytes, err := proto.Marshal(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	encPath, err := es.(*keysutil.EncryptedKeyStorage).EncryptPath(meta.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	entry := &logical.StorageEntry{
+		Key:   encPath,
+		Value: bytes,
+	}
+
+	return entry, nil
 }
 
 func kvEvent(ctx context.Context, b *framework.Backend, kvVersion int, eventType string, metadataPairs ...string) {

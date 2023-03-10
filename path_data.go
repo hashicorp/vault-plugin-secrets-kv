@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -325,7 +326,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Parse data, this can happen before the lock so we can fail early if
+		// Parse data, this can happen before the lock, so we can fail early if
 		// not set.
 		var marshaledData []byte
 		{
@@ -389,23 +390,61 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		// ------------------------- batch starting here -------------------------
+		// batchInput := logical.StorageBatchInput{}
+		// batchInput.Accumulate()
+		// metaEntry, err := b.entryForKeyMetadata(ctx, req.Storage, meta)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		//
+		// batchInput.AddOperation(&logical.StorageBatchOp{
+		// 	OpType: logical.BatchPutOperation,
+		// 	Entry: &logical.StorageEntry{
+		// 		Key:   versionKey,
+		// 		Value: buf,
+		// 	},
+		// })
+		// batchInput.AddOperation(&logical.StorageBatchOp{
+		// 	OpType: logical.BatchPutOperation,
+		// 	Entry:  metaEntry,
+		// })
+
 		// Write the new version
-		if err := req.Storage.Put(ctx, &logical.StorageEntry{
-			Key:   versionKey,
-			Value: buf,
-		}); err != nil {
-			return nil, err
-		}
+		// if err := req.Storage.Put(ctx, &logical.StorageEntry{
+		// 	Key:   versionKey,
+		// 	Value: buf,
+		// }); err != nil {
+		// 	return nil, err
+		// }
+		batchInput := logical.NewStorageBatchInput().DoNotCommit()
+		batchInput.AddOperation(&logical.StorageBatchOp{
+			OpType: logical.BatchPutOperation,
+			Entry: &logical.StorageEntry{
+				Key:   versionKey,
+				Value: buf,
+			},
+		})
+		ll := b.Logger().Named("kv-logger")
+		ll.Trace("about to call Batch()", "input.commit", batchInput.Commit(), "typeof req.storage", reflect.TypeOf(req.Storage), "actual input obj", batchInput)
+		_, err = req.Storage.Batch(ctx, batchInput, req.BatchHandle)
+		// if err := req.Storage.Put(ctx, &logical.StorageEntry{
+		// 	Key:   versionKey,
+		// 	Value: buf,
+		// }); err != nil {
+		// 	return nil, err
+		// }
 
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
 		// metadata or the engine's config
 		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions)
 
-		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta, req.BatchHandle)
 		if err != nil {
 			return nil, err
 		}
+		// ------------------------- batch ending here -------------------------
 
 		resp := &logical.Response{
 			Data: map[string]interface{}{
@@ -602,7 +641,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		// metadata or the engine's config
 		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
 
-		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta, req.BatchHandle)
 		if err != nil {
 			return nil, err
 		}
@@ -669,7 +708,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 
 		lv.DeletionTime = ptypes.TimestampNow()
 
-		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta, req.BatchHandle)
 		if err != nil {
 			return nil, err
 		}
