@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -325,7 +326,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Parse data, this can happen before the lock so we can fail early if
+		// Parse data, this can happen before the lock, so we can fail early if
 		// not set.
 		var marshaledData []byte
 		{
@@ -389,11 +390,18 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Write the new version
-		if err := req.Storage.Put(ctx, &logical.StorageEntry{
-			Key:   versionKey,
-			Value: buf,
-		}); err != nil {
+		batchInput := logical.NewStorageBatchInput().DoNotCommit()
+		batchInput.AddOperation(&logical.StorageBatchOp{
+			OpType: logical.BatchPutOperation,
+			Entry: &logical.StorageEntry{
+				Key:   versionKey,
+				Value: buf,
+			},
+		})
+		ll := b.Logger().Named("kv-logger")
+		ll.Trace("about to call Batch()", "input.commit", batchInput.Commit(), "typeof req.storage", reflect.TypeOf(req.Storage), "actual input obj", batchInput)
+		_, err = req.Storage.Batch(ctx, batchInput)
+		if err != nil {
 			return nil, err
 		}
 

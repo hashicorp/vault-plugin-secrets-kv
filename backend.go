@@ -231,7 +231,7 @@ func (b *versionedKVBackend) Invalidate(ctx context.Context, key string) {
 	}
 }
 
-// Salt will load a the salt, or if one has not been created yet it will
+// Salt will load the salt, or if one has not been created yet, it will
 // generate and store a new salt.
 func (b *versionedKVBackend) Salt(ctx context.Context, s logical.Storage) (*salt.Salt, error) {
 	b.l.RLock()
@@ -245,18 +245,18 @@ func (b *versionedKVBackend) Salt(ctx context.Context, s logical.Storage) (*salt
 	if b.salt != nil {
 		return b.salt, nil
 	}
-	salt, err := salt.NewSalt(ctx, s, &salt.Config{
+	slt, err := salt.NewSalt(ctx, s, &salt.Config{
 		HashFunc: salt.SHA256Hash,
 		Location: path.Join(b.storagePrefix, salt.DefaultLocation),
 	})
 	if err != nil {
 		return nil, err
 	}
-	b.salt = salt
-	return salt, nil
+	b.salt = slt
+	return slt, nil
 }
 
-// policy loads the key policy for this backend, if one has not been created yet
+// policy loads the key policy for this backend, if one has not been created yet,
 // it will generate and store a new policy. The caller must have the backend lock.
 func (b *versionedKVBackend) policy(ctx context.Context, s logical.Storage) (*keysutil.Policy, error) {
 	// Try loading policy
@@ -365,12 +365,12 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 // getVersionKey uses the salt to generate the version key for a specific
 // version of a key.
 func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, version uint64, s logical.Storage) (string, error) {
-	salt, err := b.Salt(ctx, s)
+	slt, err := b.Salt(ctx, s)
 	if err != nil {
 		return "", err
 	}
 
-	salted := salt.SaltID(fmt.Sprintf("%s|%d", key, version))
+	salted := slt.SaltID(fmt.Sprintf("%s|%d", key, version))
 
 	return path.Join(b.storagePrefix, versionPrefix, salted[0:3], salted[3:]), nil
 }
@@ -378,7 +378,6 @@ func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, vers
 // getKeyMetadata returns the metadata object for the provided key, if no object
 // exits it will return nil.
 func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Storage, key string) (*KeyMetadata, error) {
-
 	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return nil, err
@@ -417,15 +416,47 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 		return err
 	}
 
-	err = es.Put(ctx, &logical.StorageEntry{
-		Key:   meta.Key,
-		Value: bytes,
+	batchInput := logical.NewStorageBatchInput()
+	batchInput.AddOperation(&logical.StorageBatchOp{
+		OpType: logical.BatchPutOperation,
+		Entry: &logical.StorageEntry{
+			Key:   meta.Key,
+			Value: bytes,
+		},
 	})
+
+	_, err = es.Batch(ctx, batchInput)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (b *versionedKVBackend) entryForKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) (*logical.StorageEntry, error) {
+	wrapper, err := b.getKeyEncryptor(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	es := wrapper.Wrap(s)
+
+	bytes, err := proto.Marshal(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	encPath, err := es.(*keysutil.EncryptedKeyStorage).EncryptPath(meta.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	entry := &logical.StorageEntry{
+		Key:   encPath,
+		Value: bytes,
+	}
+
+	return entry, nil
 }
 
 func kvEvent(ctx context.Context, b *framework.Backend, kvVersion int, eventType string, metadataPairs ...string) {
