@@ -76,7 +76,7 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 		}
 
 		// Write the metadata key before deleting the versions
-		err = b.writeKeyMetadata(ctx, req.Storage, meta, req.BatchHandle)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}

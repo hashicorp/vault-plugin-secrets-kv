@@ -245,15 +245,15 @@ func (b *versionedKVBackend) Salt(ctx context.Context, s logical.Storage) (*salt
 	if b.salt != nil {
 		return b.salt, nil
 	}
-	salt, err := salt.NewSalt(ctx, s, &salt.Config{
+	slt, err := salt.NewSalt(ctx, s, &salt.Config{
 		HashFunc: salt.SHA256Hash,
 		Location: path.Join(b.storagePrefix, salt.DefaultLocation),
 	})
 	if err != nil {
 		return nil, err
 	}
-	b.salt = salt
-	return salt, nil
+	b.salt = slt
+	return slt, nil
 }
 
 // policy loads the key policy for this backend, if one has not been created yet,
@@ -365,12 +365,12 @@ func (b *versionedKVBackend) config(ctx context.Context, s logical.Storage) (*Co
 // getVersionKey uses the salt to generate the version key for a specific
 // version of a key.
 func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, version uint64, s logical.Storage) (string, error) {
-	salt, err := b.Salt(ctx, s)
+	slt, err := b.Salt(ctx, s)
 	if err != nil {
 		return "", err
 	}
 
-	salted := salt.SaltID(fmt.Sprintf("%s|%d", key, version))
+	salted := slt.SaltID(fmt.Sprintf("%s|%d", key, version))
 
 	return path.Join(b.storagePrefix, versionPrefix, salted[0:3], salted[3:]), nil
 }
@@ -403,7 +403,7 @@ func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Stora
 }
 
 // writeKeyMetadata writes a metadata object to storage.
-func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata, handle *logical.StorageBatchHandle) error {
+func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) error {
 	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return err
@@ -424,12 +424,8 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 			Value: bytes,
 		},
 	})
-	_, err = es.Batch(ctx, batchInput, handle)
 
-	// err = es.Put(ctx, &logical.StorageEntry{
-	// 	Key:   meta.Key,
-	// 	Value: bytes,
-	// })
+	_, err = es.Batch(ctx, batchInput)
 	if err != nil {
 		return err
 	}

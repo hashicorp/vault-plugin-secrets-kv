@@ -118,7 +118,7 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 				}
 			}
 		}
-		err = b.writeKeyMetadata(ctx, req.Storage, meta, req.BatchHandle)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +175,7 @@ func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 			lv.DeletionTime = ptypes.TimestampNow()
 		}
 
-		err = b.writeKeyMetadata(ctx, req.Storage, meta, req.BatchHandle)
+		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}
