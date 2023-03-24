@@ -87,14 +87,14 @@ $ vault server -config=path/to/config.json ...
 ...
 ```
 
-Once the server is started, register the plugin in the Vault server's [plugin catalog](https://www.vaultproject.io/docs/internals/plugins.html#plugin-catalog):
+Once the server is started, register the plugin in the Vault server's [plugin catalog](https://developer.hashicorp.com/vault/docs/plugins/plugin-architecture#plugin-catalog):
 
 ```sh
-$ vault write sys/plugins/catalog/kv \
-        sha_256=<expected SHA256 Hex value of the plugin binary> \
-        command="vault-plugin-secrets-kv"
-...
-Success! Data written to: sys/plugins/catalog/kv
+$ vault plugin register \
+        -sha256=<expected SHA256 Hex value of the plugin binary> \
+        -command="vault-plugin-secrets-kv" \
+        secret \
+        kv
 ```
 
 Note you should generate a new sha256 checksum if you have made changes

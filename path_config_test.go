@@ -9,15 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 func TestVersionedKV_Config(t *testing.T) {
 	b, storage, events := getBackendWithEvents(t)
-
-	paths := []*framework.Path{pathConfig(b.(*versionedKVBackend))}
 
 	d := 5 * time.Minute
 	data := map[string]interface{}{
@@ -39,7 +36,7 @@ func TestVersionedKV_Config(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -56,7 +53,7 @@ func TestVersionedKV_Config(t *testing.T) {
 	}
 	schema.ValidateResponse(
 		t,
-		schema.FindResponseSchema(t, paths, 0, req.Operation),
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
 		true,
 	)
@@ -111,8 +108,6 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 
 			b, storage := getBackend(t)
 
-			paths := []*framework.Path{pathConfig(b.(*versionedKVBackend))}
-
 			// default value should be 0
 			req := &logical.Request{
 				Operation: logical.ReadOperation,
@@ -123,7 +118,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -148,7 +143,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantNoResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -162,7 +157,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -188,7 +183,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantNoResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
@@ -202,7 +197,7 @@ func TestVersionedKV_Config_DeleteVersionAfter(t *testing.T) {
 			wantResponse(t, resp, err)
 			schema.ValidateResponse(
 				t,
-				schema.FindResponseSchema(t, paths, 0, req.Operation),
+				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
 				true,
 			)
