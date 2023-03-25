@@ -21,6 +21,13 @@ import (
 func pathSubkeys(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "subkeys/" + framework.MatchAllRegex("path"),
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: "kv-v2",
+			OperationVerb:   "read",
+			OperationSuffix: "subkeys",
+		},
+
 		Fields: map[string]*framework.FieldSchema{
 			"path": {
 				Type:        framework.TypeString,

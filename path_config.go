@@ -20,6 +20,11 @@ import (
 func pathConfig(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "config$",
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: "kv-v2",
+		},
+
 		Fields: map[string]*framework.FieldSchema{
 			"max_versions": {
 				Type:        framework.TypeInt,
@@ -37,10 +42,14 @@ disables the use of delete_version_after on all keys. A zero duration
 clears the current setting. Accepts a Go duration format string.`,
 			},
 		},
+
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigWrite()),
-				Summary:  "Configure backend level settings that are applied to every key in the key-value store.",
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb: "configure",
+				},
+				Summary: "Configure backend level settings that are applied to every key in the key-value store.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
@@ -49,7 +58,10 @@ clears the current setting. Accepts a Go duration format string.`,
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigRead()),
-				Summary:  "Read the backend level settings.",
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationSuffix: "configuration",
+				},
+				Summary: "Read the backend level settings.",
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
 						Description: http.StatusText(http.StatusOK),
