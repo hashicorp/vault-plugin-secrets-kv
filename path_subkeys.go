@@ -23,7 +23,7 @@ func pathSubkeys(b *versionedKVBackend) *framework.Path {
 		Pattern: "subkeys/" + framework.MatchAllRegex("path"),
 
 		DisplayAttrs: &framework.DisplayAttributes{
-			OperationPrefix: "kv-v2",
+			OperationPrefix: operationPrefixKVv2,
 			OperationVerb:   "read",
 			OperationSuffix: "subkeys",
 		},

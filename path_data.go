@@ -60,7 +60,7 @@ func pathData(b *versionedKVBackend) *framework.Path {
 		Pattern: "data/" + matchAllNoTrailingSlashRegex("path"),
 
 		DisplayAttrs: &framework.DisplayAttributes{
-			OperationPrefix: "kv-v2",
+			OperationPrefix: operationPrefixKVv2,
 		},
 
 		Fields: map[string]*framework.FieldSchema{

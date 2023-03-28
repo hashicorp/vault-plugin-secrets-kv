@@ -19,7 +19,7 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 		Pattern: "destroy/" + framework.MatchAllRegex("path"),
 
 		DisplayAttrs: &framework.DisplayAttributes{
-			OperationPrefix: "kv-v2",
+			OperationPrefix: operationPrefixKVv2,
 			OperationVerb:   "destroy",
 			OperationSuffix: "versions",
 		},

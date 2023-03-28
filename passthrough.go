@@ -59,7 +59,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 				Pattern: framework.MatchAllRegex("path"),
 
 				DisplayAttrs: &framework.DisplayAttributes{
-					OperationPrefix: "kv-v1",
+					OperationPrefix: operationPrefixKVv1,
 				},
 
 				Fields: map[string]*framework.FieldSchema{

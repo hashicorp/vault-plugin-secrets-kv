@@ -27,7 +27,7 @@ func pathMetadata(b *versionedKVBackend) *framework.Path {
 		Pattern: "metadata/" + framework.MatchAllRegex("path"),
 
 		DisplayAttrs: &framework.DisplayAttributes{
-			OperationPrefix: "kv-v2",
+			OperationPrefix: operationPrefixKVv2,
 			OperationSuffix: "metadata",
 		},
 

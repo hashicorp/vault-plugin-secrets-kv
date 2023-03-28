@@ -22,7 +22,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 			Pattern: "delete/" + framework.MatchAllRegex("path"),
 
 			DisplayAttrs: &framework.DisplayAttributes{
-				OperationPrefix: "kv-v2",
+				OperationPrefix: operationPrefixKVv2,
 				OperationVerb:   "delete",
 				OperationSuffix: "versions",
 			},
@@ -56,7 +56,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 			Pattern: "undelete/" + framework.MatchAllRegex("path"),
 
 			DisplayAttrs: &framework.DisplayAttributes{
-				OperationPrefix: "kv-v2",
+				OperationPrefix: operationPrefixKVv2,
 				OperationVerb:   "undelete",
 				OperationSuffix: "versions",
 			},

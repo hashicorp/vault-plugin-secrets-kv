@@ -22,7 +22,7 @@ func pathConfig(b *versionedKVBackend) *framework.Path {
 		Pattern: "config$",
 
 		DisplayAttrs: &framework.DisplayAttributes{
-			OperationPrefix: "kv-v2",
+			OperationPrefix: operationPrefixKVv2,
 		},
 
 		Fields: map[string]*framework.FieldSchema{
@@ -59,6 +59,7 @@ clears the current setting. Accepts a Go duration format string.`,
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathConfigRead()),
 				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb:   "read",
 					OperationSuffix: "configuration",
 				},
 				Summary: "Read the backend level settings.",

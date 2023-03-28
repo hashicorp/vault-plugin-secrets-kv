@@ -36,6 +36,12 @@ const (
 	// defaultMaxVersions is the number of versions to keep around unless set by
 	// the config or key configuration.
 	defaultMaxVersions uint32 = 10
+
+	// operationPrefixKVv1 is used as prefixes for OpenAPI operation id's.
+	operationPrefixKVv1 = "kv-v1"
+
+	// operationPrefixKVv2 is used as prefixes for OpenAPI operation id's.
+	operationPrefixKVv2 = "kv-v2"
 )
 
 // versionedKVBackend implements logical.Backend
