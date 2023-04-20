@@ -17,6 +17,13 @@ import (
 func pathDestroy(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "destroy/" + framework.MatchAllRegex("path"),
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: operationPrefixKVv2,
+			OperationVerb:   "destroy",
+			OperationSuffix: "versions",
+		},
+
 		Fields: map[string]*framework.FieldSchema{
 			"path": {
 				Type:        framework.TypeString,

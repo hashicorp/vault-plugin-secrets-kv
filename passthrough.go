@@ -58,6 +58,10 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 			{
 				Pattern: framework.MatchAllRegex("path"),
 
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationPrefix: operationPrefixKVv1,
+				},
+
 				Fields: map[string]*framework.FieldSchema{
 					"path": {
 						Type:        framework.TypeString,
@@ -68,6 +72,9 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.ReadOperation: &framework.PathOperation{
 						Callback: b.handleRead(),
+						DisplayAttrs: &framework.DisplayAttributes{
+							OperationVerb: "read",
+						},
 						Responses: map[int][]framework.Response{
 							http.StatusOK: {{
 								Description: http.StatusText(http.StatusOK),
@@ -77,6 +84,9 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 					},
 					logical.CreateOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
+						DisplayAttrs: &framework.DisplayAttributes{
+							OperationVerb: "write",
+						},
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
 								Description: http.StatusText(http.StatusNoContent),
@@ -85,6 +95,9 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 					},
 					logical.UpdateOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
+						DisplayAttrs: &framework.DisplayAttributes{
+							OperationVerb: "write",
+						},
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
 								Description: http.StatusText(http.StatusNoContent),
@@ -93,6 +106,9 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 					},
 					logical.DeleteOperation: &framework.PathOperation{
 						Callback: b.handleDelete(),
+						DisplayAttrs: &framework.DisplayAttributes{
+							OperationVerb: "delete",
+						},
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
 								Description: http.StatusText(http.StatusNoContent),
@@ -101,6 +117,9 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 					},
 					logical.ListOperation: &framework.PathOperation{
 						Callback: b.handleList(),
+						DisplayAttrs: &framework.DisplayAttributes{
+							OperationVerb: "list",
+						},
 						Responses: map[int][]framework.Response{
 							http.StatusOK: {{
 								Description: http.StatusText(http.StatusOK),

@@ -20,6 +20,13 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 	return []*framework.Path{
 		{
 			Pattern: "delete/" + framework.MatchAllRegex("path"),
+
+			DisplayAttrs: &framework.DisplayAttributes{
+				OperationPrefix: operationPrefixKVv2,
+				OperationVerb:   "delete",
+				OperationSuffix: "versions",
+			},
+
 			Fields: map[string]*framework.FieldSchema{
 				"path": {
 					Type:        framework.TypeString,
@@ -30,6 +37,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Description: "The versions to be archived. The versioned data will not be deleted, but it will no longer be returned in normal get requests.",
 				},
 			},
+
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{
 					Callback: b.upgradeCheck(b.pathDeleteWrite()),
@@ -46,6 +54,13 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 		},
 		{
 			Pattern: "undelete/" + framework.MatchAllRegex("path"),
+
+			DisplayAttrs: &framework.DisplayAttributes{
+				OperationPrefix: operationPrefixKVv2,
+				OperationVerb:   "undelete",
+				OperationSuffix: "versions",
+			},
+
 			Fields: map[string]*framework.FieldSchema{
 				"path": {
 					Type:        framework.TypeString,
@@ -56,6 +71,7 @@ func pathsDelete(b *versionedKVBackend) []*framework.Path {
 					Description: "The versions to unarchive. The versions will be restored and their data will be returned on normal get requests.",
 				},
 			},
+
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{
 					Callback: b.upgradeCheck(b.pathUndeleteWrite()),

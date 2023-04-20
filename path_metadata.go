@@ -25,6 +25,12 @@ import (
 func pathMetadata(b *versionedKVBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "metadata/" + framework.MatchAllRegex("path"),
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: operationPrefixKVv2,
+			OperationSuffix: "metadata",
+		},
+
 		Fields: map[string]*framework.FieldSchema{
 			"path": {
 				Type:        framework.TypeString,
@@ -59,6 +65,7 @@ version-agnostic information about a secret.
 `,
 			},
 		},
+
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataWrite()),

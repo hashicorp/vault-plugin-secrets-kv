@@ -58,6 +58,11 @@ func pathData(b *versionedKVBackend) *framework.Path {
 
 	return &framework.Path{
 		Pattern: "data/" + matchAllNoTrailingSlashRegex("path"),
+
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: operationPrefixKVv2,
+		},
+
 		Fields: map[string]*framework.FieldSchema{
 			"path": {
 				Type:        framework.TypeString,
@@ -83,15 +88,24 @@ version matches the version specified in the cas parameter.`,
 		},
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
-				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Callback: b.upgradeCheck(b.pathDataWrite()),
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb: "write",
+				},
 				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.CreateOperation: &framework.PathOperation{
-				Callback:  b.upgradeCheck(b.pathDataWrite()),
+				Callback: b.upgradeCheck(b.pathDataWrite()),
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb: "write",
+				},
 				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDataRead()),
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb: "read",
+				},
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
 						Description: http.StatusText(http.StatusOK),
@@ -110,6 +124,9 @@ version matches the version specified in the cas parameter.`,
 			},
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDataDelete()),
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb: "delete",
+				},
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
@@ -117,7 +134,10 @@ version matches the version specified in the cas parameter.`,
 				},
 			},
 			logical.PatchOperation: &framework.PathOperation{
-				Callback:  b.upgradeCheck(b.pathDataPatch()),
+				Callback: b.upgradeCheck(b.pathDataPatch()),
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb: "patch",
+				},
 				Responses: updateCreatePatchResponseSchema,
 			},
 		},
