@@ -69,6 +69,8 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 					},
 				},
 
+				TakesArbitraryInput: true,
+
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.ReadOperation: &framework.PathOperation{
 						Callback: b.handleRead(),
