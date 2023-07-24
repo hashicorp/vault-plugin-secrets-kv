@@ -146,7 +146,10 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 			{
 				Type: "kv",
 
-				Renew: b.handleRead(),
+				Renew: func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+					// This is a no-op
+					return nil, nil
+				},
 				Revoke: func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 					// This is a no-op
 					return nil, nil
@@ -156,7 +159,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 	}
 
 	if conf == nil {
-		return nil, fmt.Errorf("Configuation passed into backend is nil")
+		return nil, fmt.Errorf("Configuration passed into backend is nil")
 	}
 	backend.Setup(ctx, conf)
 	b.Backend = backend
@@ -250,10 +253,6 @@ func (b *PassthroughBackend) handleRead() framework.OperationFunc {
 
 		return resp, nil
 	}
-}
-
-func (b *PassthroughBackend) GeneratesLeases() bool {
-	return b.generateLeases
 }
 
 func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
