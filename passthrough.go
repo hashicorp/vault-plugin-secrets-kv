@@ -17,14 +17,6 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-type Passthrough interface {
-	handleRead() framework.OperationFunc
-	handleWrite() framework.OperationFunc
-	handleDelete() framework.OperationFunc
-	handleList() framework.OperationFunc
-	handleExistenceCheck() framework.ExistenceFunc
-}
-
 // PassthroughBackendFactory returns a PassthroughBackend
 // with leases switched off
 func PassthroughBackendFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
@@ -239,10 +231,6 @@ func (b *PassthroughBackend) handleRead() framework.OperationFunc {
 
 		return resp, nil
 	}
-}
-
-func (b *PassthroughBackend) GeneratesLeases() bool {
-	return b.generateLeases
 }
 
 func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
