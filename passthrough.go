@@ -122,17 +122,6 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "list",
 						},
-						Responses: map[int][]framework.Response{
-							http.StatusOK: {{
-								Description: http.StatusText(http.StatusOK),
-								Fields: map[string]*framework.FieldSchema{
-									"keys": {
-										Type:     framework.TypeStringSlice,
-										Required: true,
-									},
-								},
-							}},
-						},
 					},
 				},
 

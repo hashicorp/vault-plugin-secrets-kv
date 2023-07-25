@@ -142,17 +142,6 @@ version-agnostic information about a secret.
 			},
 			logical.ListOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataList()),
-				Responses: map[int][]framework.Response{
-					http.StatusOK: {{
-						Description: http.StatusText(http.StatusOK),
-						Fields: map[string]*framework.FieldSchema{
-							"keys": {
-								Type:     framework.TypeStringSlice,
-								Required: true,
-							},
-						},
-					}},
-				},
 			},
 			logical.PatchOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataPatch()),
