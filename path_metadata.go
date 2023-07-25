@@ -28,7 +28,6 @@ func pathMetadata(b *versionedKVBackend) *framework.Path {
 
 		DisplayAttrs: &framework.DisplayAttributes{
 			OperationPrefix: operationPrefixKVv2,
-			OperationSuffix: "metadata",
 		},
 
 		Fields: map[string]*framework.FieldSchema{
@@ -73,6 +72,9 @@ version-agnostic information about a secret.
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
 					}},
+				},
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationSuffix: "metadata",
 				},
 			},
 			logical.CreateOperation: &framework.PathOperation{
@@ -131,6 +133,9 @@ version-agnostic information about a secret.
 						},
 					}},
 				},
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationSuffix: "metadata",
+				},
 			},
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataDelete()),
@@ -139,9 +144,15 @@ version-agnostic information about a secret.
 						Description: http.StatusText(http.StatusNoContent),
 					}},
 				},
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationSuffix: "metadata-and-all-versions",
+				},
 			},
 			logical.ListOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataList()),
+				DisplayAttrs: &framework.DisplayAttributes{
+					OperationVerb: "list",
+				},
 			},
 			logical.PatchOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataPatch()),
