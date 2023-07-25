@@ -145,7 +145,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 	}
 
 	if conf == nil {
-		return nil, fmt.Errorf("Configuation passed into backend is nil")
+		return nil, fmt.Errorf("configuration passed into backend is nil")
 	}
 	backend.Setup(ctx, conf)
 	b.Backend = backend
@@ -168,7 +168,7 @@ func (b *PassthroughBackend) handleExistenceCheck() framework.ExistenceFunc {
 
 		out, err := req.Storage.Get(ctx, key)
 		if err != nil {
-			return false, fmt.Errorf("existence check failed: %v", err)
+			return false, fmt.Errorf("existence check failed: %w", err)
 		}
 
 		return out != nil, nil
@@ -182,7 +182,7 @@ func (b *PassthroughBackend) handleRead() framework.OperationFunc {
 		// Read the path
 		out, err := req.Storage.Get(ctx, key)
 		if err != nil {
-			return nil, fmt.Errorf("read failed: %v", err)
+			return nil, fmt.Errorf("read failed: %w", err)
 		}
 
 		// Fast-path the no data case
@@ -194,7 +194,7 @@ func (b *PassthroughBackend) handleRead() framework.OperationFunc {
 		var rawData map[string]interface{}
 
 		if err := jsonutil.DecodeJSON(out.Value, &rawData); err != nil {
-			return nil, fmt.Errorf("json decoding failed: %v", err)
+			return nil, fmt.Errorf("json decoding failed: %w", err)
 		}
 
 		var resp *logical.Response
@@ -260,7 +260,7 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 		// JSON encode the data
 		buf, err := json.Marshal(req.Data)
 		if err != nil {
-			return nil, fmt.Errorf("json encoding failed: %v", err)
+			return nil, fmt.Errorf("json encoding failed: %w", err)
 		}
 
 		// Write out a new key
@@ -269,7 +269,7 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 			Value: buf,
 		}
 		if err := req.Storage.Put(ctx, entry); err != nil {
-			return nil, fmt.Errorf("failed to write: %v", err)
+			return nil, fmt.Errorf("failed to write: %w", err)
 		}
 
 		kvEvent(ctx, b.Backend, 1, "write",
