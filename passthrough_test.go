@@ -252,8 +252,7 @@ func TestPassthroughBackend_List(t *testing.T) {
 }
 
 func TestPassthroughBackend_Revoke(t *testing.T) {
-	test := func(t *testing.T, b logical.Backend) {
-		t.Helper()
+	test := func(b logical.Backend) {
 		req := logical.TestRequest(t, logical.RevokeOperation, "kv")
 		req.Secret = &logical.Secret{
 			InternalData: map[string]interface{}{
@@ -265,12 +264,10 @@ func TestPassthroughBackend_Revoke(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	}
-	t.Run("passthrough", func(t *testing.T) {
-		test(t, testPassthroughBackend())
-	})
-	t.Run("passthrough-leased", func(t *testing.T) {
-		test(t, testPassthroughLeasedBackend())
-	})
+	b := testPassthroughBackend()
+	test(b)
+	b = testPassthroughLeasedBackend()
+	test(b)
 }
 
 func testPassthroughBackend() logical.Backend {
