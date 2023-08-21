@@ -115,9 +115,9 @@ func TestVersionedKV_Delete_Put(t *testing.T) {
 	}
 
 	events.expectEvents(t, []expectedEvent{
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/delete", "delete/foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/delete", "foo"},
 	})
 }
 
@@ -235,9 +235,9 @@ func TestVersionedKV_Undelete_Put(t *testing.T) {
 	}
 
 	events.expectEvents(t, []expectedEvent{
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/delete", "delete/foo"},
-		{"kv-v2/undelete", "undelete/foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/delete", "foo"},
+		{"kv-v2/undelete", "foo"},
 	})
 }

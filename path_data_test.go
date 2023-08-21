@@ -182,9 +182,9 @@ func TestVersionedKV_Data_Put(t *testing.T) {
 	}
 
 	events.expectEvents(t, []expectedEvent{
-		{"kv-v2/metadata-write", "metadata/foo"},
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/data-write", "data/foo"},
+		{"kv-v2/metadata-write", "foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/data-write", "foo"},
 	})
 }
 
@@ -432,8 +432,8 @@ func TestVersionedKV_Data_Delete(t *testing.T) {
 	}
 
 	events.expectEvents(t, []expectedEvent{
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/data-delete", "data/foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/data-delete", "foo"},
 	})
 }
 
@@ -1055,9 +1055,9 @@ func TestVersionedKV_Patch_Success(t *testing.T) {
 	}
 
 	events.expectEvents(t, []expectedEvent{
-		{"kv-v2/metadata-write", "metadata/foo"},
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/data-patch", "data/foo"},
+		{"kv-v2/metadata-write", "foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/data-patch", "foo"},
 	})
 }
 

@@ -1,5 +1,9 @@
 ## Unreleased
 
+CHANGES:
+
+* Events: now include `secret_path` and `operation` [GH-XYZ]()
+
 ## 0.15.0
 
 IMPROVEMENTS:

@@ -103,8 +103,8 @@ func TestVersionedKV_Destroy_Put(t *testing.T) {
 	}
 
 	events.expectEvents(t, []expectedEvent{
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/data-write", "data/foo"},
-		{"kv-v2/destroy", "destroy/foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/data-write", "foo"},
+		{"kv-v2/destroy", "foo"},
 	})
 }

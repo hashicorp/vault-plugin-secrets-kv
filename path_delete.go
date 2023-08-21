@@ -143,8 +143,7 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-		kvEvent(ctx, b.Backend, 2, "undelete",
-			"path", "undelete/"+key,
+		kvEvent(ctx, b.Backend, "undelete", key, "data/"+key, 2,
 			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
 			"undeleted_versions", string(marshaledVersions),
@@ -205,8 +204,7 @@ func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-		kvEvent(ctx, b.Backend, 2, "delete",
-			"path", "delete/"+key,
+		kvEvent(ctx, b.Backend, "delete", key, "data/"+key, 2,
 			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
 			"deleted_versions", string(marshaledVersions),

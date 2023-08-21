@@ -260,9 +260,7 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 			return nil, fmt.Errorf("failed to write: %w", err)
 		}
 
-		kvEvent(ctx, b.Backend, 1, "write",
-			"path", key,
-		)
+		kvEvent(ctx, b.Backend, "write", key, key, 1)
 
 		return nil, nil
 	}
@@ -277,9 +275,7 @@ func (b *PassthroughBackend) handleDelete() framework.OperationFunc {
 			return nil, err
 		}
 
-		kvEvent(ctx, b.Backend, 1, "delete",
-			"path", key,
-		)
+		kvEvent(ctx, b.Backend, "delete", key, key, 1)
 
 		return nil, nil
 	}
