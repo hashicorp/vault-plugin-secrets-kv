@@ -416,7 +416,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 		}
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
-		kvEvent(ctx, b.Backend, "metadata-write", key, "metadata/"+key, 2)
+		kvEvent(ctx, b.Backend, "metadata-write", "metadata/"+key, 2)
 		return resp, err
 	}
 }
@@ -529,7 +529,7 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		kvEvent(ctx, b.Backend, "metadata-patch", key, "metadata/"+key, 2)
+		kvEvent(ctx, b.Backend, "metadata-patch", "metadata/"+key, 2)
 		return resp, nil
 	}
 }
@@ -573,7 +573,7 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 
 		// Use encrypted key storage to delete the key
 		err = es.Delete(ctx, key)
-		kvEvent(ctx, b.Backend, "metadata-delete", key, "metadata/"+key, 2)
+		kvEvent(ctx, b.Backend, "metadata-delete", "metadata/"+key, 2)
 		return nil, err
 	}
 }

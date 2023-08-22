@@ -436,14 +436,13 @@ func kvEvent(ctx context.Context,
 	b *framework.Backend,
 	operation string,
 	secretPath string,
-	writePath string,
 	kvVersion int,
 	additionalMetadataPairs ...string) {
 
 	metadata := []string{
 		logical.EventMetadataOperation, operation,
-		logical.EventMetadataSecretPath, secretPath,
-		"path", writePath, // included for backwards compatibility
+		logical.EventMetadataApiPath, secretPath,
+		"path", secretPath, // included for backwards compatibility
 	}
 	metadata = append(metadata, additionalMetadataPairs...)
 	err := logical.SendEvent(ctx, b, fmt.Sprintf("kv-v%d/%s", kvVersion, operation), metadata...)
