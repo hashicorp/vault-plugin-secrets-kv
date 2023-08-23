@@ -13,6 +13,7 @@ import (
 type expectedEvent struct {
 	eventType string
 	path      string
+	dataPath  string
 }
 
 type mockEventsSender struct {
@@ -41,9 +42,13 @@ func (m *mockEventsSender) expectEvents(t *testing.T, expectedEvents []expectedE
 		if expected.eventType != actual.EventType {
 			t.Fatalf("Mismatched event type at index %d. Expected %s, got %s\n%v", i, expected.eventType, actual.EventType, m.eventsProcessed)
 		}
-		actualPath := actual.Event.Metadata.Fields["api_path"].GetStringValue()
+		actualPath := actual.Event.Metadata.Fields["path"].GetStringValue()
 		if expected.path != actualPath {
 			t.Fatalf("Mismatched path at index %d. Expected %s, got %s\n%v", i, expected.path, actualPath, m.eventsProcessed)
+		}
+		actualDataPath := actual.Event.Metadata.Fields["data_path"].GetStringValue()
+		if expected.dataPath != actualDataPath {
+			t.Fatalf("Mismatched data path at index %d. Expected %s, got %s\n%v", i, expected.path, actualDataPath, m.eventsProcessed)
 		}
 	}
 }

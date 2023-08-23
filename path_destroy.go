@@ -100,7 +100,7 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 				return nil, err
 			}
 		}
-		kvEvent(ctx, b.Backend, "destroy", "data/"+key, 2,
+		kvEvent(ctx, b.Backend, "destroy", "destroy/"+key, "", true, 2,
 			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
 		)

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strconv"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -432,17 +433,26 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 	return nil
 }
 
+// kvEvent sends an event.
+//   - `path` contains the API path that was called.
+//   - `dataPath` contains the API path that should be called to fetch the underlying data, if relevant
+//   - `modified` is set to true if the cause of the event modified the data
 func kvEvent(ctx context.Context,
 	b *framework.Backend,
 	operation string,
-	secretPath string,
+	path string,
+	dataPath string,
+	modified bool,
 	kvVersion int,
 	additionalMetadataPairs ...string) {
 
 	metadata := []string{
+		logical.EventMetadataModified, strconv.FormatBool(modified),
 		logical.EventMetadataOperation, operation,
-		logical.EventMetadataApiPath, secretPath,
-		"path", secretPath, // included for backwards compatibility
+		"path", path,
+	}
+	if dataPath != "" {
+		metadata = append(metadata, logical.EventMetadataDataPath, dataPath)
 	}
 	metadata = append(metadata, additionalMetadataPairs...)
 	err := logical.SendEvent(ctx, b, fmt.Sprintf("kv-v%d/%s", kvVersion, operation), metadata...)

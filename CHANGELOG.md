@@ -2,7 +2,7 @@
 
 CHANGES:
 
-* Events: now include `secret_path` and `operation` [GH-124](https://github.com/hashicorp/vault-plugin-secrets-kv/pull/124)
+* Events: now include `data_path`, `operation`, and `modified` [GH-124](https://github.com/hashicorp/vault-plugin-secrets-kv/pull/124)
 
 ## 0.15.0
 
