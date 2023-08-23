@@ -5,11 +5,11 @@ package kv
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"path"
+	"strconv"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/helper/salt"
 	"github.com/hashicorp/vault/sdk/logical"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -434,37 +433,31 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 	return nil
 }
 
-func kvEvent(ctx context.Context, b *framework.Backend, kvVersion int, eventType string, metadataPairs ...string) {
-	ev, err := logical.NewEvent()
-	if err != nil {
-		b.Logger().Warn("Error creating event", "error", err)
-		return
+// kvEvent sends an event.
+//   - `path` contains the API path that was called.
+//   - `dataPath` contains the API path that should be called to fetch the underlying data, if relevant
+//   - `modified` is set to true if the cause of the event modified the data
+func kvEvent(ctx context.Context,
+	b *framework.Backend,
+	operation string,
+	path string,
+	dataPath string,
+	modified bool,
+	kvVersion int,
+	additionalMetadataPairs ...string) {
+
+	metadata := []string{
+		logical.EventMetadataModified, strconv.FormatBool(modified),
+		logical.EventMetadataOperation, operation,
+		"path", path,
 	}
-	metadata := map[string]string{}
-	if len(metadataPairs)%2 != 0 {
-		b.Logger().Error("Odd number of metadata strings")
-		return
+	if dataPath != "" {
+		metadata = append(metadata, logical.EventMetadataDataPath, dataPath)
 	}
-	for i := 0; i < len(metadataPairs); i += 2 {
-		metadata[metadataPairs[i]] = metadataPairs[i+1]
-	}
-	metadataBytes, err := json.Marshal(metadata)
-	if err != nil {
-		b.Logger().Warn("Error marshaling metadata", "error", err)
-		return
-	}
-	ev.Metadata = &structpb.Struct{}
-	if err := ev.Metadata.UnmarshalJSON(metadataBytes); err != nil {
-		b.Logger().Warn("Error unmarshaling metadata into proto", "error", err)
-		return
-	}
-	err = b.SendEvent(ctx, logical.EventType(fmt.Sprintf("kv-v%d/%s", kvVersion, eventType)), ev)
-	// ignore events are disabled error
-	if err == framework.ErrNoEvents {
-		return
-	} else if err != nil {
-		b.Logger().Warn("Error sending event", "error", err)
-		return
+	metadata = append(metadata, additionalMetadataPairs...)
+	err := logical.SendEvent(ctx, b, fmt.Sprintf("kv-v%d/%s", kvVersion, operation), metadata...)
+	if err != nil && err != framework.ErrNoEvents {
+		b.Logger().Error("Error sending event", "error", err)
 	}
 }
 

@@ -71,7 +71,7 @@ func TestVersionedKV_Config(t *testing.T) {
 	}
 
 	events.expectEvents(t, []expectedEvent{
-		{"kv-v2/config-write", "config"},
+		{"kv-v2/config-write", "config", "config"},
 	})
 }
 
