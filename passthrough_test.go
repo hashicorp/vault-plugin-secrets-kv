@@ -205,8 +205,8 @@ func TestPassthroughBackend_Delete(t *testing.T) {
 				true,
 			)
 			events.expectEvents(t, []expectedEvent{
-				{"kv-v1/write", "foo"},
-				{"kv-v1/delete", "foo"},
+				{"kv-v1/write", "foo", "foo"},
+				{"kv-v1/delete", "foo", ""},
 			})
 		})
 	}

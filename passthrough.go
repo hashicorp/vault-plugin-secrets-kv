@@ -17,14 +17,6 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-type Passthrough interface {
-	handleRead() framework.OperationFunc
-	handleWrite() framework.OperationFunc
-	handleDelete() framework.OperationFunc
-	handleList() framework.OperationFunc
-	handleExistenceCheck() framework.ExistenceFunc
-}
-
 // PassthroughBackendFactory returns a PassthroughBackend
 // with leases switched off
 func PassthroughBackendFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
@@ -126,17 +118,6 @@ func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.B
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "list",
 						},
-						Responses: map[int][]framework.Response{
-							http.StatusOK: {{
-								Description: http.StatusText(http.StatusOK),
-								Fields: map[string]*framework.FieldSchema{
-									"keys": {
-										Type:     framework.TypeStringSlice,
-										Required: true,
-									},
-								},
-							}},
-						},
 					},
 				},
 
@@ -160,7 +141,7 @@ func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.B
 	}
 
 	if conf == nil {
-		return nil, fmt.Errorf("Configuation passed into backend is nil")
+		return nil, fmt.Errorf("configuration passed into backend is nil")
 	}
 	backend.Setup(ctx, conf)
 	b.Backend = backend
@@ -181,7 +162,7 @@ func (b *PassthroughBackend) handleExistenceCheck() framework.ExistenceFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
 		out, err := req.Storage.Get(ctx, req.Path)
 		if err != nil {
-			return false, fmt.Errorf("existence check failed: %v", err)
+			return false, fmt.Errorf("existence check failed: %w", err)
 		}
 
 		return out != nil, nil
@@ -200,7 +181,7 @@ func (b *PassthroughBackend) handleReadOrRenew() framework.OperationFunc {
 		// Read the path
 		out, err := req.Storage.Get(ctx, req.Path)
 		if err != nil {
-			return nil, fmt.Errorf("read failed: %v", err)
+			return nil, fmt.Errorf("read failed: %w", err)
 		}
 
 		// Fast-path the no data case
@@ -212,7 +193,7 @@ func (b *PassthroughBackend) handleReadOrRenew() framework.OperationFunc {
 		var rawData map[string]interface{}
 
 		if err := jsonutil.DecodeJSON(out.Value, &rawData); err != nil {
-			return nil, fmt.Errorf("json decoding failed: %v", err)
+			return nil, fmt.Errorf("json decoding failed: %w", err)
 		}
 
 		var resp *logical.Response
@@ -259,10 +240,6 @@ func (b *PassthroughBackend) handleReadOrRenew() framework.OperationFunc {
 	}
 }
 
-func (b *PassthroughBackend) GeneratesLeases() bool {
-	return b.generateLeases
-}
-
 func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		if req.Path == "" {
@@ -277,7 +254,7 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 		// JSON encode the data
 		buf, err := json.Marshal(req.Data)
 		if err != nil {
-			return nil, fmt.Errorf("json encoding failed: %v", err)
+			return nil, fmt.Errorf("json encoding failed: %w", err)
 		}
 
 		// Write out a new key
@@ -286,12 +263,10 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 			Value: buf,
 		}
 		if err := req.Storage.Put(ctx, entry); err != nil {
-			return nil, fmt.Errorf("failed to write: %v", err)
+			return nil, fmt.Errorf("failed to write: %w", err)
 		}
 
-		kvEvent(ctx, b.Backend, 1, "write",
-			"path", req.Path,
-		)
+		kvEvent(ctx, b.Backend, "write", req.Path, req.Path, true, 1)
 
 		return nil, nil
 	}
@@ -304,9 +279,7 @@ func (b *PassthroughBackend) handleDelete() framework.OperationFunc {
 			return nil, err
 		}
 
-		kvEvent(ctx, b.Backend, 1, "delete",
-			"path", req.Path,
-		)
+		kvEvent(ctx, b.Backend, "delete", req.Path, "", true, 1)
 
 		return nil, nil
 	}
