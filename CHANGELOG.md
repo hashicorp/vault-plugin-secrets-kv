@@ -1,4 +1,11 @@
 ## Unreleased
+
+CHANGES:
+
+* Updated dependencies:
+  * `github.com/hashicorp/vault/sdk` v0.9.3-0.20230831152851-56ce89544e64 -> v0.10.0
+  * `github.com/hashicorp/go-plugin` v1.4.10 -> v1.5.2
+
 ## 0.16.1
 
 CHANGES:
