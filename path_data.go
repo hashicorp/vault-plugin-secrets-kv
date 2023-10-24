@@ -332,6 +332,31 @@ func (b *versionedKVBackend) cleanupOldVersions(ctx context.Context, storage log
 	return ""
 }
 
+func (b *versionedKVBackend) getOldVersionsToClean(ctx context.Context, storage logical.Storage, key string, versionToDelete uint64) ([]string, error) {
+	var versionKeysToDelete []string
+
+	for i := versionToDelete; i > 0; i-- {
+		versionKey, err := b.getVersionKey(ctx, key, i, storage)
+		if err != nil {
+			return nil, err
+		}
+
+		v, err := storage.Get(ctx, versionKey)
+		if err != nil {
+			return nil, err
+		}
+
+		if v == nil {
+			break
+		}
+
+		// append to the end of the list
+		versionKeysToDelete = append(versionKeysToDelete, versionKey)
+	}
+
+	return versionKeysToDelete, nil
+}
+
 // pathDataWrite handles create and update commands to a kv entry
 func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -410,11 +435,9 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 
 		// Write the new version
-		if err := req.Storage.Put(ctx, &logical.StorageEntry{
+		ent1 := &logical.StorageEntry{
 			Key:   versionKey,
 			Value: buf,
-		}); err != nil {
-			return nil, err
 		}
 
 		// Add version to the key metadata and calculate version to delete
@@ -422,7 +445,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		// metadata or the engine's config
 		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions)
 
-		err = b.writeKeyMetadata(ctx, req.Storage, meta)
+		ent2, err := b.getKeyMetadataWrite(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}
@@ -437,11 +460,28 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			},
 		}
 
-		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
-		if warning != "" {
-			// A failed attempt to clean up old versions will be retried on
-			// next write attempt, prefer a warning over an error resp
-			resp.AddWarning(warning)
+		toDel, err := b.getOldVersionsToClean(ctx, req.Storage, key, versionToDelete)
+		if err != nil {
+			return nil, err
+		}
+		batchinp := logical.NewStorageBatchInput()
+		batchinp.AddOperation(&logical.StorageBatchOp{
+			OpType: logical.BatchPutOperation,
+			Entry:  ent1,
+		})
+		batchinp.AddOperation(&logical.StorageBatchOp{
+			OpType: logical.BatchPutOperation,
+			Entry:  ent2,
+		})
+		for _, s := range toDel {
+			batchinp.AddOperation(&logical.StorageBatchOp{
+				OpType: logical.BatchDeleteOperation,
+				Entry:  &logical.StorageEntry{Key: s},
+			})
+		}
+		_, err = req.Storage.Batch(ctx, batchinp)
+		if err != nil {
+			return nil, err
 		}
 
 		kvEvent(ctx, b.Backend, "data-write", "data/"+key, "data/"+key, true, 2,

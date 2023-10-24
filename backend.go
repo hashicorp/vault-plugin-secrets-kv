@@ -408,24 +408,38 @@ func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Stora
 	return meta, nil
 }
 
-// writeKeyMetadata writes a metadata object to storage.
-func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) error {
+func (b *versionedKVBackend) getKeyMetadataWrite(ctx context.Context, s logical.Storage, meta *KeyMetadata) (*logical.StorageEntry, error) {
 	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	es := wrapper.Wrap(s)
 
 	bytes, err := proto.Marshal(meta)
 	if err != nil {
+		return nil, err
+	}
+
+	encPath, err := es.EncryptPath(meta.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	return &logical.StorageEntry{
+		Key:   encPath,
+		Value: bytes,
+	}, nil
+}
+
+// writeKeyMetadata writes a metadata object to storage.
+func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Storage, meta *KeyMetadata) error {
+	ent, err := b.getKeyMetadataWrite(ctx, s, meta)
+	if err != nil {
 		return err
 	}
 
-	err = es.Put(ctx, &logical.StorageEntry{
-		Key:   meta.Key,
-		Value: bytes,
-	})
+	err = s.Put(ctx, ent)
 	if err != nil {
 		return err
 	}
