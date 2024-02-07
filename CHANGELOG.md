@@ -1,5 +1,22 @@
 ## Unreleased
 
+## 0.17.0
+
+CHANGES:
+
+* Updated dependencies:
+  * github.com/hashicorp/go-hclog v1.5.0 -> v1.6.2
+  * github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 -> v0.1.8
+  * github.com/hashicorp/vault/api v1.9.2 -> v1.11.0
+  * github.com/hashicorp/vault/sdk v0.10.0 -> v0.10.2
+  * google.golang.org/protobuf v1.31.0 -> v1.32.0
+  * github.com/go-jose/go-jose/v3@v3.0.0 -> v3.0.1
+  * golang.org/x/crypto@v0.12.0 -> v0.17.0
+  * golang.org/x/net@v0.14.0 -> v0.18.0
+  * google.golang.org/grpc@v1.57.0 -> v1.61.0
+
+## 0.16.2
+
 CHANGES:
 
 * Updated dependencies:
