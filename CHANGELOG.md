@@ -1,5 +1,10 @@
 ## Unreleased
 
+CHANGES:
+
+* Updated dependencies:
+  * `github.com/hashicorp/go-plugin` v1.5.2 -> v1.6.0 to enable running the plugin in containers
+
 ## 0.17.0
 
 CHANGES:
