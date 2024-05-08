@@ -1,9 +1,15 @@
 ## Unreleased
 
+## 0.18.0
+
 CHANGES:
 
 * Updated dependencies:
   * `github.com/hashicorp/go-plugin` v1.5.2 -> v1.6.0 to enable running the plugin in containers
+  * Bump golang.org/x/net from 0.18.0 to 0.23.0 (#150)
+  * Bump github.com/docker/docker (#148)
+  * Bump google.golang.org/protobuf from 1.32.0 to 1.33.0 (#147)
+  * Bump github.com/go-jose/go-jose/v3 from 3.0.1 to 3.0.3 (#145)
 
 ## 0.17.0
 
