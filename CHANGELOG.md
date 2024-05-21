@@ -1,5 +1,16 @@
 ## Unreleased
 
+## v0.19.0
+
+CHANGES:
+
+* Updated dependencies:
+  * `github.com/golang/protobuf` v1.5.3 -> v1.5.4
+  * `github.com/hashicorp/go-hclog` v1.6.2 -> v1.6.3
+  * `github.com/hashicorp/vault/api` v1.11.0 -> v1.13.0
+  * `github.com/hashicorp/vault/sdk` v0.10.2 -> v0.12.0
+  * `google.golang.org/protobuf` v1.33.0 -> v1.34.1
+
 ## 0.18.0
 
 CHANGES:
