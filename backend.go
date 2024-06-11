@@ -89,7 +89,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	var err error
 	switch version {
 	case "1", "":
-		return LeaseSwitchedPassthroughBackend(ctx, conf, conf.Config["leased_passthrough"] == "true")
+		return LeaseSwitchedPassthroughBackendFactory(ctx, conf, conf.Config["leased_passthrough"] == "true")
 	case "2":
 		b, err = VersionedKVFactory(ctx, conf)
 	}
