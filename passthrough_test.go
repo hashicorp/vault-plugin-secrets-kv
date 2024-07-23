@@ -270,6 +270,40 @@ func TestPassthroughBackend_Revoke(t *testing.T) {
 	test(b)
 }
 
+func TestPassthroughBackend_Renew(t *testing.T) {
+	b := testPassthroughLeasedBackend()
+
+	req := logical.TestRequest(t, logical.CreateOperation, "foo")
+	req.Data = map[string]interface{}{
+		"ttl":     "4h",
+		"payload": "alpha",
+	}
+	storage := req.Storage
+	if _, err := b.HandleRequest(context.Background(), req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req = logical.TestRequest(t, logical.RenewOperation, "foo")
+	req.Storage = storage
+	req.Secret = &logical.Secret{
+		InternalData: map[string]interface{}{
+			"secret_type": "kv",
+		},
+	}
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	expected := map[string]interface{}{
+		"ttl":     "4h",
+		"payload": "alpha",
+	}
+	if !reflect.DeepEqual(resp.Data, expected) {
+		t.Fatalf("bad response.\n\nexpected: %#v\n\nGot: %#v", expected, resp)
+	}
+}
+
 func testPassthroughBackend() logical.Backend {
 	return testPassthroughBackendWithEvents(nil)
 }

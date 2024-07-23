@@ -1,5 +1,9 @@
 ## Unreleased
 
+BUG FIXES:
+
+* Fixes panic from occurring when renewing KVv1 secrets.
+
 ## v0.19.0
 
 CHANGES:

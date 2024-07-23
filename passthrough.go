@@ -20,18 +20,18 @@ import (
 // PassthroughBackendFactory returns a PassthroughBackend
 // with leases switched off
 func PassthroughBackendFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	return LeaseSwitchedPassthroughBackend(ctx, conf, false)
+	return LeaseSwitchedPassthroughBackendFactory(ctx, conf, false)
 }
 
 // LeasedPassthroughBackendFactory returns a PassthroughBackend
 // with leases switched on
 func LeasedPassthroughBackendFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	return LeaseSwitchedPassthroughBackend(ctx, conf, true)
+	return LeaseSwitchedPassthroughBackendFactory(ctx, conf, true)
 }
 
-// LeaseSwitchedPassthroughBackend returns a PassthroughBackend
+// LeaseSwitchedPassthroughBackendFactory returns a PassthroughBackend
 // with leases switched on or off
-func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendConfig, leases bool) (logical.Backend, error) {
+func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.BackendConfig, leases bool) (logical.Backend, error) {
 	b := &PassthroughBackend{
 		generateLeases: leases,
 	}
@@ -61,11 +61,15 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 					},
 				},
 
+				// The regex and field definition above are purely for the benefit of OpenAPI and generated
+				// documentation. The actual request processing functions consult req.Path directly.
+				// See documentation of handleReadOrRenew for more detail.
+
 				TakesArbitraryInput: true,
 
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.ReadOperation: &framework.PathOperation{
-						Callback: b.handleRead(),
+						Callback: b.handleReadOrRenew(),
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "read",
 						},
@@ -127,7 +131,7 @@ func LeaseSwitchedPassthroughBackend(ctx context.Context, conf *logical.BackendC
 			{
 				Type: "kv",
 
-				Renew: b.handleRead(),
+				Renew: b.handleReadOrRenew(),
 				Revoke: func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 					// This is a no-op
 					return nil, nil
@@ -156,9 +160,7 @@ type PassthroughBackend struct {
 
 func (b *PassthroughBackend) handleExistenceCheck() framework.ExistenceFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
-		key := data.Get("path").(string)
-
-		out, err := req.Storage.Get(ctx, key)
+		out, err := req.Storage.Get(ctx, req.Path)
 		if err != nil {
 			return false, fmt.Errorf("existence check failed: %w", err)
 		}
@@ -167,12 +169,17 @@ func (b *PassthroughBackend) handleExistenceCheck() framework.ExistenceFunc {
 	}
 }
 
-func (b *PassthroughBackend) handleRead() framework.OperationFunc {
+// handleReadOrRenew is called both for ReadOperations and RenewOperations. The RenewOperation case only applies when
+// using the rather obscure feature of mounting the backend with option leased_passthrough=true, and storing a duration
+// within the secret data itself, at the key "ttl" (preferred) or "lease" (deprecated). When that is done, we return a
+// renewable lease, and treat invoking the renew as a request to re-read the same path that was originally read. We use
+// req.Path, instead of a more conventional data.Get("path").(string), to read the requested path because the data
+// attached to a RenewOperation is NOT the original request data - it is the response data! Technically we need only do
+// this for this function, but for consistency we also use req.Path throughout the other handlers for this path pattern.
+func (b *PassthroughBackend) handleReadOrRenew() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		key := data.Get("path").(string)
-
 		// Read the path
-		out, err := req.Storage.Get(ctx, key)
+		out, err := req.Storage.Get(ctx, req.Path)
 		if err != nil {
 			return nil, fmt.Errorf("read failed: %w", err)
 		}
@@ -235,8 +242,7 @@ func (b *PassthroughBackend) handleRead() framework.OperationFunc {
 
 func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		key := data.Get("path").(string)
-		if key == "" {
+		if req.Path == "" {
 			return logical.ErrorResponse("missing path"), nil
 		}
 
@@ -253,14 +259,14 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 
 		// Write out a new key
 		entry := &logical.StorageEntry{
-			Key:   key,
+			Key:   req.Path,
 			Value: buf,
 		}
 		if err := req.Storage.Put(ctx, entry); err != nil {
 			return nil, fmt.Errorf("failed to write: %w", err)
 		}
 
-		kvEvent(ctx, b.Backend, "write", key, key, true, 1)
+		kvEvent(ctx, b.Backend, "write", req.Path, req.Path, true, 1)
 
 		return nil, nil
 	}
@@ -268,14 +274,12 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 
 func (b *PassthroughBackend) handleDelete() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		key := data.Get("path").(string)
-
 		// Delete the key at the request path
-		if err := req.Storage.Delete(ctx, key); err != nil {
+		if err := req.Storage.Delete(ctx, req.Path); err != nil {
 			return nil, err
 		}
 
-		kvEvent(ctx, b.Backend, "delete", key, "", true, 1)
+		kvEvent(ctx, b.Backend, "delete", req.Path, "", true, 1)
 
 		return nil, nil
 	}
@@ -286,7 +290,7 @@ func (b *PassthroughBackend) handleList() framework.OperationFunc {
 		// Right now we only handle directories, so ensure it ends with /; however,
 		// some physical backends may not handle the "/" case properly, so only add
 		// it if we're not listing the root
-		path := data.Get("path").(string)
+		path := req.Path
 		if path != "" && !strings.HasSuffix(path, "/") {
 			path = path + "/"
 		}
