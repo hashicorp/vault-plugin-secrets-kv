@@ -220,14 +220,12 @@ func (b *versionedKVBackend) pathDataRead() framework.OperationFunc {
 
 			if deletionTime.Before(time.Now()) {
 				return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
-
 			}
 		}
 
 		// If the version has been destroyed return metadata with a 404
 		if vm.Destroyed {
 			return logical.RespondWithStatusCode(resp, req, http.StatusNotFound)
-
 		}
 
 		versionKey, err := b.getVersionKey(ctx, key, verNum, req.Storage)

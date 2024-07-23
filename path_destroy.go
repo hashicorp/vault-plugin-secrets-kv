@@ -5,6 +5,7 @@ package kv
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -100,9 +101,14 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 				return nil, err
 			}
 		}
+		marshaledVersions, err := json.Marshal(&versions)
+		if err != nil {
+			return nil, err
+		}
 		kvEvent(ctx, b.Backend, "destroy", "destroy/"+key, "", true, 2,
 			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
+			"destroyed_versions", string(marshaledVersions),
 		)
 		return nil, nil
 	}
