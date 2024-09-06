@@ -1,8 +1,19 @@
 ## Unreleased
 
+## v0.20.0
+
 BUG FIXES:
 
 * Fixes panic from occurring when renewing KVv1 secrets.
+
+CHANGES:
+
+* Updated dependencies:
+  * `github.com/hashicorp/vault/api` v1.13.0 -> v1.14.0
+  * `github.com/hashicorp/vault/sdk` v0.12.0 -> v0.13.0
+  * `github.com/go-test/deep` v1.1.0 -> v1.1.1
+  * `github.com/docker/docker` v25.0.5 -> v25.0.6
+  * `github.com/hashicorp/go-retryablehttp` v0.7.1 -> v0.7.7
 
 ## v0.19.0
 
