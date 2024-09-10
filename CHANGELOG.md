@@ -14,7 +14,6 @@ CHANGES:
   * `github.com/go-test/deep` v1.1.0 -> v1.1.1
   * `github.com/docker/docker` v25.0.5 -> v25.0.6
   * `github.com/hashicorp/go-retryablehttp` v0.7.1 -> v0.7.7
-  * `google.golang.org/grpc` v1.64.0 -> v1.66.0
 
 ## v0.19.0
 
