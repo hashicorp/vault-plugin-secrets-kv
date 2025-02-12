@@ -1,5 +1,13 @@
 ## Unreleased
 
+## v0.21.0
+
+CHANGES:
+
+* Updated dependencies:
+  * https://github.com/hashicorp/vault-plugin-secrets-kv/pull/175
+  * https://github.com/hashicorp/vault-plugin-secrets-kv/pull/177
+
 ## v0.20.0
 
 BUG FIXES:
