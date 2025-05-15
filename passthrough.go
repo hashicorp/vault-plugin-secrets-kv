@@ -236,6 +236,8 @@ func (b *PassthroughBackend) handleReadOrRenew() framework.OperationFunc {
 
 		resp.Secret.TTL = ttlDuration
 
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv1SecretRead)
+
 		return resp, nil
 	}
 }
@@ -267,6 +269,7 @@ func (b *PassthroughBackend) handleWrite() framework.OperationFunc {
 		}
 
 		kvEvent(ctx, b.Backend, "write", req.Path, req.Path, true, 1)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv1SecretWrite)
 
 		return nil, nil
 	}
@@ -280,6 +283,7 @@ func (b *PassthroughBackend) handleDelete() framework.OperationFunc {
 		}
 
 		kvEvent(ctx, b.Backend, "delete", req.Path, "", true, 1)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv1SecretDelete)
 
 		return nil, nil
 	}

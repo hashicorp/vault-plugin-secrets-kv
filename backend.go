@@ -433,6 +433,40 @@ func (b *versionedKVBackend) writeKeyMetadata(ctx context.Context, s logical.Sto
 	return nil
 }
 
+func kvObservationIsRead(observationType string) bool {
+	return observationType == ObservationTypeKVv1SecretRead || observationType == ObservationTypeKVv2SecretRead ||
+		observationType == ObservationTypeKVv2ConfigRead || observationType == ObservationTypeKVv2MetadataRead
+}
+
+func kvObservationIsWrite(observationType string) bool {
+	return !kvObservationIsRead(observationType)
+}
+
+type AdditionalKVMetadata struct {
+	key   string
+	value interface{}
+}
+
+func recordKvObservation(ctx context.Context, b *framework.Backend, req *logical.Request, observationType string,
+	additionalMetadata ...AdditionalKVMetadata) {
+	metadata := map[string]interface{}{
+		"path":      req.Path,
+		"clientId":  req.ClientID,
+		"entityId":  req.EntityID,
+		"requestId": req.ID,
+		"modified":  kvObservationIsWrite(observationType),
+	}
+	for _, meta := range additionalMetadata {
+		metadata[meta.key] = meta.value
+	}
+
+	err := b.RecordObservation(ctx, observationType, metadata)
+
+	if err != nil && errors.Is(err, framework.ErrNoObservations) {
+		b.Logger().Error("Error recording observation", "observationType", observationType, "error", err)
+	}
+}
+
 // kvEvent sends an event.
 //   - `path` contains the API path that was called.
 //   - `dataPath` contains the API path that should be called to fetch the underlying data, if relevant
