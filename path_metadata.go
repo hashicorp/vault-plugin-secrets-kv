@@ -238,6 +238,8 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 			}
 		}
 
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2MetadataRead)
+
 		return &logical.Response{
 			Data: map[string]interface{}{
 				"versions":             versions,
@@ -417,6 +419,7 @@ func (b *versionedKVBackend) pathMetadataWrite() framework.OperationFunc {
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		kvEvent(ctx, b.Backend, "metadata-write", "metadata/"+key, "metadata/"+key, true, 2)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2MetadataWrite)
 		return resp, err
 	}
 }
@@ -530,6 +533,7 @@ func (b *versionedKVBackend) pathMetadataPatch() framework.OperationFunc {
 		}
 
 		kvEvent(ctx, b.Backend, "metadata-patch", "metadata/"+key, "metadata/"+key, true, 2)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2MetadataPatch)
 		return resp, nil
 	}
 }
@@ -574,6 +578,7 @@ func (b *versionedKVBackend) pathMetadataDelete() framework.OperationFunc {
 		// Use encrypted key storage to delete the key
 		err = es.Delete(ctx, key)
 		kvEvent(ctx, b.Backend, "metadata-delete", "metadata/"+key, "", true, 2)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2MetadataDelete)
 		return nil, err
 	}
 }

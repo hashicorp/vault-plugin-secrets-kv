@@ -115,6 +115,7 @@ func (b *versionedKVBackend) pathConfigRead() framework.OperationFunc {
 		}
 		rdata["delete_version_after"] = deleteVersionAfter.String()
 
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2ConfigRead)
 		return &logical.Response{
 			Data: rdata,
 		}, nil
@@ -175,6 +176,7 @@ func (b *versionedKVBackend) pathConfigWrite() framework.OperationFunc {
 
 		b.globalConfig = config
 		kvEvent(ctx, b.Backend, "config-write", configPath, configPath, true, 2)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2ConfigWrite)
 		return nil, nil
 	}
 }
