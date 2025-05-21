@@ -64,7 +64,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
-	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
+	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/hashicorp/yamux v0.1.2 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
