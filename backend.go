@@ -450,11 +450,11 @@ type AdditionalKVMetadata struct {
 func recordKvObservation(ctx context.Context, b *framework.Backend, req *logical.Request, observationType string,
 	additionalMetadata ...AdditionalKVMetadata) {
 	metadata := map[string]interface{}{
-		"path":      req.Path,
-		"clientId":  req.ClientID,
-		"entityId":  req.EntityID,
-		"requestId": req.ID,
-		"modified":  kvObservationIsWrite(observationType),
+		"path":       req.Path,
+		"client_id":  req.ClientID,
+		"entity_id":  req.EntityID,
+		"request_id": req.ID,
+		"modified":   kvObservationIsWrite(observationType),
 	}
 	for _, meta := range additionalMetadata {
 		metadata[meta.key] = meta.value
