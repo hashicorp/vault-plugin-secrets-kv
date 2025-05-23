@@ -6,6 +6,7 @@ package kv
 import (
 	"context"
 	"encoding/json"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/snapshots"
 	"reflect"
 	"testing"
 	"time"
@@ -302,6 +303,128 @@ func TestPassthroughBackend_Renew(t *testing.T) {
 	if !reflect.DeepEqual(resp.Data, expected) {
 		t.Fatalf("bad response.\n\nexpected: %#v\n\nGot: %#v", expected, resp)
 	}
+}
+
+func TestPassthroughBackend_Recover(t *testing.T) {
+	config := logical.TestBackendConfig()
+	config.StorageView = &logical.InmemStorage{}
+	b, err := LeasedPassthroughBackendFactory(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = b.Setup(context.Background(), config)
+
+	oldConfig := logical.TestBackendConfig()
+	oldConfig.StorageView = &logical.InmemStorage{}
+	oldBackend, err := LeasedPassthroughBackendFactory(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = oldBackend.Setup(context.Background(), oldConfig)
+	tc := snapshots.NewSnapshotTestCase(t, b)
+	snapshotStorage := tc.SnapshotStorage()
+	regularStorage := tc.RegularStorage()
+	if snapshotStorage == nil {
+		t.Fatalf("not nil; snapshotStorage")
+	}
+	if regularStorage == nil {
+		t.Fatalf("not nil; regularStorage")
+	}
+
+	// write a KV entry
+	req := logical.TestRequest(t, logical.UpdateOperation, "foo")
+	req.Data["raw"] = "test"
+	req.Storage = snapshotStorage
+	resp, err := oldBackend.HandleRequest(context.Background(), req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp != nil {
+		t.Fatalf("bad: %v", resp)
+	}
+	schema.ValidateResponse(
+		t,
+		schema.GetResponseSchema(t, b.(*PassthroughBackend).Route(req.Path), req.Operation),
+		resp,
+		true,
+	)
+
+	// verify that read and list from a snapshot don't modify anything
+	tc.RunRead(t, "foo")
+	tc.RunList(t, "foo")
+
+	// run a recover
+	_, err = tc.DoRecover(t, "foo")
+
+	// check after the recover operation to ensure the data was updated
+	read, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "foo",
+		Storage:   regularStorage,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if read == nil {
+		t.Fatalf("bad: %v", read)
+	}
+	if read.Data["raw"] != "test" {
+		t.Fatalf("bad %v", read.Data["raw"])
+	}
+
+	// modify the entry in the regular storage
+	req = logical.TestRequest(t, logical.UpdateOperation, "foo")
+	req.Data["raw"] = "test_two"
+	req.Storage = regularStorage
+	resp, err = oldBackend.HandleRequest(context.Background(), req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp != nil {
+		t.Fatalf("bad: %v", resp)
+	}
+	schema.ValidateResponse(
+		t,
+		schema.GetResponseSchema(t, b.(*PassthroughBackend).Route(req.Path), req.Operation),
+		resp,
+		true,
+	)
+
+	// check after modifying to ensure the data was updated
+	read, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "foo",
+		Storage:   regularStorage,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if read == nil {
+		t.Fatalf("bad: %v", read)
+	}
+	if read.Data["raw"] != "test_two" {
+		t.Fatalf("bad %v", read.Data["raw"])
+	}
+
+	// run a recover again
+	_, err = tc.DoRecover(t, "foo")
+
+	// check after the recover operation to ensure the data was updated
+	read, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "foo",
+		Storage:   regularStorage,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if read == nil {
+		t.Fatalf("bad: %v", read)
+	}
+	if read.Data["raw"] != "test" {
+		t.Fatalf("bad %v", read.Data["raw"])
+	}
+
 }
 
 func testPassthroughBackend() logical.Backend {

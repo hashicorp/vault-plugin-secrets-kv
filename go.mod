@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.2.0
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/vault/api v1.16.0
-	github.com/hashicorp/vault/sdk v0.16.0
+	github.com/hashicorp/vault/sdk v0.17.0
 	github.com/mitchellh/mapstructure v1.5.0
 	google.golang.org/protobuf v1.36.6
 )
