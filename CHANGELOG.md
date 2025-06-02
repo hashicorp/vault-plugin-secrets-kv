@@ -1,5 +1,11 @@
 ## Unreleased
 
+## v0.22.0
+
+CHANGES:
+
+* Bump Go version to 1.24.3
+
 ## v0.21.0
 
 CHANGES:
