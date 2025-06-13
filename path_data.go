@@ -449,7 +449,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
 		)
-		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretWrite)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretWrite,
+			AdditionalKVMetadata{key: "is_new_secret", value: meta.CurrentVersion == 1 && meta.OldestVersion == 1},
+			AdditionalKVMetadata{key: "oldest_version", value: meta.OldestVersion},
+			AdditionalKVMetadata{key: "current_version", value: meta.CurrentVersion})
 
 		return resp, nil
 	}
@@ -650,7 +653,9 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
 		)
-		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretPatch)
+		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretPatch,
+			AdditionalKVMetadata{key: "oldest_version", value: meta.OldestVersion},
+			AdditionalKVMetadata{key: "current_version", value: meta.CurrentVersion})
 		return resp, nil
 	}
 }
