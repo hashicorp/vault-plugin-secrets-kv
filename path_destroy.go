@@ -111,6 +111,8 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 			"destroyed_versions", string(marshaledVersions),
 		)
 		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretDestroy,
+			AdditionalKVMetadata{key: "current_version", value: meta.CurrentVersion},
+			AdditionalKVMetadata{key: "oldest_version", value: meta.OldestVersion},
 			AdditionalKVMetadata{key: "destroyed_versions", value: marshaledVersions})
 		return nil, nil
 	}
