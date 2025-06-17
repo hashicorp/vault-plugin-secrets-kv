@@ -454,7 +454,6 @@ func recordKvObservation(ctx context.Context, b *framework.Backend, req *logical
 		"client_id":  req.ClientID,
 		"entity_id":  req.EntityID,
 		"request_id": req.ID,
-		"modified":   kvObservationIsWrite(observationType),
 	}
 	for _, meta := range additionalMetadata {
 		metadata[meta.key] = meta.value
@@ -462,8 +461,8 @@ func recordKvObservation(ctx context.Context, b *framework.Backend, req *logical
 
 	err := b.RecordObservation(ctx, observationType, metadata)
 
-	if err != nil && errors.Is(err, framework.ErrNoObservations) {
-		b.Logger().Error("Error recording observation", "observationType", observationType, "error", err)
+	if err != nil && !errors.Is(err, framework.ErrNoObservations) {
+		b.Logger().Error("error recording observation", "observationType", observationType, "error", err)
 	}
 }
 
