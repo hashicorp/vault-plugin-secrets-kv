@@ -1560,3 +1560,379 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 		t.Fatalf("expected max_versions to be unset to zero value")
 	}
 }
+
+func TestVersionedKV_Metadata_List_ExcludeDeleted(t *testing.T) {
+	b, storage := getBackend(t)
+
+	// Create first secret "foo"
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Create second secret "bar"
+	data = map[string]interface{}{
+		"data": map[string]interface{}{
+			"test": "value",
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/bar",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Create third secret "baz" with multiple versions
+	data = map[string]interface{}{
+		"data": map[string]interface{}{
+			"version": "1",
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/baz",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Create second version of "baz"
+	data = map[string]interface{}{
+		"data": map[string]interface{}{
+			"version": "2",
+		},
+		"options": map[string]interface{}{
+			"cas": float64(1),
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/baz",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Test 1: List all secrets (default behavior - exclude_deleted=false)
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	expected := []string{"bar", "baz", "foo"}
+	keys := resp.Data["keys"].([]string)
+	if len(keys) != len(expected) {
+		t.Fatalf("expected %d keys, got %d: %v", len(expected), len(keys), keys)
+	}
+	for i, expectedKey := range expected {
+		if keys[i] != expectedKey {
+			t.Fatalf("expected key %s at position %d, got %s", expectedKey, i, keys[i])
+		}
+	}
+
+	// Test 2: List with exclude_deleted=false explicitly
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": false,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	keys = resp.Data["keys"].([]string)
+	if len(keys) != 3 || keys[0] != "bar" || keys[1] != "baz" || keys[2] != "foo" {
+		t.Fatalf("expected keys [bar, baz, foo], got %v", keys)
+	}
+
+	// Delete the current version (version 2) of "foo"
+	deleteData := map[string]interface{}{
+		"versions": "1",
+	}
+
+	req = &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "delete/foo",
+		Storage:   storage,
+		Data:      deleteData,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Test 3: List all secrets after deletion (should still show "foo" by default)
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	keys = resp.Data["keys"].([]string)
+	if len(keys) != 3 || keys[0] != "bar" || keys[1] != "baz" || keys[2] != "foo" {
+		t.Fatalf("expected keys [bar, baz, foo] (with deleted version), got %v", keys)
+	}
+
+	// Test 4: List with exclude_deleted=true (should filter out "foo")
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": true,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	keys = resp.Data["keys"].([]string)
+	if len(keys) != 2 || keys[0] != "bar" || keys[1] != "baz" {
+		t.Fatalf("expected keys [bar, foo] (excluding deleted), got %v", keys)
+	}
+
+	// Test 5: Delete version 1 of "baz"
+
+	deleteData = map[string]interface{}{
+		"versions": "1",
+	}
+
+	req = &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "delete/baz",
+		Storage:   storage,
+		Data:      deleteData,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Test 6: List with exclude_deleted=true after deleting old version (should still show "baz") as current version is not deleted
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": true,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	keys = resp.Data["keys"].([]string)
+	if len(keys) != 2 || keys[0] != "bar" || keys[1] != "baz" {
+		t.Fatalf("expected keys [bar, baz] (old version deleted, current not deleted), got %v", keys)
+	}
+
+	// Test 7: Create a directory structure and test filtering with directories
+	data = map[string]interface{}{
+		"data": map[string]interface{}{
+			"nested": "value",
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/dir/nested-secret",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Test 8: List root with directories and exclude_deleted=true. Directories should always be included.
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": true,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	keys = resp.Data["keys"].([]string)
+	// Should include: bar, dir/, foo (directories are always included)
+	if len(keys) != 3 || keys[0] != "bar" || keys[1] != "dir/" || keys[2] != "foo" {
+		t.Fatalf("expected keys [bar, dir/, foo] (with directory), got %v", keys)
+	}
+}
+
+func TestVersionedKV_Metadata_List_ExcludeDeleted_EdgeCases(t *testing.T) {
+	b, storage := getBackend(t)
+
+	// Test 1: Empty list with exclude_deleted=true
+	req := &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": true,
+		},
+	}
+
+	resp, err := b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	if resp.Data["keys"] != nil {
+		t.Fatalf("expected no keys for empty list, got %v", resp.Data["keys"])
+	}
+
+	// Test 2: Create a secret and immediately delete its only version
+	data := map[string]interface{}{
+		"data": map[string]interface{}{
+			"key": "value",
+		},
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/single-version",
+		Storage:   storage,
+		Data:      data,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Delete the only version
+	deleteData := map[string]interface{}{
+		"versions": "1",
+	}
+
+	req = &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "delete/single-version",
+		Storage:   storage,
+		Data:      deleteData,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// List with exclude_deleted=true should not show the secret
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": true,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	if resp.Data["keys"] != nil {
+		t.Fatalf("expected no keys when only secret is deleted, got %v", resp.Data["keys"])
+	}
+
+	// Test 4: List with exclude_deleted=false should still show the secret
+	req = &logical.Request{
+		Operation: logical.ListOperation,
+		Path:      "metadata/",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": false,
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	keys := resp.Data["keys"].([]string)
+	if len(keys) != 1 || keys[0] != "single-version" {
+		t.Fatalf("expected keys [single-version] when exclude_deleted=false, got %v", keys)
+	}
+
+	// Test 5: Test metadata read with exclude_deleted (should be ignored for read operations)
+	req = &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "metadata/single-version",
+		Storage:   storage,
+		Data: map[string]interface{}{
+			"exclude_deleted": true, // This should be ignored for read operations
+		},
+	}
+
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || resp == nil || resp.IsError() {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+
+	// Should still return metadata even though current version is deleted
+	if resp.Data["current_version"] != uint64(1) {
+		t.Fatalf("expected current_version 1, got %v", resp.Data["current_version"])
+	}
+}
