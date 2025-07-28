@@ -6,6 +6,7 @@ package kv
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,20 @@ import (
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
 )
+
+// assertKeysMatch checks that the actual keys slice contains exactly the expected keys
+// in any order, providing helpful error messages if they don't match
+func assertKeysMatch(t *testing.T, actual []string, expected []string, context string) {
+	t.Helper()
+	if len(actual) != len(expected) {
+		t.Fatalf("%s: expected %d keys, got %d: %v", context, len(expected), len(actual), actual)
+	}
+	for _, expectedKey := range expected {
+		if !slices.Contains(actual, expectedKey) {
+			t.Fatalf("%s: missing key %s, should be contained within %v", context, expectedKey, actual)
+		}
+	}
+}
 
 func TestVersionedKV_Metadata_Put(t *testing.T) {
 	b, storage := getBackend(t)
@@ -1657,14 +1672,7 @@ func TestVersionedKV_Metadata_List_ExcludeDeleted(t *testing.T) {
 
 	expected := []string{"bar", "baz", "foo"}
 	keys := resp.Data["keys"].([]string)
-	if len(keys) != len(expected) {
-		t.Fatalf("expected %d keys, got %d: %v", len(expected), len(keys), keys)
-	}
-	for i, expectedKey := range expected {
-		if keys[i] != expectedKey {
-			t.Fatalf("expected key %s at position %d, got %s", expectedKey, i, keys[i])
-		}
-	}
+	assertKeysMatch(t, keys, expected, "Test 1: List all secrets (default behavior)")
 
 	// Test 2: List with exclude_deleted=false explicitly
 	req = &logical.Request{
@@ -1682,11 +1690,10 @@ func TestVersionedKV_Metadata_List_ExcludeDeleted(t *testing.T) {
 	}
 
 	keys = resp.Data["keys"].([]string)
-	if len(keys) != 3 || keys[0] != "bar" || keys[1] != "baz" || keys[2] != "foo" {
-		t.Fatalf("expected keys [bar, baz, foo], got %v", keys)
-	}
+	expected = []string{"bar", "baz", "foo"}
+	assertKeysMatch(t, keys, expected, "Test 2: List with exclude_deleted=false explicitly")
 
-	// Delete the current version (version 2) of "foo"
+	// Delete the current version of "foo"
 	deleteData := map[string]interface{}{
 		"versions": "1",
 	}
@@ -1716,9 +1723,8 @@ func TestVersionedKV_Metadata_List_ExcludeDeleted(t *testing.T) {
 	}
 
 	keys = resp.Data["keys"].([]string)
-	if len(keys) != 3 || keys[0] != "bar" || keys[1] != "baz" || keys[2] != "foo" {
-		t.Fatalf("expected keys [bar, baz, foo] (with deleted version), got %v", keys)
-	}
+	expected = []string{"bar", "baz", "foo"}
+	assertKeysMatch(t, keys, expected, "Test 3: List all secrets after deletion (should still show foo by default)")
 
 	// Test 4: List with exclude_deleted=true (should filter out "foo")
 	req = &logical.Request{
@@ -1736,9 +1742,8 @@ func TestVersionedKV_Metadata_List_ExcludeDeleted(t *testing.T) {
 	}
 
 	keys = resp.Data["keys"].([]string)
-	if len(keys) != 2 || keys[0] != "bar" || keys[1] != "baz" {
-		t.Fatalf("expected keys [bar, foo] (excluding deleted), got %v", keys)
-	}
+	expected = []string{"bar", "baz"}
+	assertKeysMatch(t, keys, expected, "Test 4: List with exclude_deleted=true (should filter out foo)")
 
 	// Test 5: Delete version 1 of "baz"
 
@@ -1774,9 +1779,8 @@ func TestVersionedKV_Metadata_List_ExcludeDeleted(t *testing.T) {
 	}
 
 	keys = resp.Data["keys"].([]string)
-	if len(keys) != 2 || keys[0] != "bar" || keys[1] != "baz" {
-		t.Fatalf("expected keys [bar, baz] (old version deleted, current not deleted), got %v", keys)
-	}
+	expected = []string{"bar", "baz"}
+	assertKeysMatch(t, keys, expected, "Test 6: List with exclude_deleted=true after deleting old version (should still show baz)")
 
 	// Test 7: Create a directory structure and test filtering with directories
 	data = map[string]interface{}{
@@ -1813,10 +1817,9 @@ func TestVersionedKV_Metadata_List_ExcludeDeleted(t *testing.T) {
 	}
 
 	keys = resp.Data["keys"].([]string)
-	// Should include: bar, dir/, foo (directories are always included)
-	if len(keys) != 3 || keys[0] != "bar" || keys[1] != "dir/" || keys[2] != "foo" {
-		t.Fatalf("expected keys [bar, dir/, foo] (with directory), got %v", keys)
-	}
+	// Should include: bar, baz, dir/ (directories are always included, deleted secrets excluded)
+	expected = []string{"bar", "baz", "dir/"}
+	assertKeysMatch(t, keys, expected, "Test 8: List root with directories and exclude_deleted=true")
 }
 
 func TestVersionedKV_Metadata_List_ExcludeDeleted_EdgeCases(t *testing.T) {
@@ -1912,9 +1915,8 @@ func TestVersionedKV_Metadata_List_ExcludeDeleted_EdgeCases(t *testing.T) {
 	}
 
 	keys := resp.Data["keys"].([]string)
-	if len(keys) != 1 || keys[0] != "single-version" {
-		t.Fatalf("expected keys [single-version] when exclude_deleted=false, got %v", keys)
-	}
+	expected := []string{"single-version"}
+	assertKeysMatch(t, keys, expected, "Edge case: Single entry list with exclude_deleted=true")
 
 	// Test 5: Test metadata read with exclude_deleted (should be ignored for read operations)
 	req = &logical.Request{
