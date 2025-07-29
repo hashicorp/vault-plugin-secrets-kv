@@ -1,5 +1,10 @@
 ## Unreleased
 
+CHANGES:
+
+* Add support for listing only non-deleted KV entries [GH-196](https://github.com/hashicorp/vault-plugin-secrets-kv/pull/196)
+
+
 ## v0.24.0
 
 CHANGES:
