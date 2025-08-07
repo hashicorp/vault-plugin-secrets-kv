@@ -151,6 +151,7 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretUndelete,
 			AdditionalKVMetadata{key: "oldest_version", value: meta.OldestVersion},
 			AdditionalKVMetadata{key: "current_version", value: meta.CurrentVersion},
+			AdditionalKVMetadata{key: "versions", value: kvVersionsMapToSlice(meta.Versions)},
 			AdditionalKVMetadata{key: "undeleted_versions", value: marshaledVersions})
 		return nil, nil
 	}
@@ -215,6 +216,7 @@ func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 		)
 		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretDelete,
 			AdditionalKVMetadata{key: "current_version", value: meta.CurrentVersion},
+			AdditionalKVMetadata{key: "versions", value: kvVersionsMapToSlice(meta.Versions)},
 			AdditionalKVMetadata{key: "deleted_versions", value: marshaledVersions})
 		return nil, nil
 	}

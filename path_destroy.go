@@ -7,11 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
+	"net/http"
 )
 
 // pathDestroy returns the path configuration for the destroy endpoint
@@ -113,6 +112,7 @@ func (b *versionedKVBackend) pathDestroyWrite() framework.OperationFunc {
 		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretDestroy,
 			AdditionalKVMetadata{key: "current_version", value: meta.CurrentVersion},
 			AdditionalKVMetadata{key: "oldest_version", value: meta.OldestVersion},
+			AdditionalKVMetadata{key: "versions", value: kvVersionsMapToSlice(meta.Versions)},
 			AdditionalKVMetadata{key: "destroyed_versions", value: marshaledVersions})
 		return nil, nil
 	}
