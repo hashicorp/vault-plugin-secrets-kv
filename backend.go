@@ -7,8 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"path"
+	"slices"
 	"strconv"
 	"sync"
 
@@ -445,6 +447,15 @@ func kvObservationIsWrite(observationType string) bool {
 type AdditionalKVMetadata struct {
 	key   string
 	value interface{}
+}
+
+// kvVersionsMapToSlice is intended to take meta.Versions and return a readable slice
+// of versions. Note that this is UNSORTED, so could return e.g.:
+// [1]
+// [1,2,3]
+// [2,3,1]
+func kvVersionsMapToSlice(versions map[uint64]*VersionMetadata) []uint64 {
+	return slices.Collect(maps.Keys(versions))
 }
 
 func recordKvObservation(ctx context.Context, b *framework.Backend, req *logical.Request, observationType string,
