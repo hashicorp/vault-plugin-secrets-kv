@@ -29,6 +29,20 @@ message VersionMetadata {
 	// Destroyed is used to specify this version is
 	// a has been removed and the underlying data deleted.
 	bool destroyed = 3;
+
+	// CreatedBy is the entity/alias name or token accessor
+	// that last modified this secret
+	string created_by = 4;
+
+	// Deleted by is the entity/alias name that deleted this
+	// version of the secret
+	string deleted_by = 5;
+
+	// EntityID is the Entity ID that created this version
+	string entity_id = 6;
+
+	// Operation is the specific operation that created or modified this version
+	string operation = 7;
 }
 
 message KeyMetadata {
@@ -66,9 +80,15 @@ message KeyMetadata {
 	// mount.
 	google.protobuf.Duration delete_version_after = 9;
 
-    // CustomMetadata is a map of string key-value pairs used to store
-    // user-provided information about the secret.
+	// CustomMetadata is a map of string key-value pairs used to store
+	// user-provided information about the secret.
 	map<string, string> custom_metadata = 10;
+
+	// LastUpdatedBy is the display name of the last entity to update this key
+	string last_updated_by = 11;
+
+	// LastOperation is the last write operation performed against this key
+	string last_operation = 12;
 }
 
 

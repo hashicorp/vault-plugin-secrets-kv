@@ -370,8 +370,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 		if meta == nil {
 			meta = &KeyMetadata{
-				Key:      key,
-				Versions: map[uint64]*VersionMetadata{},
+				Key:           key,
+				Versions:      map[uint64]*VersionMetadata{},
+				LastOperation: string(req.Operation),
+				LastUpdatedBy: req.DisplayName,
 			}
 		}
 
@@ -418,10 +420,13 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Extract Attribution data from request
+		attribution, auditWarning := getAttributionFromRequest(req)
+
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
 		// metadata or the engine's config
-		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions)
+		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions, attribution)
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -436,6 +441,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 				"destroyed":       vm.Destroyed,
 				"custom_metadata": meta.CustomMetadata,
 			},
+		}
+
+		if auditWarning != "" {
+			resp.AddWarning(auditWarning)
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
@@ -623,10 +632,13 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Extract Attribution data from request
+		attribution, auditWarning := getAttributionFromRequest(req)
+
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
 		// metadata or the engine's config
-		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
+		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions, attribution)
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -641,6 +653,10 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 				"destroyed":       newVersionMetadata.Destroyed,
 				"custom_metadata": meta.CustomMetadata,
 			},
+		}
+
+		if auditWarning != "" {
+			resp.AddWarning(auditWarning)
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
@@ -698,6 +714,13 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 
 		lv.DeletionTime = ptypes.TimestampNow()
 
+		// Extract Attribution data from request
+		attribution, _ := getAttributionFromRequest(req)
+		lv.Operation = attribution.Operation
+		lv.DeletedBy = attribution.DisplayName
+		meta.LastOperation = attribution.Operation
+		meta.LastUpdatedBy = attribution.DisplayName
+
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
@@ -717,7 +740,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 // AddVersion adds a version to the key metadata and moves the sliding window of
 // max versions. It returns the newly added version and the version to delete
 // from storage.
-func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp, configMaxVersions uint32) (*VersionMetadata, uint64) {
+func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp, configMaxVersions uint32, attr *Attribution) (*VersionMetadata, uint64) {
 	if k.Versions == nil {
 		k.Versions = map[uint64]*VersionMetadata{}
 	}
@@ -725,6 +748,9 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 	vm := &VersionMetadata{
 		CreatedTime:  createdTime,
 		DeletionTime: deletionTime,
+		CreatedBy:    attr.DisplayName,
+		EntityId:     attr.EntityID,
+		Operation:    attr.Operation,
 	}
 
 	k.CurrentVersion++
@@ -756,6 +782,39 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 	}
 
 	return vm, 0
+}
+
+func getAttributionFromRequest(req *logical.Request) (*Attribution, string) {
+	var auditWarningReturn string
+	auditWarning := make([]string, 0)
+
+	// Get Display Name
+	createdBy := req.DisplayName
+	if createdBy == "" {
+		if req.ClientTokenAccessor == "" {
+			auditWarning = append(auditWarning, "no client token accessor entity/alias name found")
+			createdBy = "not_found"
+		}
+		createdBy = req.ClientTokenAccessor
+	}
+
+	// Get Entity ID
+	entityID := req.EntityID
+	if entityID == "" {
+		auditWarning = append(auditWarning, "no entity id found")
+	}
+
+	attr := &Attribution{
+		DisplayName: createdBy,
+		EntityID:    entityID,
+		Operation:   string(req.Operation),
+	}
+
+	if len(auditWarning) > 0 {
+		auditWarningReturn = strings.Join(auditWarning, ",")
+	}
+
+	return attr, auditWarningReturn
 }
 
 func max(a, b uint32) uint32 {

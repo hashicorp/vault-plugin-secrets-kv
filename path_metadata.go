@@ -271,6 +271,10 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 			versions[fmt.Sprintf("%d", i)] = map[string]interface{}{
 				"created_time":  ptypesTimestampToString(v.CreatedTime),
 				"deletion_time": ptypesTimestampToString(v.DeletionTime),
+				"created_by":    v.CreatedBy,
+				"entity_id":     v.EntityId,
+				"operation":     v.Operation,
+				"deleted_by":    v.DeletedBy,
 				"destroyed":     v.Destroyed,
 			}
 		}
@@ -296,6 +300,8 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"cas_required":         meta.CasRequired,
 				"delete_version_after": deleteVersionAfter.String(),
 				"custom_metadata":      meta.CustomMetadata,
+				"last_updated_by":      meta.LastUpdatedBy,
+				"last_operation":       meta.LastOperation,
 			},
 		}, nil
 	}

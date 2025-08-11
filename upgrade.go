@@ -188,8 +188,15 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			return err
 		}
 
+		// Create attribution
+		attribution := &Attribution{
+			DisplayName: "vault_upgrade",
+			Operation:   "upgrade",
+			EntityID:    "",
+		}
+
 		// Store the metadata
-		meta.AddVersion(version.CreatedTime, nil, 1)
+		meta.AddVersion(version.CreatedTime, nil, 1, attribution)
 		err = b.writeKeyMetadata(ctx, s, meta)
 		if err != nil {
 			return err
