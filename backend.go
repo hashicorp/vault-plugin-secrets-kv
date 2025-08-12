@@ -45,13 +45,6 @@ const (
 	operationPrefixKVv2 = "kv-v2"
 )
 
-// Attribution contains identifying information around a KV Version change
-type Attribution struct {
-	DisplayName string `json:"display_name" structs:"display_name" mapstructure:"display_name"`
-	EntityID    string `json:"entity_id" structs:"entity_id" mapstructure:"entity_id"`
-	Operation   string `json:"operation" structs:"operation" mapstructure:"operation"`
-}
-
 // versionedKVBackend implements logical.Backend
 type versionedKVBackend struct {
 	*framework.Backend

@@ -716,10 +716,9 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 
 		// Extract Attribution data from request
 		attribution, _ := getAttributionFromRequest(req)
-		lv.Operation = attribution.Operation
-		lv.DeletedBy = attribution.DisplayName
+		lv.DeletedBy = attribution
 		meta.LastOperation = attribution.Operation
-		meta.LastUpdatedBy = attribution.DisplayName
+		meta.LastUpdatedBy = attribution.Actor
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -748,9 +747,7 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 	vm := &VersionMetadata{
 		CreatedTime:  createdTime,
 		DeletionTime: deletionTime,
-		CreatedBy:    attr.DisplayName,
-		EntityId:     attr.EntityID,
-		Operation:    attr.Operation,
+		CreatedBy:    attr,
 	}
 
 	k.CurrentVersion++
@@ -805,9 +802,9 @@ func getAttributionFromRequest(req *logical.Request) (*Attribution, string) {
 	}
 
 	attr := &Attribution{
-		DisplayName: createdBy,
-		EntityID:    entityID,
-		Operation:   string(req.Operation),
+		Actor:     createdBy,
+		EntityId:  entityID,
+		Operation: string(req.Operation),
 	}
 
 	if len(auditWarning) > 0 {

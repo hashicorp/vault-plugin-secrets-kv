@@ -30,19 +30,13 @@ message VersionMetadata {
 	// a has been removed and the underlying data deleted.
 	bool destroyed = 3;
 
-	// CreatedBy is the entity/alias name or token accessor
-	// that last modified this secret
-	string created_by = 4;
+	// CreatedBy is the attribution data for the actor who created this
+	// version
+	Attribution created_by = 4;
 
-	// Deleted by is the entity/alias name that deleted this
+	// Deleted by is the attribution data for the actor who created this
 	// version of the secret
-	string deleted_by = 5;
-
-	// EntityID is the Entity ID that created this version
-	string entity_id = 6;
-
-	// Operation is the specific operation that created or modified this version
-	string operation = 7;
+	Attribution deleted_by = 5;
 }
 
 message KeyMetadata {
@@ -113,6 +107,12 @@ message UpgradeInfo {
 	// done is set to true once the backend has been successfully
 	// upgraded. 
 	bool done = 2;
+}
+
+message Attribution {
+	string actor = 1;
+	string operation = 2;
+	string entity_id = 3;
 }
 
 
