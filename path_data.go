@@ -708,6 +708,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
 		)
 		recordKvObservation(ctx, b.Backend, req, ObservationTypeKVv2SecretDelete,
+			AdditionalKVMetadata{key: "oldest_version", value: meta.OldestVersion},
 			AdditionalKVMetadata{key: "current_version", value: meta.CurrentVersion},
 			AdditionalKVMetadata{key: "versions", value: kvVersionsMapToSlice(meta.Versions)})
 		return nil, nil
