@@ -110,8 +110,13 @@ message UpgradeInfo {
 }
 
 message Attribution {
+	// actor is the display name of the actor who performed the given operation
 	string actor = 1;
+
+	// operation is the action that was taken
 	string operation = 2;
+
+	// entity_id is the entity_id of the actor who performed the given operation
 	string entity_id = 3;
 }
 

@@ -447,10 +447,13 @@ func (x *UpgradeInfo) GetDone() bool {
 }
 
 type Attribution struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Actor         string                 `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
-	Operation     string                 `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
-	EntityId      string                 `protobuf:"bytes,3,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// actor is the display name of the actor who performed the given operation
+	Actor string `protobuf:"bytes,1,opt,name=actor,proto3" json:"actor,omitempty"`
+	// operation is the action that was taken
+	Operation string `protobuf:"bytes,2,opt,name=operation,proto3" json:"operation,omitempty"`
+	// entity_id is the entity_id of the actor who performed the given operation
+	EntityId      string `protobuf:"bytes,3,opt,name=entity_id,json=entityId,proto3" json:"entity_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

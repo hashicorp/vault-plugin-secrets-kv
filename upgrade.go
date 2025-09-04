@@ -190,7 +190,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 
 		// Create attribution
 		attribution := &Attribution{
-			Actor:     "vault_upgrade",
+			Actor:     "kv_upgrade",
 			Operation: "upgrade",
 			EntityId:  "",
 		}
