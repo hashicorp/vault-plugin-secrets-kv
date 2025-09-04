@@ -275,19 +275,6 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"deleted_by":    v.DeletedBy,
 				"created_by":    v.CreatedBy,
 			}
-
-			/*
-				if v.CreatedBy != nil {
-					versions[fmt.Sprintf("%d", i)].(map[string]interface{})["created_by"] = fmt.Sprintf("%s <%s>", v.CreatedBy.Actor, v.CreatedBy.EntityId)
-					versions[fmt.Sprintf("%d", i)].(map[string]interface{})["operation"] = v.CreatedBy.Operation
-				}
-
-				if v.DeletedBy != nil {
-					versions[fmt.Sprintf("%d", i)].(map[string]interface{})["deleted_by"] = fmt.Sprintf("%s <%s>", v.DeletedBy.Actor, v.DeletedBy.EntityId)
-					versions[fmt.Sprintf("%d", i)].(map[string]interface{})["operation"] = v.DeletedBy.Operation
-				}
-			*/
-
 		}
 
 		var deleteVersionAfter time.Duration
