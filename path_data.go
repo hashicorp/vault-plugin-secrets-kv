@@ -421,7 +421,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 
 		// Extract Attribution data from request
-		attribution, auditWarning := getAttributionFromRequest(req)
+		attribution, attributionWarning := getAttributionFromRequest(req)
 
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
@@ -443,8 +443,8 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			},
 		}
 
-		if auditWarning != "" {
-			resp.AddWarning(auditWarning)
+		if attributionWarning != "" {
+			resp.AddWarning(attributionWarning)
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
@@ -633,7 +633,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		}
 
 		// Extract Attribution data from request
-		attribution, auditWarning := getAttributionFromRequest(req)
+		attribution, attributionWarning := getAttributionFromRequest(req)
 
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
@@ -655,8 +655,8 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			},
 		}
 
-		if auditWarning != "" {
-			resp.AddWarning(auditWarning)
+		if attributionWarning != "" {
+			resp.AddWarning(attributionWarning)
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
@@ -782,14 +782,14 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 }
 
 func getAttributionFromRequest(req *logical.Request) (*Attribution, string) {
-	var auditWarningReturn string
-	auditWarning := make([]string, 0)
+	var attributionWarningReturn string
+	attributionWarning := make([]string, 0)
 
 	// Get Display Name
 	createdBy := req.DisplayName
 	if createdBy == "" {
 		if req.ClientTokenAccessor == "" {
-			auditWarning = append(auditWarning, "no client token accessor entity/alias name found")
+			attributionWarning = append(attributionWarning, "no client token accessor entity/alias name found")
 			createdBy = "not_found"
 		}
 		createdBy = req.ClientTokenAccessor
@@ -798,7 +798,7 @@ func getAttributionFromRequest(req *logical.Request) (*Attribution, string) {
 	// Get Entity ID
 	entityID := req.EntityID
 	if entityID == "" {
-		auditWarning = append(auditWarning, "no entity id found")
+		attributionWarning = append(attributionWarning, "no entity id found")
 	}
 
 	attr := &Attribution{
@@ -807,11 +807,11 @@ func getAttributionFromRequest(req *logical.Request) (*Attribution, string) {
 		Operation: string(req.Operation),
 	}
 
-	if len(auditWarning) > 0 {
-		auditWarningReturn = strings.Join(auditWarning, ",")
+	if len(attributionWarning) > 0 {
+		attributionWarningReturn = strings.Join(attributionWarning, ",")
 	}
 
-	return attr, auditWarningReturn
+	return attr, attributionWarningReturn
 }
 
 func max(a, b uint32) uint32 {
