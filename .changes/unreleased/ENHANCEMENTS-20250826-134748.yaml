@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 kind: ENHANCEMENTS
 body: Add support for listing only non-deleted KV entries [GH-196](https://github.com/hashicorp/vault-plugin-secrets-kv/pull/196)
 time: 2025-08-26T13:47:48.496786-07:00
