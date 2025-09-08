@@ -370,9 +370,8 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 		if meta == nil {
 			meta = &KeyMetadata{
-				Key:           key,
-				Versions:      map[uint64]*VersionMetadata{},
-				LastOperation: string(req.Operation),
+				Key:      key,
+				Versions: map[uint64]*VersionMetadata{},
 			}
 		}
 
@@ -423,7 +422,6 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		attribution, attributionWarning := getAttributionFromRequest(req)
 
 		// Add Attribution data to metadata
-		meta.LastOperation = string(req.Operation)
 		meta.LastUpdatedBy = attribution
 
 		// Add version to the key metadata and calculate version to delete
@@ -720,7 +718,6 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 		// Extract Attribution data from request
 		attribution, _ := getAttributionFromRequest(req)
 		lv.DeletedBy = attribution
-		meta.LastOperation = attribution.Operation
 		meta.LastUpdatedBy = attribution
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
