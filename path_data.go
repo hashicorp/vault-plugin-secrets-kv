@@ -781,39 +781,6 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 	return vm, 0
 }
 
-func getAttributionFromRequest(req *logical.Request) (*Attribution, string) {
-	var attributionWarningReturn string
-	attributionWarning := make([]string, 0)
-
-	// Get Display Name
-	createdBy := req.DisplayName
-	if createdBy == "" {
-		if req.ClientTokenAccessor == "" {
-			attributionWarning = append(attributionWarning, "no client token accessor entity/alias name found")
-			createdBy = "not_found"
-		}
-		createdBy = req.ClientTokenAccessor
-	}
-
-	// Get Entity ID
-	entityID := req.EntityID
-	if entityID == "" {
-		attributionWarning = append(attributionWarning, "no entity id found")
-	}
-
-	attr := &Attribution{
-		Actor:     createdBy,
-		EntityId:  entityID,
-		Operation: string(req.Operation),
-	}
-
-	if len(attributionWarning) > 0 {
-		attributionWarningReturn = strings.Join(attributionWarning, ",")
-	}
-
-	return attr, attributionWarningReturn
-}
-
 func max(a, b uint32) uint32 {
 	if b > a {
 		return b

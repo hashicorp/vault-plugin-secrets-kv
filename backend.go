@@ -12,6 +12,7 @@ import (
 	"path"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -511,6 +512,46 @@ func ptypesTimestampToString(t *timestamp.Timestamp) string {
 	}
 
 	return ptypes.TimestampString(t)
+}
+
+func getAttributionFromRequest(req *logical.Request) (*Attribution, string) {
+	var attributionWarningReturn string
+	attributionWarning := make([]string, 0)
+
+	// Get actor
+	actor := req.DisplayName
+	if actor == "" {
+		if req.ClientID == "" {
+			attributionWarning = append(attributionWarning, "unable to determine actor: no display name or client ID found")
+		} else {
+			actor = req.ClientID
+		}
+	}
+
+	// Get Entity ID
+	entityID := req.EntityID
+	if entityID == "" {
+		attributionWarning = append(attributionWarning, "no entity id found")
+	}
+
+	// This should only be the case if we use ClientID. If ClientID and EntityID are equal
+	// then that means the EntityID is already shown as the Actor, or they are both empty.
+	// We only want to show the EntityID once.
+	if entityID == actor {
+		entityID = ""
+	}
+
+	attr := &Attribution{
+		Actor:     actor,
+		EntityId:  entityID,
+		Operation: string(req.Operation),
+	}
+
+	if len(attributionWarning) > 0 {
+		attributionWarningReturn = strings.Join(attributionWarning, ",")
+	}
+
+	return attr, attributionWarningReturn
 }
 
 var backendHelp string = `
