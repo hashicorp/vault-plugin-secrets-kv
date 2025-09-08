@@ -62,7 +62,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -79,7 +79,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if resp.Data["max_versions"] != uint32(2) {
@@ -206,7 +206,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if resp.Data["current_version"] != uint64(3) {
@@ -247,7 +247,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	data = map[string]interface{}{
@@ -287,7 +287,7 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if resp.Data["current_version"] != uint64(4) {
@@ -349,7 +349,7 @@ func TestVersionedKV_Metadata_Delete(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	// Read the data path
@@ -629,7 +629,7 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -647,7 +647,7 @@ func TestVersionedKV_Metadata_Put_Empty_CustomMetadata(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	// writing custom_metadata as {} should result in nil
@@ -684,7 +684,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -702,7 +702,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if resp.Data["max_versions"] != expectedMaxVersions {
@@ -751,7 +751,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -769,7 +769,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	// max_versions not provided, should not have changed
@@ -817,7 +817,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -836,7 +836,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 	// max_versions not provided, should not have changed
 	if resp.Data["max_versions"] != expectedMaxVersions {
@@ -879,7 +879,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -897,7 +897,7 @@ func TestVersionedKV_Metadata_Put_Merge_Behavior(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	// custom_metadata not provided, should not have changed
@@ -1101,7 +1101,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -1122,7 +1122,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -1143,7 +1143,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if len(resp.Warnings) != 1 ||
@@ -1166,7 +1166,7 @@ func TestVersionedKV_Metadata_Patch_CasRequiredWarning(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if resp.Data["cas_required"] != false {
@@ -1263,7 +1263,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 				t,
 				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
-				true,
+				false,
 			)
 
 			req = &logical.Request{
@@ -1284,7 +1284,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 				t,
 				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
-				true,
+				false,
 			)
 
 			req = &logical.Request{
@@ -1302,7 +1302,7 @@ func TestVersionedKV_Metadata_Patch_CustomMetadata(t *testing.T) {
 				t,
 				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
-				true,
+				false,
 			)
 
 			var ok bool
@@ -1336,6 +1336,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				"current_version": ignoreVal,
 				"oldest_version":  ignoreVal,
 				"updated_time":    ignoreVal,
+				"last_operation":  ignoreVal,
 			},
 			0,
 		},
@@ -1389,7 +1390,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				t,
 				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
-				true,
+				false,
 			)
 
 			req = &logical.Request{
@@ -1407,7 +1408,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				t,
 				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
-				true,
+				false,
 			)
 
 			initialMetadata := resp.Data
@@ -1428,7 +1429,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				t,
 				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
-				true,
+				false,
 			)
 
 			req = &logical.Request{
@@ -1446,7 +1447,7 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				t,
 				schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 				resp,
-				true,
+				false,
 			)
 
 			patchedMetadata := resp.Data
@@ -1507,7 +1508,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -1525,7 +1526,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if maxVersions := resp.Data["max_versions"].(uint32); maxVersions != 10 {
@@ -1550,7 +1551,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	req = &logical.Request{
@@ -1568,7 +1569,7 @@ func TestVersionedKV_Metadata_Patch_NilsUnset(t *testing.T) {
 		t,
 		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
 		resp,
-		true,
+		false,
 	)
 
 	if maxVersions := resp.Data["max_versions"].(uint32); maxVersions != 0 {

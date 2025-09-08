@@ -79,7 +79,7 @@ message KeyMetadata {
 	map<string, string> custom_metadata = 10;
 
 	// LastUpdatedBy is the display name of the last entity to update this key
-	string last_updated_by = 11;
+	Attribution last_updated_by = 11;
 
 	// LastOperation is the last write operation performed against this key
 	string last_operation = 12;

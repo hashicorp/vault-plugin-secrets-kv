@@ -135,6 +135,16 @@ version-agnostic information about a secret.
 								Description: "User-provided key-value pairs that are used to describe arbitrary and version-agnostic information about a secret.",
 								Required:    true,
 							},
+							"last_operation": {
+								Type:        framework.TypeString,
+								Description: "Last operation against this secret",
+								Required:    false,
+							},
+							"last_updated_by": {
+								Type:        framework.TypeMap,
+								Description: "Attribution information of the last actor to update this secret",
+								Required:    false,
+							},
 						},
 					}},
 				},
