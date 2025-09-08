@@ -309,7 +309,6 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"delete_version_after": deleteVersionAfter.String(),
 				"custom_metadata":      meta.CustomMetadata,
 				"last_updated_by":      meta.LastUpdatedBy,
-				"last_operation":       meta.LastOperation,
 			},
 		}, nil
 	}
