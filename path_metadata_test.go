@@ -1336,7 +1336,6 @@ func TestVersionedKV_Metadata_Patch_Success(t *testing.T) {
 				"current_version": ignoreVal,
 				"oldest_version":  ignoreVal,
 				"updated_time":    ignoreVal,
-				"last_operation":  ignoreVal,
 			},
 			0,
 		},
