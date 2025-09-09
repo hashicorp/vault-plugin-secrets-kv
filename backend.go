@@ -515,16 +515,10 @@ func ptypesTimestampToString(t *timestamp.Timestamp) string {
 
 func getAttribution(req *logical.Request) *Attribution {
 	// Get actor
-	clientID := req.ClientID
-	if req.EntityID != "" {
-		// Don't show duplicate EntityID if it's already set.
-		clientID = ""
-	}
-
 	attr := &Attribution{
 		Actor:     req.DisplayName,
 		EntityId:  req.EntityID,
-		ClientId:  clientID,
+		ClientId:  req.ClientID,
 		Operation: string(req.Operation),
 	}
 
