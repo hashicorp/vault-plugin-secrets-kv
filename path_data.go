@@ -632,7 +632,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
 		// metadata or the engine's config
-		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions, attribution)
+		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
