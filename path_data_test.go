@@ -79,6 +79,7 @@ func expectedMetadataKeys() map[string]struct{} {
 		"deletion_time":   {},
 		"destroyed":       {},
 		"custom_metadata": {},
+		"last_updated_by": {},
 	}
 }
 
@@ -704,7 +705,6 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 		}
 
 	}
-
 }
 
 func TestVersionedKV_Patch_NotFound(t *testing.T) {
