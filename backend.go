@@ -524,7 +524,7 @@ func getAttribution(req *logical.Request) *Attribution {
 	attr := &Attribution{
 		Actor:     req.DisplayName,
 		EntityId:  req.EntityID,
-		ClientId:  req.ClientID,
+		ClientId:  clientID,
 		Operation: string(req.Operation),
 	}
 
