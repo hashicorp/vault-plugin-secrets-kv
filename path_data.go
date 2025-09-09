@@ -418,16 +418,13 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Extract Attribution data from request
-		attribution := getAttributionFromRequest(req)
-
-		// Add Attribution data to metadata
-		meta.LastUpdatedBy = attribution
+		// Extract Attribution data from request and add to metadata
+		meta.LastUpdatedBy = getAttribution(req)
 
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
 		// metadata or the engine's config
-		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions, attribution)
+		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions)
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -629,8 +626,8 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
-		// Extract Attribution data from request
-		attribution := getAttributionFromRequest(req)
+		// Extract Attribution data from request and add to metadata
+		meta.LastUpdatedBy = getAttribution(req)
 
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
@@ -708,7 +705,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 		lv.DeletionTime = ptypes.TimestampNow()
 
 		// Extract Attribution data from request
-		attribution := getAttributionFromRequest(req)
+		attribution := getAttribution(req)
 		lv.DeletedBy = attribution
 		meta.LastUpdatedBy = attribution
 
@@ -732,7 +729,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 // AddVersion adds a version to the key metadata and moves the sliding window of
 // max versions. It returns the newly added version and the version to delete
 // from storage.
-func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp, configMaxVersions uint32, attr *Attribution) (*VersionMetadata, uint64) {
+func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp, configMaxVersions uint32) (*VersionMetadata, uint64) {
 	if k.Versions == nil {
 		k.Versions = map[uint64]*VersionMetadata{}
 	}
@@ -740,7 +737,7 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 	vm := &VersionMetadata{
 		CreatedTime:  createdTime,
 		DeletionTime: deletionTime,
-		CreatedBy:    attr,
+		CreatedBy:    k.LastUpdatedBy,
 	}
 
 	k.CurrentVersion++
@@ -782,8 +779,9 @@ func max(a, b uint32) uint32 {
 	return a
 }
 
-const dataHelpSyn = `Write, Patch, Read, and Delete data in the Key-Value Store.`
-const dataHelpDesc = `
+const (
+	dataHelpSyn  = `Write, Patch, Read, and Delete data in the Key-Value Store.`
+	dataHelpDesc = `
 This path takes a key name and based on the operation stores, retrieves or
 deletes versions of data.
 
@@ -806,3 +804,4 @@ Delete operations are a soft delete. They will mark the latest version as
 deleted, but the underlying data will not be fully removed. Delete operations
 can be undone.
 `
+)
