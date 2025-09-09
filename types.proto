@@ -115,6 +115,9 @@ message Attribution {
 
 	// entity_id is the entity_id of the actor who performed the given operation
 	string entity_id = 3;
+
+	// client_id is the client_id presented as part of the request for the given operation
+	string client_id = 4;
 }
 
 

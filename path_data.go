@@ -419,7 +419,7 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 		}
 
 		// Extract Attribution data from request
-		attribution, attributionWarning := getAttributionFromRequest(req)
+		attribution := getAttributionFromRequest(req)
 
 		// Add Attribution data to metadata
 		meta.LastUpdatedBy = attribution
@@ -442,10 +442,6 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 				"destroyed":       vm.Destroyed,
 				"custom_metadata": meta.CustomMetadata,
 			},
-		}
-
-		if attributionWarning != "" {
-			resp.AddWarning(attributionWarning)
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
@@ -634,7 +630,7 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 		}
 
 		// Extract Attribution data from request
-		attribution, attributionWarning := getAttributionFromRequest(req)
+		attribution := getAttributionFromRequest(req)
 
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
@@ -654,10 +650,6 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 				"destroyed":       newVersionMetadata.Destroyed,
 				"custom_metadata": meta.CustomMetadata,
 			},
-		}
-
-		if attributionWarning != "" {
-			resp.AddWarning(attributionWarning)
 		}
 
 		warning := b.cleanupOldVersions(ctx, req.Storage, key, versionToDelete)
@@ -716,7 +708,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 		lv.DeletionTime = ptypes.TimestampNow()
 
 		// Extract Attribution data from request
-		attribution, _ := getAttributionFromRequest(req)
+		attribution := getAttributionFromRequest(req)
 		lv.DeletedBy = attribution
 		meta.LastUpdatedBy = attribution
 
