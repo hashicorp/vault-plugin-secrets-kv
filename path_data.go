@@ -418,10 +418,16 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Extract Attribution data from request
+		attribution := getAttributionFromRequest(req)
+
+		// Add Attribution data to metadata
+		meta.LastUpdatedBy = attribution
+
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
 		// metadata or the engine's config
-		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions)
+		vm, versionToDelete := meta.AddVersion(version.CreatedTime, version.DeletionTime, config.MaxVersions, attribution)
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -623,10 +629,13 @@ func (b *versionedKVBackend) pathDataPatch() framework.OperationFunc {
 			return nil, err
 		}
 
+		// Extract Attribution data from request
+		attribution := getAttributionFromRequest(req)
+
 		// Add version to the key metadata and calculate version to delete
 		// based on the max_versions specified by either the secret's key
 		// metadata or the engine's config
-		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions)
+		newVersionMetadata, versionToDelete := meta.AddVersion(newVersion.CreatedTime, newVersion.DeletionTime, config.MaxVersions, attribution)
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
@@ -698,6 +707,11 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 
 		lv.DeletionTime = ptypes.TimestampNow()
 
+		// Extract Attribution data from request
+		attribution := getAttributionFromRequest(req)
+		lv.DeletedBy = attribution
+		meta.LastUpdatedBy = attribution
+
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
@@ -718,7 +732,7 @@ func (b *versionedKVBackend) pathDataDelete() framework.OperationFunc {
 // AddVersion adds a version to the key metadata and moves the sliding window of
 // max versions. It returns the newly added version and the version to delete
 // from storage.
-func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp, configMaxVersions uint32) (*VersionMetadata, uint64) {
+func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp, configMaxVersions uint32, attr *Attribution) (*VersionMetadata, uint64) {
 	if k.Versions == nil {
 		k.Versions = map[uint64]*VersionMetadata{}
 	}
@@ -726,6 +740,7 @@ func (k *KeyMetadata) AddVersion(createdTime, deletionTime *timestamp.Timestamp,
 	vm := &VersionMetadata{
 		CreatedTime:  createdTime,
 		DeletionTime: deletionTime,
+		CreatedBy:    attr,
 	}
 
 	k.CurrentVersion++

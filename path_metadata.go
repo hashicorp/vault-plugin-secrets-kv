@@ -135,6 +135,11 @@ version-agnostic information about a secret.
 								Description: "User-provided key-value pairs that are used to describe arbitrary and version-agnostic information about a secret.",
 								Required:    true,
 							},
+							"last_updated_by": {
+								Type:        framework.TypeMap,
+								Description: "Attribution information of the last actor to update this secret",
+								Required:    false,
+							},
 						},
 					}},
 				},
@@ -272,6 +277,8 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"created_time":  ptypesTimestampToString(v.CreatedTime),
 				"deletion_time": ptypesTimestampToString(v.DeletionTime),
 				"destroyed":     v.Destroyed,
+				"deleted_by":    v.DeletedBy,
+				"created_by":    v.CreatedBy,
 			}
 		}
 
@@ -296,6 +303,7 @@ func (b *versionedKVBackend) pathMetadataRead() framework.OperationFunc {
 				"cas_required":         meta.CasRequired,
 				"delete_version_after": deleteVersionAfter.String(),
 				"custom_metadata":      meta.CustomMetadata,
+				"last_updated_by":      meta.LastUpdatedBy,
 			},
 		}, nil
 	}

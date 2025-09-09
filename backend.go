@@ -513,6 +513,23 @@ func ptypesTimestampToString(t *timestamp.Timestamp) string {
 	return ptypes.TimestampString(t)
 }
 
+func getAttributionFromRequest(req *logical.Request) *Attribution {
+	// Get actor
+	actor := req.DisplayName
+	if actor == "" {
+		// Set actor to the client ID if no display name is present
+		actor = req.ClientID
+	}
+
+	attr := &Attribution{
+		Actor:     actor,
+		EntityId:  req.EntityID,
+		Operation: string(req.Operation),
+	}
+
+	return attr
+}
+
 var backendHelp string = `
 This backend provides a versioned key-value store. The kv backend reads and
 writes arbitrary secrets to the storage backend. The secrets are

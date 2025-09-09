@@ -29,6 +29,14 @@ message VersionMetadata {
 	// Destroyed is used to specify this version is
 	// a has been removed and the underlying data deleted.
 	bool destroyed = 3;
+
+	// CreatedBy is the attribution data for the actor who created this
+	// version
+	Attribution created_by = 4;
+
+	// Deleted by is the attribution data for the actor who created this
+	// version of the secret
+	Attribution deleted_by = 5;
 }
 
 message KeyMetadata {
@@ -66,9 +74,12 @@ message KeyMetadata {
 	// mount.
 	google.protobuf.Duration delete_version_after = 9;
 
-    // CustomMetadata is a map of string key-value pairs used to store
-    // user-provided information about the secret.
+	// CustomMetadata is a map of string key-value pairs used to store
+	// user-provided information about the secret.
 	map<string, string> custom_metadata = 10;
+
+	// LastUpdatedBy is the display name of the last entity to update this key
+	Attribution last_updated_by = 11;
 }
 
 
@@ -93,6 +104,20 @@ message UpgradeInfo {
 	// done is set to true once the backend has been successfully
 	// upgraded. 
 	bool done = 2;
+}
+
+message Attribution {
+	// actor is the display name of the actor who performed the given operation
+	string actor = 1;
+
+	// operation is the action that was taken
+	string operation = 2;
+
+	// entity_id is the entity_id of the actor who performed the given operation
+	string entity_id = 3;
+
+	// client_id is the client_id presented as part of the request for the given operation
+	string client_id = 4;
 }
 
 
