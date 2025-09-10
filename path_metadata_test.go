@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -221,24 +220,19 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		)
 
 		versions := resp.Data["versions"].(map[string]interface{})
-		spew.Dump(versions)
 		latestVersion := strconv.Itoa(len(versions))
-		fmt.Printf("Latest version: %s\n", latestVersion)
 		latest := versions[latestVersion].(map[string]interface{})
 		actor := latest["created_by"].(*Attribution).Actor
 		entity := latest["created_by"].(*Attribution).EntityId
 		client := latest["created_by"].(*Attribution).ClientId
 
 		if actor != tc.displayName {
-			spew.Dump("ERROR", versions)
 			t.Fatalf("mistmatching attribution Actor for version %s: expected %s, got %s", latestVersion, tc.displayName, actor)
 		}
 		if entity != tc.entityID {
-			spew.Dump("ERROR", versions)
 			t.Fatalf("mistmatching attribution EntityID for version %s: expected %s, got %s", latestVersion, tc.entityID, entity)
 		}
 		if client != tc.clientID {
-			spew.Dump("ERROR", versions)
 			t.Fatalf("mistmatching attribution ClientID for version %s: expected %s, got %s", latestVersion, tc.clientID, client)
 		}
 
