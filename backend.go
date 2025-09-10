@@ -198,7 +198,7 @@ func pathInvalid(b *versionedKVBackend) []*framework.Path {
 	}
 
 	return []*framework.Path{
-		&framework.Path{
+		{
 			Pattern: ".*",
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{Callback: handler, Unpublished: true},
@@ -385,7 +385,6 @@ func (b *versionedKVBackend) getVersionKey(ctx context.Context, key string, vers
 // getKeyMetadata returns the metadata object for the provided key, if no object
 // exits it will return nil.
 func (b *versionedKVBackend) getKeyMetadata(ctx context.Context, s logical.Storage, key string) (*KeyMetadata, error) {
-
 	wrapper, err := b.getKeyEncryptor(ctx, s)
 	if err != nil {
 		return nil, err
@@ -459,7 +458,8 @@ func kvVersionsMapToSlice(versions map[uint64]*VersionMetadata) []uint64 {
 }
 
 func recordKvObservation(ctx context.Context, b *framework.Backend, req *logical.Request, observationType string,
-	additionalMetadata ...AdditionalKVMetadata) {
+	additionalMetadata ...AdditionalKVMetadata,
+) {
 	metadata := map[string]interface{}{
 		"path":       req.Path,
 		"client_id":  req.ClientID,
@@ -488,8 +488,8 @@ func kvEvent(ctx context.Context,
 	dataPath string,
 	modified bool,
 	kvVersion int,
-	additionalMetadataPairs ...string) {
-
+	additionalMetadataPairs ...string,
+) {
 	metadata := []string{
 		logical.EventMetadataModified, strconv.FormatBool(modified),
 		logical.EventMetadataOperation, operation,
@@ -513,17 +513,12 @@ func ptypesTimestampToString(t *timestamp.Timestamp) string {
 	return ptypes.TimestampString(t)
 }
 
-func getAttributionFromRequest(req *logical.Request) *Attribution {
+func getAttribution(req *logical.Request) *Attribution {
 	// Get actor
-	actor := req.DisplayName
-	if actor == "" {
-		// Set actor to the client ID if no display name is present
-		actor = req.ClientID
-	}
-
 	attr := &Attribution{
-		Actor:     actor,
+		Actor:     req.DisplayName,
 		EntityId:  req.EntityID,
+		ClientId:  req.ClientID,
 		Operation: string(req.Operation),
 	}
 

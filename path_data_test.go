@@ -704,7 +704,6 @@ func TestVersionedKV_Reload_Policy(t *testing.T) {
 		}
 
 	}
-
 }
 
 func TestVersionedKV_Patch_NotFound(t *testing.T) {

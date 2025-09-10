@@ -189,14 +189,14 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		}
 
 		// Create attribution
-		attribution := &Attribution{
+		meta.LastUpdatedBy = &Attribution{
 			Actor:     "kv_upgrade",
 			Operation: "upgrade",
 			EntityId:  "",
 		}
 
 		// Store the metadata
-		meta.AddVersion(version.CreatedTime, nil, 1, attribution)
+		meta.AddVersion(version.CreatedTime, nil, 1)
 		err = b.writeKeyMetadata(ctx, s, meta)
 		if err != nil {
 			return err
