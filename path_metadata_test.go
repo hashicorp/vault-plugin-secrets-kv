@@ -128,6 +128,28 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		expVersion  uint64
 	}
 
+	data = map[string]interface{}{
+		"max_versions": 3,
+		"cas_required": true,
+	}
+
+	req = &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "metadata/foo",
+		Storage:   storage,
+		Data:      data,
+	}
+	resp, err = b.HandleRequest(context.Background(), req)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%s resp:%#v\n", err, resp)
+	}
+	schema.ValidateResponse(
+		t,
+		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
+		resp,
+		true,
+	)
+
 	tests := []testCase{
 		{
 			name:        "version 1",
