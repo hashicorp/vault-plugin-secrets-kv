@@ -1,0 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+kind: ENHANCEMENTS
+body: Enhance KV version attribution with ClientId field.
+time: 2025-09-10T15:14:32.364122-04:00
+custom:
+    Issue: "207"
