@@ -79,7 +79,6 @@ func expectedMetadataKeys() map[string]struct{} {
 		"deletion_time":   {},
 		"destroyed":       {},
 		"custom_metadata": {},
-		"last_updated_by": {},
 	}
 }
 

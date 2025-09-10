@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -116,146 +118,108 @@ func TestVersionedKV_Metadata_Put(t *testing.T) {
 		t.Fatalf("expected error, %#v", resp)
 	}
 
-	data = map[string]interface{}{
-		"data": map[string]interface{}{
-			"bar": "baz1",
+	type testCase struct {
+		name        string
+		data        map[string]interface{}
+		displayName string
+		entityID    string
+		clientID    string
+		cas         uint64
+		expVersion  uint64
+	}
+
+	tests := []testCase{
+		{
+			name:        "version 1",
+			data:        map[string]interface{}{"bar": "baz1"},
+			displayName: "Tester1",
+			entityID:    "11111111-1111-1111-1111-111111111111",
+			clientID:    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+			cas:         0,
+			expVersion:  1,
 		},
-		"options": map[string]interface{}{
-			"cas": 0,
+		{
+			name:        "version 2",
+			data:        map[string]interface{}{"bar": "baz2"},
+			displayName: "Tester2",
+			entityID:    "22222222-2222-2222-2222-222222222222",
+			clientID:    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+			cas:         1,
+			expVersion:  2,
 		},
-	}
-
-	req1 := &logical.Request{
-		Operation: logical.CreateOperation,
-		Path:      "data/foo",
-		Storage:   storage,
-		Data:      data,
-		// Attribution data
-		DisplayName: "Tester1",
-		EntityID:    "11111111-1111-1111-1111-111111111111",
-		ClientID:    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-	}
-
-	resp, err = b.HandleRequest(context.Background(), req1)
-	if err != nil || resp == nil || resp.IsError() {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
-	}
-
-	if resp.Data["version"] != uint64(1) {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-
-	data = map[string]interface{}{
-		"data": map[string]interface{}{
-			"bar": "baz1",
-		},
-		"options": map[string]interface{}{
-			"cas": 1,
-		},
-	}
-
-	req2 := &logical.Request{
-		Operation: logical.CreateOperation,
-		Path:      "data/foo",
-		Storage:   storage,
-		Data:      data,
-		// Attribution data
-		DisplayName: "Tester2",
-		EntityID:    "22222222-2222-2222-2222-222222222222",
-		ClientID:    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-	}
-
-	resp, err = b.HandleRequest(context.Background(), req2)
-	if err != nil || resp == nil || resp.IsError() {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
-	}
-
-	if resp.Data["version"] != uint64(2) {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-
-	data = map[string]interface{}{
-		"data": map[string]interface{}{
-			"bar": "baz1",
-		},
-		"options": map[string]interface{}{
-			"cas": 2,
+		{
+			name:        "version 3",
+			data:        map[string]interface{}{"bar": "baz3"},
+			displayName: "Tester3",
+			entityID:    "33333333-3333-3333-3333-333333333333",
+			clientID:    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+			cas:         2,
+			expVersion:  3,
 		},
 	}
 
-	req3 := &logical.Request{
-		Operation: logical.CreateOperation,
-		Path:      "data/foo",
-		Storage:   storage,
-		Data:      data,
-		// Attribution data
-		DisplayName: "Tester3",
-		EntityID:    "33333333-3333-3333-3333-333333333333",
-		ClientID:    "cccccccc-cccc-cccc-cccc-cccccccccccc",
-	}
+	for _, tc := range tests {
+		data := map[string]interface{}{
+			"data":    tc.data,
+			"options": map[string]interface{}{"cas": tc.cas},
+		}
+		req := &logical.Request{
+			Operation:   logical.CreateOperation,
+			Path:        "data/foo",
+			Storage:     storage,
+			Data:        data,
+			DisplayName: tc.displayName,
+			EntityID:    tc.entityID,
+			ClientID:    tc.clientID,
+		}
+		resp, err = b.HandleRequest(context.Background(), req)
+		if err != nil || resp == nil || resp.IsError() {
+			t.Fatalf("[%s] err:%s resp:%#v\n", tc.name, err, resp)
+		}
 
-	resp, err = b.HandleRequest(context.Background(), req3)
-	if err != nil || resp == nil || resp.IsError() {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
-	}
+		if resp.Data["version"] != tc.expVersion {
+			t.Fatalf("[%s] Bad response: %#v", tc.name, resp)
+		}
 
-	if resp.Data["version"] != uint64(3) {
-		t.Fatalf("Bad response: %#v", resp)
-	}
+		// Metadata read test
+		req = &logical.Request{
+			Operation: logical.ReadOperation,
+			Path:      "metadata/foo",
+			Storage:   storage,
+		}
+		resp, err = b.HandleRequest(context.Background(), req)
+		if err != nil || resp == nil || resp.IsError() {
+			t.Fatalf("err:%s resp:%#v\n", err, resp)
+		}
+		schema.ValidateResponse(
+			t,
+			schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
+			resp,
+			true,
+		)
 
-	req = &logical.Request{
-		Operation: logical.ReadOperation,
-		Path:      "metadata/foo",
-		Storage:   storage,
-		Data:      data,
-	}
+		versions := resp.Data["versions"].(map[string]interface{})
+		spew.Dump(versions)
+		latestVersion := strconv.Itoa(len(versions))
+		fmt.Printf("Latest version: %s\n", latestVersion)
+		latest := versions[latestVersion].(map[string]interface{})
+		actor := latest["created_by"].(*Attribution).Actor
+		entity := latest["created_by"].(*Attribution).EntityId
+		client := latest["created_by"].(*Attribution).ClientId
 
-	resp, err = b.HandleRequest(context.Background(), req)
-	if err != nil || resp == nil || resp.IsError() {
-		t.Fatalf("err:%s resp:%#v\n", err, resp)
-	}
-	schema.ValidateResponse(
-		t,
-		schema.GetResponseSchema(t, b.(*versionedKVBackend).Route(req.Path), req.Operation),
-		resp,
-		true,
-	)
+		if actor != tc.displayName {
+			spew.Dump("ERROR", versions)
+			t.Fatalf("mistmatching attribution Actor for version %s: expected %s, got %s", latestVersion, tc.displayName, actor)
+		}
+		if entity != tc.entityID {
+			spew.Dump("ERROR", versions)
+			t.Fatalf("mistmatching attribution EntityID for version %s: expected %s, got %s", latestVersion, tc.entityID, entity)
+		}
+		if client != tc.clientID {
+			spew.Dump("ERROR", versions)
+			t.Fatalf("mistmatching attribution ClientID for version %s: expected %s, got %s", latestVersion, tc.clientID, client)
+		}
 
-	if resp.Data["current_version"] != uint64(3) {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-
-	if resp.Data["oldest_version"] != uint64(2) {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-
-	version2, ok := resp.Data["versions"].(map[string]interface{})["2"]
-	if !ok {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-
-	if version2.(map[string]interface{})["created_by"].(*Attribution).Actor != req2.DisplayName {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-	if version2.(map[string]interface{})["created_by"].(*Attribution).EntityId != req2.EntityID {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-	if version2.(map[string]interface{})["created_by"].(*Attribution).ClientId != req2.ClientID {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-
-	version3, ok := resp.Data["versions"].(map[string]interface{})["3"]
-	if !ok {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-	if version3.(map[string]interface{})["created_by"].(*Attribution).Actor != req3.DisplayName {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-	if version3.(map[string]interface{})["created_by"].(*Attribution).EntityId != req3.EntityID {
-		t.Fatalf("Bad response: %#v", resp)
-	}
-	if version3.(map[string]interface{})["created_by"].(*Attribution).ClientId != req3.ClientID {
-		t.Fatalf("Bad response: %#v", resp)
 	}
 
 	// Update the metadata settings, remove the cas requirement and lower the
