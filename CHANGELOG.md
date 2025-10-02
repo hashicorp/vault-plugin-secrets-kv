@@ -1,3 +1,17 @@
+## v0.25.0
+### October 2, 2025
+
+* VAULT-39895: add attribution data for undelete and group version operations (#210)
+* Bump actions/setup-go from 5.5.0 to 6.0.0 (#205)
+* Bump go version to 1.25.1 (#209)
+* Bump actions/checkout from 4.2.2 to 5.0.0 (#200)
+* Automated dependency upgrades (#195)
+* Add changelog for KV version attribution (#208)
+* Always populate ClientID (#207)
+* Add attribution data to secret version metadata (#206)
+* [COMPLIANCE] Add Copyright and License Headers (#204)
+* init changie (#203)
+
 ## v0.24.0
 
 CHANGES:
