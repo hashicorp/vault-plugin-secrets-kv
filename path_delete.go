@@ -117,6 +117,9 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 			return nil, nil
 		}
 
+		//Get attribution info
+		attribution := getAttribution(req)
+
 		for _, verNum := range versions {
 			// If there is no version or the version is destroyed continue
 			lv := meta.Versions[uint64(verNum)]
@@ -124,6 +127,7 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 				continue
 			}
 			lv.DeletionTime = nil
+			lv.DeletedBy = nil
 
 			if !config.IsDeleteVersionAfterDisabled() {
 				if dtime, ok := deletionTime(time.Now(), deleteVersionAfter(config), deleteVersionAfter(meta)); ok {
@@ -135,14 +139,19 @@ func (b *versionedKVBackend) pathUndeleteWrite() framework.OperationFunc {
 				}
 			}
 		}
+		attribution.Operation = "undelete"
+		meta.LastUpdatedBy = attribution
+
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
 			return nil, err
 		}
+
 		marshaledVersions, err := json.Marshal(&versions)
 		if err != nil {
 			return nil, err
 		}
+
 		kvEvent(ctx, b.Backend, "undelete", "undelete/"+key, "data/"+key, true, 2,
 			"current_version", fmt.Sprintf("%d", meta.CurrentVersion),
 			"oldest_version", fmt.Sprintf("%d", meta.OldestVersion),
@@ -179,6 +188,9 @@ func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 			return nil, nil
 		}
 
+		// Get attribution info
+		attribution := getAttribution(req)
+
 		for _, verNum := range versions {
 			// If there is no latest version, or the latest version is already
 			// deleted or destroyed continue
@@ -199,7 +211,10 @@ func (b *versionedKVBackend) pathDeleteWrite() framework.OperationFunc {
 			}
 
 			lv.DeletionTime = ptypes.TimestampNow()
+			lv.DeletedBy = attribution
 		}
+
+		meta.LastUpdatedBy = attribution
 
 		err = b.writeKeyMetadata(ctx, req.Storage, meta)
 		if err != nil {
