@@ -69,8 +69,17 @@ func (b *versionedKVBackend) upgradeDone(ctx context.Context, s logical.Storage)
 	return upgradeInfo.Done, nil
 }
 
-func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) error {
+func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.InitializationRequest) error {
+	upgradeDone, err := b.upgradeDone(ctx, req.Storage)
+	if err != nil {
+		return err
+	}
+	if upgradeDone {
+		return nil
+	}
+
 	replState := b.System().ReplicationState()
+	s := req.Storage
 
 	// Don't run if the plugin is in metadata mode.
 	if pluginutil.InMetadataMode() {
@@ -239,7 +248,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		}
 	}
 
-	upgradeFunc := func() {
+	upgradeFunc := func(ctx context.Context) {
 		// Write the canary value and if we are read only wait until the setup
 		// process has finished.
 	READONLY_LOOP:
@@ -306,11 +315,13 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		}
 		// We write the upgrade done info into storage in a goroutine, as a Vault mount is set to read only
 		// during the mount process, so we cannot do it now
-		go writeUpgradeInfoDoneFunc(info)
+		writeUpgradeInfoDoneFunc(info)
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
 		// potentially long process.
-		go upgradeFunc()
+		ctx, cancel := context.WithCancel(context.Background())
+		b.upgradeCancelFunc = cancel
+		go upgradeFunc(ctx)
 	}
 
 	return nil
