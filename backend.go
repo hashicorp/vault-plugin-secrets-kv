@@ -82,6 +82,8 @@ type versionedKVBackend struct {
 	upgradeCancelFunc context.CancelFunc
 }
 
+var _ logical.Backend = &versionedKVBackend{}
+
 // Factory will return a logical backend of type versionedKVBackend or
 // PassthroughBackend based on the config passed in.
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
@@ -104,12 +106,9 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 
 // VersionedKVFactory returns a new KVV2 backend as logical.Backend.
 func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	upgradeCtx, upgradeCancelFunc := context.WithCancel(ctx)
-
 	b := &versionedKVBackend{
-		upgrading:         new(uint32),
-		globalConfigLock:  new(sync.RWMutex),
-		upgradeCancelFunc: upgradeCancelFunc,
+		upgrading:        new(uint32),
+		globalConfigLock: new(sync.RWMutex),
 	}
 	if conf.BackendUUID == "" {
 		return nil, errors.New("could not initialize versioned K/V Store, no UUID was provided")
@@ -154,17 +153,6 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
-	}
-
-	upgradeDone, err := b.upgradeDone(ctx, conf.StorageView)
-	if err != nil {
-		return nil, err
-	}
-	if !upgradeDone {
-		err := b.Upgrade(upgradeCtx, conf.StorageView)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return b, nil
