@@ -313,8 +313,6 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 		if err != nil {
 			return err
 		}
-		// We write the upgrade done info into storage in a goroutine, as a Vault mount is set to read only
-		// during the mount process, so we cannot do it now
 		writeUpgradeInfoDoneFunc(info)
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
