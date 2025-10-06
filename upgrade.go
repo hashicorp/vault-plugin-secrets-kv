@@ -69,8 +69,19 @@ func (b *versionedKVBackend) upgradeDone(ctx context.Context, s logical.Storage)
 	return upgradeInfo.Done, nil
 }
 
-func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) error {
+// Initialize is called during mounting after storage is made writable.  The ctx is
+// the activeContext.
+func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.InitializationRequest) error {
+	upgradeDone, err := b.upgradeDone(ctx, req.Storage)
+	if err != nil {
+		return err
+	}
+	if upgradeDone {
+		return nil
+	}
+
 	replState := b.System().ReplicationState()
+	s := req.Storage
 
 	// Don't run if the plugin is in metadata mode.
 	if pluginutil.InMetadataMode() {
@@ -142,9 +153,6 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	if err != nil {
 		return err
 	}
-
-	// Because this is a long-running process we need a new context.
-	ctx = context.Background()
 
 	upgradeKey := func(key string) error {
 		if strings.HasPrefix(key, b.storagePrefix) {
@@ -222,41 +230,31 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	}
 
 	writeUpgradeInfoDoneFunc := func(info []byte) {
-		for {
-			err = s.Put(ctx, &logical.StorageEntry{
-				Key:   path.Join(b.storagePrefix, "upgrading"),
-				Value: info,
-			})
-			switch {
-			case err == nil:
-				return
-			case err.Error() == logical.ErrSetupReadOnly.Error():
-				time.Sleep(10 * time.Millisecond)
-			default:
-				b.Logger().Error("writing upgrade info resulted in an error, but all keys were successfully upgraded", "error", err)
-				return
-			}
+		err := s.Put(ctx, &logical.StorageEntry{
+			Key:   path.Join(b.storagePrefix, "upgrading"),
+			Value: info,
+		})
+		if err != nil {
+			b.Logger().Error("writing upgrade info resulted in an error, but all keys were successfully upgraded", "error", err)
 		}
 	}
 
-	upgradeFunc := func() {
+	upgradeFunc := func(ctx context.Context) {
+		// Tests may choose to make blockUpgrades be non-nil, in which case we'll
+		// wait here for something to be written to the channel.
+		if b.blockUpgrades != nil {
+			<-b.blockUpgrades
+		}
+
 		// Write the canary value and if we are read only wait until the setup
 		// process has finished.
-	READONLY_LOOP:
-		for {
-			err := s.Put(ctx, &logical.StorageEntry{
-				Key:   path.Join(b.storagePrefix, "upgrading"),
-				Value: info,
-			})
-			switch {
-			case err == nil:
-				break READONLY_LOOP
-			case err.Error() == logical.ErrSetupReadOnly.Error():
-				time.Sleep(10 * time.Millisecond)
-			default:
-				b.Logger().Error("writing upgrade info resulted in an error", "error", err)
-				return
-			}
+		err := s.Put(ctx, &logical.StorageEntry{
+			Key:   path.Join(b.storagePrefix, "upgrading"),
+			Value: info,
+		})
+		if err != nil {
+			b.Logger().Error("writing upgrade info resulted in an error", "error", err)
+			return
 		}
 
 		b.Logger().Info("collecting keys to upgrade")
@@ -304,13 +302,13 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		if err != nil {
 			return err
 		}
-		// We write the upgrade done info into storage in a goroutine, as a Vault mount is set to read only
-		// during the mount process, so we cannot do it now
-		go writeUpgradeInfoDoneFunc(info)
+		writeUpgradeInfoDoneFunc(info)
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
 		// potentially long process.
-		go upgradeFunc()
+		ctx, cancel := context.WithCancel(ctx)
+		b.upgradeCancelFunc = cancel
+		go upgradeFunc(ctx)
 	}
 
 	return nil
