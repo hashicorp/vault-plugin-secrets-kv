@@ -80,6 +80,10 @@ type versionedKVBackend struct {
 	// upgradeCancelFunc is used to be able to shut down the upgrade checking
 	// goroutine from cleanup
 	upgradeCancelFunc context.CancelFunc
+
+	// blockUpgrades is used for testing upgrading via Initialize; if non-nil,
+	// Initialize will block until it can read from it.
+	blockUpgrades chan struct{}
 }
 
 var _ logical.Backend = &versionedKVBackend{}
