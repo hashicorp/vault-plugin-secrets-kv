@@ -242,8 +242,8 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 	upgradeFunc := func(ctx context.Context) {
 		// Tests may choose to make blockUpgrades be non-nil, in which case we'll
 		// wait here for something to be written to the channel.
-		select {
-		case <-b.blockUpgrades:
+		if b.blockUpgrades != nil {
+			<-b.blockUpgrades
 		}
 
 		// Write the canary value and if we are read only wait until the setup
