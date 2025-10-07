@@ -306,7 +306,7 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
 		// potentially long process.
-		ctx, cancel := context.WithCancel(ctx)
+		ctx, cancel := context.WithCancel(context.Background())
 		b.upgradeCancelFunc = cancel
 		go upgradeFunc(ctx)
 	}
