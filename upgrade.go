@@ -104,14 +104,24 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 	if b.perfSecondaryCheck() {
 		b.Logger().Info("upgrade not running on performance replication secondary or performance standby")
 
+		done, err := b.upgradeDone(ctx, s)
+		if err != nil {
+			b.Logger().Error("upgrading resulted in error", "error", err)
+		}
+
+		if done {
+			atomic.StoreUint32(b.upgrading, 0)
+			return nil
+		}
+
 		go func() {
 			for {
-				time.Sleep(time.Second)
-
-				// If we failed because the context is closed we are
-				// shutting down. Close this go routine and set the upgrade
-				// flag back to 0 for good measure.
-				if ctx.Err() != nil {
+				select {
+				case <-time.After(time.Second):
+				case <-ctx.Done():
+					// If we failed because the context is closed we are
+					// shutting down. Close this go routine and set the upgrade
+					// flag back to 0 for good measure.
 					atomic.StoreUint32(b.upgrading, 0)
 					return
 				}
