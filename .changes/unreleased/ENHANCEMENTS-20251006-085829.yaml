@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: Eliminate errors during new kvv2 mount of the form "Upgrading from non-versioned to versioned data."
-time: 2025-10-06T08:58:29.723728-04:00
-custom:
-    Issue: "212"
