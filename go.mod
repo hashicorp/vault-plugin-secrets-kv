@@ -115,3 +115,5 @@ require (
 	google.golang.org/grpc v1.72.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/hashicorp/vault/sdk => ../vault-enterprise/sdk/
