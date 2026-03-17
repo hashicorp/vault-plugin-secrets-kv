@@ -9,10 +9,10 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.2.0
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
-	github.com/hashicorp/vault/api v1.21.0
-	github.com/hashicorp/vault/sdk v0.19.0
+	github.com/hashicorp/vault/api v1.22.0
+	github.com/hashicorp/vault/sdk v0.23.0
 	github.com/mitchellh/mapstructure v1.5.0
-	google.golang.org/protobuf v1.36.9
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -104,11 +104,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/api v0.221.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
