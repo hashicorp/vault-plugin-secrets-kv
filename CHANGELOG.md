@@ -1,3 +1,9 @@
+## v0.26.0
+### March 17, 2026
+* Bump Go version to 1.26.1 (#229)
+* Bump actions/setup-go from 6.0.0 to 6.3.0 (#227)
+* Automated dependency upgrades (#228)
+
 ## v0.25.0
 ### October 2, 2025
 
