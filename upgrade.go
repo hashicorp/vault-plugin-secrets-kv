@@ -104,16 +104,6 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 	if b.perfSecondaryCheck() {
 		b.Logger().Info("upgrade not running on performance replication secondary or performance standby")
 
-		done, err := b.upgradeDone(ctx, s)
-		if err != nil {
-			b.Logger().Error("upgrading resulted in error", "error", err)
-		}
-
-		if done {
-			atomic.StoreUint32(b.upgrading, 0)
-			return nil
-		}
-
 		go func() {
 			for {
 				select {
@@ -164,7 +154,7 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 		return err
 	}
 
-	upgradeKey := func(key string) error {
+	upgradeKey := func(ctx context.Context, key string) error {
 		if strings.HasPrefix(key, b.storagePrefix) {
 			return nil
 		}
@@ -239,7 +229,7 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 		return info, nil
 	}
 
-	writeUpgradeInfoDoneFunc := func(info []byte) {
+	writeUpgradeInfoDoneFunc := func(ctx context.Context, info []byte) {
 		err := s.Put(ctx, &logical.StorageEntry{
 			Key:   path.Join(b.storagePrefix, "upgrading"),
 			Value: info,
@@ -279,7 +269,7 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 			if b.Logger().IsDebug() && i%500 == 0 {
 				b.Logger().Debug("upgrading keys", "progress", fmt.Sprintf("%d/%d", i, len(keys)))
 			}
-			err := upgradeKey(key)
+			err := upgradeKey(ctx, key)
 			if err != nil {
 				b.Logger().Error("upgrading resulted in error", "error", err, "progress", fmt.Sprintf("%d/%d", i+1, len(keys)))
 				return
@@ -301,7 +291,7 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 			b.Logger().Error("error marshalling upgrade info after upgrade", "error", err)
 			return
 		}
-		writeUpgradeInfoDoneFunc(info)
+		writeUpgradeInfoDoneFunc(ctx, info)
 		atomic.StoreUint32(b.upgrading, 0)
 	}
 
@@ -312,7 +302,7 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 		if err != nil {
 			return err
 		}
-		writeUpgradeInfoDoneFunc(info)
+		writeUpgradeInfoDoneFunc(ctx, info)
 	} else {
 		// We run the actual upgrade in a go routine, so we don't block the client on a
 		// potentially long process.
