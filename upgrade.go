@@ -72,6 +72,9 @@ func (b *versionedKVBackend) upgradeDone(ctx context.Context, s logical.Storage)
 // Initialize is called during mounting after storage is made writable.  The ctx is
 // the activeContext.
 func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.InitializationRequest) error {
+	if b.upgraded {
+		return nil
+	}
 	upgradeDone, err := b.upgradeDone(ctx, req.Storage)
 	if err != nil {
 		return err
@@ -306,6 +309,11 @@ func (b *versionedKVBackend) Initialize(ctx context.Context, req *logical.Initia
 	}
 
 	if upgradeSynchronously {
+		// Tests may choose to make blockUpgrades be non-nil, in which case we'll
+		// wait here for something to be written to the channel.
+		if b.noUpgrades {
+			return nil
+		}
 		// Set us to having 'upgraded' before we insert the upgrade value, as the mount is ready to use now
 		atomic.StoreUint32(b.upgrading, 0)
 		info, err := prepareUpgradeInfoDoneFunc()

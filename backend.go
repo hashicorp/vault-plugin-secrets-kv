@@ -84,6 +84,9 @@ type versionedKVBackend struct {
 	// blockUpgrades is used for testing upgrading via Initialize; if non-nil,
 	// Initialize will block until it can read from it.
 	blockUpgrades chan struct{}
+
+	noUpgrades bool
+	upgraded   bool
 }
 
 var _ logical.Backend = &versionedKVBackend{}
@@ -104,6 +107,17 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	if err != nil {
 		return nil, err
 	}
+
+	return b, nil
+}
+
+func VersionedKVFactoryNoUpgrades(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
+	b, err := VersionedKVFactory(ctx, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	b.(*versionedKVBackend).noUpgrades = true
 
 	return b, nil
 }
@@ -157,6 +171,15 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
+	}
+
+	if !conf.MountCreatedAt.IsZero() && conf.MountUpdatedAt.IsZero() {
+		if b.perfSecondaryCheck() {
+			// Allow the primary active node to actually create the storage entry;
+			// everywhere else, we can assume that since the created-at is nonzero
+			// and the updated-at is zero, this is a freshly created kv-v2 mount.
+			b.upgraded = true
+		}
 	}
 
 	return b, nil
