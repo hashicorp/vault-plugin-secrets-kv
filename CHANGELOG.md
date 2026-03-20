@@ -1,3 +1,8 @@
+## v0.26.1
+### March 20, 2026
+
+* Update dependecies (#232)
+
 ## v0.25.0
 ### October 2, 2025
 
