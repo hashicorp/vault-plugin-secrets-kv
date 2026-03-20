@@ -1,6 +1,12 @@
 ## v0.26.2
 ### March 20, 2026
 
+* prepare v0.26.2 release (#235)
+* Revert changes to initialization (#234)
+
+## v0.26.2
+### March 20, 2026
+
 * Revert changes to initialization (#234)
 * Update dependecies (#232)
 * prepare v0.26.0 release (#229)
