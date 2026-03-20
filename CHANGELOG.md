@@ -1,3 +1,16 @@
+## v0.26.0
+### March 17, 2026
+
+* prepare v0.26.0 release (#229)
+* Bump actions/setup-go from 6.0.0 to 6.3.0 (#227)
+* Automated dependency upgrades (#228)
+* [COMPLIANCE] Update Copyright and License Headers (#224)
+* chore: remove changie (#216)
+* Initialize context can't be used for a goroutine. (#214)
+* Check for already upgraded mount on downstream nodes (#213)
+* Use Initialize to do the trivial upgrade fully synchronously. (#212)
+* Update changelog for v0.25.0 release (#211)
+
 ## v0.25.0
 ### October 2, 2025
 
