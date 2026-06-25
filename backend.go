@@ -122,6 +122,7 @@ func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logic
 		Invalidate:  b.Invalidate,
 
 		PathsSpecial: &logical.Paths{
+			AllowSnapshotRead: []string{"data/*"},
 			SealWrapStorage: []string{
 				// Seal wrap the versioned data
 				path.Join(b.storagePrefix, versionPrefix) + "/",

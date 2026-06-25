@@ -17,7 +17,9 @@ import (
 	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/helper/logging"
 	"github.com/hashicorp/vault/sdk/helper/testhelpers/schema"
+	"github.com/hashicorp/vault/sdk/helper/testhelpers/snapshots"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/stretchr/testify/require"
 )
 
 func getBackend(t *testing.T) (logical.Backend, logical.Storage) {
@@ -1326,4 +1328,300 @@ func TestRegex_AllNoTrailingSlash(t *testing.T) {
 			t.Errorf("%s: expected: %v, got: %v", name, tc.want, got)
 		}
 	}
+}
+
+// TestVersionedKV_Data_SnapshotRead_NoSideEffects verifies that reading a
+// secret from snapshot storage leaves the live version untouched.
+func TestVersionedKV_Data_SnapshotRead_NoSideEffects(t *testing.T) {
+	b, regularStorage := getBackend(t)
+	tc := snapshots.NewSnapshotTestCaseWithStorages(t, b, regularStorage, &logical.InmemStorage{})
+
+	_, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.SnapshotStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-snapshot"},
+		},
+	})
+	require.NoError(t, err, "failed to write snapshot data")
+
+	_, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.RegularStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-live"},
+		},
+	})
+	require.NoError(t, err, "failed to write live data")
+
+	tc.RunRead(t, "data/foo")
+
+	read, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "data/foo",
+		Storage:   tc.RegularStorage(),
+	})
+	require.NoError(t, err, "read failed")
+	require.NotNil(t, read, "expected response")
+
+	readData, ok := read.Data["data"].(map[string]interface{})
+	require.True(t, ok, "unexpected data shape: %#v", read.Data["data"])
+	require.Equal(t, "from-live", readData["k"], "expected live data to remain unchanged")
+}
+
+// TestVersionedKV_Data_Recover covers in-place recover and copy recover (via
+// RecoverSourcePath): the snapshot value is restored over divergent live data
+// as a new version.
+func TestVersionedKV_Data_Recover(t *testing.T) {
+	b, regularStorage := getBackend(t)
+	tc := snapshots.NewSnapshotTestCaseWithStorages(t, b, regularStorage, &logical.InmemStorage{})
+
+	_, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.SnapshotStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-snapshot"},
+		},
+	})
+	require.NoError(t, err, "failed to write snapshot data")
+
+	_, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.RegularStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-live"},
+		},
+	})
+	require.NoError(t, err, "failed to write live data")
+
+	_, err = tc.DoRecover(t, "data/foo")
+	require.NoError(t, err, "recover failed")
+
+	read, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "data/foo",
+		Storage:   tc.RegularStorage(),
+	})
+	require.NoError(t, err, "read failed")
+	require.NotNil(t, read, "expected response")
+
+	readData, ok := read.Data["data"].(map[string]interface{})
+	require.True(t, ok, "unexpected data shape: %#v", read.Data["data"])
+	require.Equal(t, "from-snapshot", readData["k"], "expected recovered data")
+
+	metadata, ok := read.Data["metadata"].(map[string]interface{})
+	require.True(t, ok, "unexpected metadata shape: %#v", read.Data["metadata"])
+	require.Equal(t, uint64(2), metadata["version"], "expected recovered write to create version 2")
+
+	// Now copy recover: restore foo's snapshot value into a different path (bar).
+	_, err = tc.DoRecover(t, "data/bar", snapshots.WithRecoverSourcePath("data/foo"))
+	require.NoError(t, err, "copy recover failed")
+
+	copyRead, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "data/bar",
+		Storage:   tc.RegularStorage(),
+	})
+	require.NoError(t, err, "copy read failed")
+	require.NotNil(t, copyRead, "expected copy response")
+
+	copyData, ok := copyRead.Data["data"].(map[string]interface{})
+	require.True(t, ok, "unexpected copy data shape: %#v", copyRead.Data["data"])
+	require.Equal(t, "from-snapshot", copyData["k"], "expected copied data")
+}
+
+// TestVersionedKV_Data_Recover_IgnoresRecoverRequestData injects stale data
+// into the recover request to prove recover sources from snapshot storage,
+// not the request payload.
+func TestVersionedKV_Data_Recover_IgnoresRecoverRequestData(t *testing.T) {
+	b, regularStorage := getBackend(t)
+	tc := snapshots.NewSnapshotTestCaseWithStorages(t, b, regularStorage, &logical.InmemStorage{})
+
+	_, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.SnapshotStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-snapshot"},
+		},
+	})
+	require.NoError(t, err, "failed to write snapshot data")
+
+	_, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.RegularStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-live"},
+		},
+	})
+	require.NoError(t, err, "failed to write live data")
+
+	_, err = tc.DoRecover(t, "data/foo", snapshots.WithModifyRequests(func(req *logical.Request) {
+		if req.Operation != logical.RecoverOperation {
+			return
+		}
+
+		req.Data = map[string]interface{}{
+			"data": map[string]interface{}{"k": "stale-request-data"},
+		}
+	}))
+	require.NoError(t, err, "recover failed")
+
+	read, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "data/foo",
+		Storage:   tc.RegularStorage(),
+	})
+	require.NoError(t, err, "read failed")
+	require.NotNil(t, read, "expected response")
+
+	readData, ok := read.Data["data"].(map[string]interface{})
+	require.True(t, ok, "unexpected data shape: %#v", read.Data["data"])
+	require.Equal(t, "from-snapshot", readData["k"], "expected recover to read from snapshot storage")
+}
+
+// recoverTestSnapshotProvider is a minimal SnapshotStorageProvider used by the
+// recover negative-path tests to build a snapshot storage router directly,
+// bypassing the DoRecover helper (which asserts the pre-read returns data).
+type recoverTestSnapshotProvider struct {
+	storage logical.Storage
+}
+
+func (p *recoverTestSnapshotProvider) SnapshotStorage(_ context.Context, _ string) (logical.Storage, error) {
+	return p.storage, nil
+}
+
+// TestVersionedKV_Data_Recover_Attribution verifies that a recovered version
+// records "recover" as its attribution operation rather than masquerading as a
+// normal create or update.
+func TestVersionedKV_Data_Recover_Attribution(t *testing.T) {
+	b, regularStorage := getBackend(t)
+	tc := snapshots.NewSnapshotTestCaseWithStorages(t, b, regularStorage, &logical.InmemStorage{})
+
+	_, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.SnapshotStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-snapshot"},
+		},
+	})
+	require.NoError(t, err, "failed to write snapshot data")
+
+	_, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.RegularStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-live"},
+		},
+	})
+	require.NoError(t, err, "failed to write live data")
+
+	_, err = tc.DoRecover(t, "data/foo")
+	require.NoError(t, err, "recover failed")
+
+	meta, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "metadata/foo",
+		Storage:   tc.RegularStorage(),
+	})
+	require.NoError(t, err, "metadata read failed")
+	require.NotNil(t, meta, "expected metadata response")
+
+	versions, ok := meta.Data["versions"].(map[string]interface{})
+	require.True(t, ok, "unexpected versions shape: %#v", meta.Data["versions"])
+
+	recovered, ok := versions["2"].(map[string]interface{})
+	require.True(t, ok, "expected recovered version 2 in metadata: %#v", versions)
+
+	createdBy, ok := recovered["created_by"].(*Attribution)
+	require.True(t, ok, "unexpected created_by shape: %#v", recovered["created_by"])
+	require.Equal(t, "recover", createdBy.Operation, "expected recovered version to record recover attribution")
+}
+
+// TestVersionedKV_Data_Recover_DeletedVersion verifies that attempting to
+// recover a snapshot version that was soft-deleted fails cleanly rather than
+// writing empty data.
+func TestVersionedKV_Data_Recover_DeletedVersion(t *testing.T) {
+	b, regularStorage := getBackend(t)
+	tc := snapshots.NewSnapshotTestCaseWithStorages(t, b, regularStorage, &logical.InmemStorage{})
+
+	_, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/foo",
+		Storage:   tc.SnapshotStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "from-snapshot"},
+		},
+	})
+	require.NoError(t, err, "failed to write snapshot data")
+
+	_, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.DeleteOperation,
+		Path:      "data/foo",
+		Storage:   tc.SnapshotStorage(),
+	})
+	require.NoError(t, err, "failed to delete snapshot version")
+
+	resp, err := tc.DoRecover(t, "data/foo")
+	require.Error(t, err, "expected recover of deleted version to fail")
+	require.NotNil(t, resp, "expected error response")
+	require.True(t, resp.IsError(), "expected error response, got: %#v", resp)
+}
+
+// TestVersionedKV_Data_Recover_NonexistentSourcePath verifies that recovering a
+// path that does not exist in the snapshot fails cleanly. An unrelated secret
+// is seeded into the snapshot first so the backend's encryption key exists,
+// isolating the missing-secret behavior from key initialization.
+func TestVersionedKV_Data_Recover_NonexistentSourcePath(t *testing.T) {
+	b, regularStorage := getBackend(t)
+	tc := snapshots.NewSnapshotTestCaseWithStorages(t, b, regularStorage, &logical.InmemStorage{})
+
+	_, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "data/seed",
+		Storage:   tc.SnapshotStorage(),
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"k": "seed"},
+		},
+	})
+	require.NoError(t, err, "failed to seed snapshot data")
+
+	router := logical.NewSnapshotStorageRouter(tc.RegularStorage(), &recoverTestSnapshotProvider{tc.SnapshotStorage()})
+
+	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation:          logical.RecoverOperation,
+		Path:               "data/missing",
+		Storage:            router,
+		RequiresSnapshotID: "snapshot_id",
+	})
+	require.Error(t, err, "expected recover of missing path to fail")
+	require.NotNil(t, resp, "expected error response")
+	require.True(t, resp.IsError(), "expected error response, got: %#v", resp)
+}
+
+// TestVersionedKV_Data_Recover_MismatchedRecoverSourcePath verifies that a
+// recover source path whose pattern does not match the destination path is
+// rejected.
+func TestVersionedKV_Data_Recover_MismatchedRecoverSourcePath(t *testing.T) {
+	b, regularStorage := getBackend(t)
+	tc := snapshots.NewSnapshotTestCaseWithStorages(t, b, regularStorage, &logical.InmemStorage{})
+
+	router := logical.NewSnapshotStorageRouter(tc.RegularStorage(), &recoverTestSnapshotProvider{tc.SnapshotStorage()})
+
+	_, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation:          logical.RecoverOperation,
+		Path:               "data/foo",
+		RecoverSourcePath:  "metadata/foo",
+		Storage:            router,
+		RequiresSnapshotID: "snapshot_id",
+	})
+	require.Error(t, err, "expected mismatched recover source path to fail")
+	require.Contains(t, err.Error(), "recover source path", "unexpected error: %v", err)
 }
