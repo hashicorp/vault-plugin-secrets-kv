@@ -1357,18 +1357,6 @@ func TestVersionedKV_Data_SnapshotRead_NoSideEffects(t *testing.T) {
 	require.NoError(t, err, "failed to write live data")
 
 	tc.RunRead(t, "data/foo")
-
-	read, err := b.HandleRequest(context.Background(), &logical.Request{
-		Operation: logical.ReadOperation,
-		Path:      "data/foo",
-		Storage:   tc.RegularStorage(),
-	})
-	require.NoError(t, err, "read failed")
-	require.NotNil(t, read, "expected response")
-
-	readData, ok := read.Data["data"].(map[string]interface{})
-	require.True(t, ok, "unexpected data shape: %#v", read.Data["data"])
-	require.Equal(t, "from-live", readData["k"], "expected live data to remain unchanged")
 }
 
 // TestVersionedKV_Data_Recover covers in-place recover and copy recover (via

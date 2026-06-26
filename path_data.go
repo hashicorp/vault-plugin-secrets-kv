@@ -469,10 +469,10 @@ func (b *versionedKVBackend) pathDataWrite() framework.OperationFunc {
 	}
 }
 
-// pathDataRecover restores a KVv2 secret from a snapshot. It reads the secret
-// directly from snapshot storage (using RecoverSourcePath when recovering into
-// a different path) and writes it back through the normal write path as a new
-// version.
+// pathDataRecover restores the latest readable version of a KVv2 secret
+// from a snapshot. It reads the secret directly from snapshot storage (using
+// RecoverSourcePath when recovering into a different path) and writes it back
+// through the normal write path as a new version.
 func (b *versionedKVBackend) pathDataRecover() framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		snapshotStorage, err := logical.NewSnapshotStorageView(req)
@@ -489,7 +489,10 @@ func (b *versionedKVBackend) pathDataRecover() framework.OperationFunc {
 				return nil, fmt.Errorf("failed to parse recover source path: %w", err)
 			}
 
-			sourceKey := fd.Get("path").(string)
+			sourceKey, ok := fd.Get("path").(string)
+			if !ok {
+				return logical.ErrorResponse("invalid recover source path"), logical.ErrInvalidRequest
+			}
 			// override source to the other path
 			sourcePath = "data/" + sourceKey
 		}
@@ -520,12 +523,17 @@ func (b *versionedKVBackend) pathDataRecover() framework.OperationFunc {
 			return logical.ErrorResponse("invalid data provided"), logical.ErrInvalidRequest
 		}
 
+		recoverPath, ok := data.Get("path").(string)
+		if !ok {
+			return logical.ErrorResponse("invalid recover destination path"), logical.ErrInvalidRequest
+		}
+
 		// writeData carries the two fields pathDataWrite reads: "data" is the snapshot
 		// secret, "path" is the recover destination. Version metadata is not preserved
 		// across recoveries; instead the write creates a new version with fresh metadata.
 		writeData := &framework.FieldData{
 			Raw: map[string]interface{}{
-				"path": data.Get("path").(string),
+				"path": recoverPath,
 				"data": vData,
 			},
 			Schema: data.Schema,
