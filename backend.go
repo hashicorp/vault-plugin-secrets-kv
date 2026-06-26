@@ -104,7 +104,7 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 
 // VersionedKVFactory returns a new KVV2 backend as logical.Backend.
 func VersionedKVFactory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
-	upgradeCtx, upgradeCancelFunc := context.WithCancel(ctx)
+	upgradeCtx, upgradeCancelFunc := context.WithCancel(context.Background())
 
 	b := &versionedKVBackend{
 		upgrading:         new(uint32),

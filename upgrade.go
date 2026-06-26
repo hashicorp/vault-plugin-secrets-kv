@@ -94,8 +94,12 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 		b.Logger().Info("upgrade not running on performance replication secondary or performance standby")
 
 		go func() {
+			ticker := time.NewTicker(time.Second)
 			for {
-				time.Sleep(time.Second)
+				select {
+				case <-ticker.C:
+				case <-ctx.Done():
+				}
 
 				// If we failed because the context is closed we are
 				// shutting down. Close this go routine and set the upgrade
@@ -142,9 +146,6 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	if err != nil {
 		return err
 	}
-
-	// Because this is a long-running process we need a new context.
-	ctx = context.Background()
 
 	upgradeKey := func(key string) error {
 		if strings.HasPrefix(key, b.storagePrefix) {
@@ -222,6 +223,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	}
 
 	writeUpgradeInfoDoneFunc := func(info []byte) {
+		ticker := time.NewTicker(10 * time.Millisecond)
 		for {
 			err = s.Put(ctx, &logical.StorageEntry{
 				Key:   path.Join(b.storagePrefix, "upgrading"),
@@ -231,7 +233,11 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			case err == nil:
 				return
 			case err.Error() == logical.ErrSetupReadOnly.Error():
-				time.Sleep(10 * time.Millisecond)
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
 			default:
 				b.Logger().Error("writing upgrade info resulted in an error, but all keys were successfully upgraded", "error", err)
 				return
@@ -242,6 +248,7 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 	upgradeFunc := func() {
 		// Write the canary value and if we are read only wait until the setup
 		// process has finished.
+		ticker := time.NewTicker(10 * time.Millisecond)
 	READONLY_LOOP:
 		for {
 			err := s.Put(ctx, &logical.StorageEntry{
@@ -252,7 +259,11 @@ func (b *versionedKVBackend) Upgrade(ctx context.Context, s logical.Storage) err
 			case err == nil:
 				break READONLY_LOOP
 			case err.Error() == logical.ErrSetupReadOnly.Error():
-				time.Sleep(10 * time.Millisecond)
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
 			default:
 				b.Logger().Error("writing upgrade info resulted in an error", "error", err)
 				return
