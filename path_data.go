@@ -92,6 +92,7 @@ version matches the version specified in the cas parameter.`,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "write",
 				},
+				Summary:   "Write a secret at the specified location.",
 				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.CreateOperation: &framework.PathOperation{
@@ -99,6 +100,7 @@ version matches the version specified in the cas parameter.`,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "write",
 				},
+				Summary:   "Write a secret at the specified location.",
 				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.ReadOperation: &framework.PathOperation{
@@ -106,6 +108,7 @@ version matches the version specified in the cas parameter.`,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "read",
 				},
+				Summary: "Read the secret at the specified location.",
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
 						Description: http.StatusText(http.StatusOK),
@@ -127,6 +130,7 @@ version matches the version specified in the cas parameter.`,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "delete",
 				},
+				Summary: "Delete the latest version of the secret at the specified location.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
@@ -138,6 +142,7 @@ version matches the version specified in the cas parameter.`,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "patch",
 				},
+				Summary:   "Patch an existing secret at the specified location.",
 				Responses: updateCreatePatchResponseSchema,
 			},
 			logical.RecoverOperation: &framework.PathOperation{
@@ -145,6 +150,7 @@ version matches the version specified in the cas parameter.`,
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "recover",
 				},
+				Summary:   "Recover the secret at the specified location from a snapshot.",
 				Responses: updateCreatePatchResponseSchema,
 			},
 		},

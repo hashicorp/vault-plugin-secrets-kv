@@ -37,6 +37,7 @@ func pathDestroy(b *versionedKVBackend) *framework.Path {
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathDestroyWrite()),
+				Summary: "Permanently removes one or more versions in the KV store.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),

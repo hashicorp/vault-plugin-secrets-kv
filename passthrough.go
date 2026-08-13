@@ -72,10 +72,11 @@ func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.B
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "read",
 						},
+						Summary: "Read the secret at the specified location.",
 						Responses: map[int][]framework.Response{
 							http.StatusOK: {{
 								Description: http.StatusText(http.StatusOK),
-								Fields:      nil, // dynamic fields
+								Fields:      nil, // dynamic fields — user-defined key/value pairs stored directly in resp.Data
 							}},
 						},
 					},
@@ -84,6 +85,7 @@ func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.B
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "write",
 						},
+						Summary: "Write a secret at the specified location.",
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
 								Description: http.StatusText(http.StatusNoContent),
@@ -95,6 +97,7 @@ func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.B
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "write",
 						},
+						Summary: "Write a secret at the specified location.",
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
 								Description: http.StatusText(http.StatusNoContent),
@@ -106,6 +109,7 @@ func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.B
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "delete",
 						},
+						Summary: "Delete the secret at the specified location.",
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
 								Description: http.StatusText(http.StatusNoContent),
@@ -117,12 +121,26 @@ func LeaseSwitchedPassthroughBackendFactory(ctx context.Context, conf *logical.B
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "list",
 						},
+						Summary: "List secret entries at the specified location.",
+						Responses: map[int][]framework.Response{
+							http.StatusOK: {{
+								Description: http.StatusText(http.StatusOK),
+								Fields: map[string]*framework.FieldSchema{
+									"keys": {
+										Type:        framework.TypeStringSlice,
+										Description: "List of keys at the requested path.",
+										Required:    true,
+									},
+								},
+							}},
+						},
 					},
 					logical.RecoverOperation: &framework.PathOperation{
 						Callback: b.handleWrite(),
 						DisplayAttrs: &framework.DisplayAttributes{
 							OperationVerb: "recover",
 						},
+						Summary: "Recover the secret at the specified location from a snapshot.",
 						Responses: map[int][]framework.Response{
 							http.StatusNoContent: {{
 								Description: http.StatusText(http.StatusNoContent),

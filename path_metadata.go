@@ -73,6 +73,7 @@ version-agnostic information about a secret.
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+				Summary: "Write metadata for a secret at the specified location.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
@@ -84,6 +85,7 @@ version-agnostic information about a secret.
 			},
 			logical.CreateOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataWrite()),
+				Summary: "Write metadata for a secret at the specified location.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
@@ -92,6 +94,7 @@ version-agnostic information about a secret.
 			},
 			logical.ReadOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataRead()),
+				Summary: "Read metadata for a secret at the specified location.",
 				Responses: map[int][]framework.Response{
 					http.StatusOK: {{
 						Description: http.StatusText(http.StatusOK),
@@ -149,6 +152,7 @@ version-agnostic information about a secret.
 			},
 			logical.DeleteOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataDelete()),
+				Summary: "Delete all versions and metadata for a secret at the specified location.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
@@ -160,12 +164,26 @@ version-agnostic information about a secret.
 			},
 			logical.ListOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataList()),
+				Summary: "List secret entries at the specified location.",
 				DisplayAttrs: &framework.DisplayAttributes{
 					OperationVerb: "list",
+				},
+				Responses: map[int][]framework.Response{
+					http.StatusOK: {{
+						Description: http.StatusText(http.StatusOK),
+						Fields: map[string]*framework.FieldSchema{
+							"keys": {
+								Type:        framework.TypeStringSlice,
+								Description: "List of keys at the requested path.",
+								Required:    true,
+							},
+						},
+					}},
 				},
 			},
 			logical.PatchOperation: &framework.PathOperation{
 				Callback: b.upgradeCheck(b.pathMetadataPatch()),
+				Summary: "Patch metadata for a secret at the specified location.",
 				Responses: map[int][]framework.Response{
 					http.StatusNoContent: {{
 						Description: http.StatusText(http.StatusNoContent),
@@ -176,8 +194,8 @@ version-agnostic information about a secret.
 
 		ExistenceCheck: b.metadataExistenceCheck(),
 
-		HelpSynopsis:    confHelpSyn,
-		HelpDescription: confHelpDesc,
+		HelpSynopsis:    metadataHelpSyn,
+		HelpDescription: metadataHelpDesc,
 	}
 }
 
