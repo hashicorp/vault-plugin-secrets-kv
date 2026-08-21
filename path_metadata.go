@@ -112,11 +112,11 @@ version-agnostic information about a secret.
 								Required: true,
 							},
 							"created_time": {
-								Type:     framework.TypeTime,
+								Type:     framework.TypeString,
 								Required: true,
 							},
 							"updated_time": {
-								Type:     framework.TypeTime,
+								Type:     framework.TypeString,
 								Required: true,
 							},
 							"max_versions": {
@@ -129,7 +129,7 @@ version-agnostic information about a secret.
 								Required: true,
 							},
 							"delete_version_after": {
-								Type:        framework.TypeDurationSecond,
+								Type:        framework.TypeString,
 								Description: "The length of time before a version is deleted.",
 								Required:    true,
 							},
