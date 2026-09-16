@@ -1,3 +1,13 @@
+## v0.27.0
+### September 16, 2026
+
+* bump crypto and grpc (#249)
+* bumping go for plugin release (#248)
+* Added missing metadata for API endpoints
+* Changes needed to make kv-v2 mounts usable in vault tests with synctest (#243)
+* bump deps to fix CVEs (#244)
+* Add snapshot recovery handlers for KVv2 (#242)
+
 ## v0.26.2
 ### March 20, 2026
 
