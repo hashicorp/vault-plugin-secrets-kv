@@ -1,6 +1,6 @@
 module github.com/hashicorp/vault-plugin-secrets-kv
 
-go 1.27.3
+go 1.26.1
 
 require (
 	github.com/go-test/deep v1.1.1
