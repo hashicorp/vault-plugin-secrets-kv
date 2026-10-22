@@ -1,3 +1,9 @@
+## v0.27.1
+### October 22, 2026
+
+* Update deps (#251)
+* Update changelog for v0.27.0 release (#250)
+
 ## v0.27.0
 ### September 16, 2026
 
