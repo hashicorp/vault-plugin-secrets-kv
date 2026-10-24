@@ -37,7 +37,7 @@ func pathData(b *versionedKVBackend) *framework.Path {
 					Required: true,
 				},
 				"created_time": {
-					Type:     framework.TypeTime,
+					Type:     framework.TypeString,
 					Required: true,
 				},
 				"deletion_time": {
